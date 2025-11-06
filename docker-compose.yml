@@ -1,0 +1,23 @@
+services:
+  nix:
+    stdin_open: true
+    tty: true
+    environment:
+      - NIX_CONFIG=experimental-features = nix-command flakes
+      - DD_FETCH=1
+      - DD_CUDD=1
+    volumes:
+      - .:/workdir
+      - nix-store:/nix/store
+      - nix-db:/nix/var/nix/db
+      - nix-profiles:/nix/var/nix/profiles
+      - nix-gcroots:/nix/var/nix/gcroots
+    working_dir: /workdir
+    image: ghcr.io/nixos/nix:latest
+    command: ["sleep", "infinity"]
+
+volumes:
+  nix-store:
+  nix-db:
+  nix-profiles:
+  nix-gcroots:
