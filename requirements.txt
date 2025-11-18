@@ -1,3 +1,0 @@
-cython
-wheel
-theorydd@git+https://github.com/ecivini/tddnnf@main
