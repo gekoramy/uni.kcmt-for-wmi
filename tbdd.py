@@ -4,15 +4,20 @@ from pysmt.shortcuts import And, Implies, Or, Iff, LT, LE, Real, Symbol, REAL, P
 
 def main():
     # BUILD YOUR T-FORMULA FROM THE PYSMT LIBRARY
+
+    x = Symbol("x", REAL)
+    y = Symbol("y", REAL)
+    z = Symbol("z", REAL)
+
     phi = And(
         Implies(
-            LT(Symbol("x", REAL), Symbol("y", REAL)),
-            LE(Plus(Symbol("x", REAL), Symbol("z", REAL)), Real(0)),
+            LT(x, y),
+            LE(Plus(x, z), Real(0)),
         ),
-        Or(LE(Real(-10), Symbol("z", REAL)), LT(Symbol("y", REAL), Symbol("z", REAL))),
+        Or(LE(Real(-10), z), LT(y, z)),
         Iff(
-            LT(Symbol("x", REAL), Symbol("y", REAL)),
-            LT(Symbol("z", REAL), Symbol("y", REAL)),
+            LT(x, y),
+            LT(z, y),
         ),
     )
 
