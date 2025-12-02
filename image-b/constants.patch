@@ -1,0 +1,19 @@
+diff --git a/venv/lib/python3.13/site-packages/theorydd/constants.py b/constants.py
+index a6c3beb..afaf26f 100644
+--- a/venv/lib/python3.13/site-packages/theorydd/constants.py
++++ b/constants.py
+@@ -48,11 +48,9 @@ SDD_KEY_END_RIGHT_REGEX = r'",'
+ SDD_REPLACE_LEFT_REGEX = SDD_KEY_START_LEFT_REGEX
+ SDD_REPLACE_RIGHT_REGEX = SDD_KEY_START_RIGHT_REGEX
+ 
+-LIBRARY_PATH = os.path.dirname(os.path.realpath(__file__))
+-
+-C2D_COMMAND = LIBRARY_PATH + "/bin/c2d/c2d_linux"
+-D4_COMMAND = LIBRARY_PATH + "/bin/d4/d4.bin"
+-TABULAR_ALLSMT_COMMAND = LIBRARY_PATH + "/bin/tabular/tabularAllSMT.bin"
++C2D_COMMAND = "c2d"
++D4_COMMAND = "d4"
++TABULAR_ALLSMT_COMMAND = "tabularAllSMT"
+ 
+ # regex for tlemmas files
+ TLEMMAS_FILE_REGEX = "tlemma_[0-9]+.smt2"
