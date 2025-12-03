@@ -5,7 +5,6 @@
   fetchzip,
   cmake,
   lp_solve,
-  tree,
 }:
 stdenv.mkDerivation {
   pname = "volesti_integrate";
@@ -14,10 +13,6 @@ stdenv.mkDerivation {
   nativeBuildInputs = [
     cmake
     lp_solve
-  ];
-
-  buildInputs = [
-    tree
   ];
 
   src = fetchFromGitHub {
