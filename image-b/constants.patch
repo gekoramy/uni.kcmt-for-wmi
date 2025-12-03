@@ -11,9 +11,9 @@ index a6c3beb..afaf26f 100644
 -C2D_COMMAND = LIBRARY_PATH + "/bin/c2d/c2d_linux"
 -D4_COMMAND = LIBRARY_PATH + "/bin/d4/d4.bin"
 -TABULAR_ALLSMT_COMMAND = LIBRARY_PATH + "/bin/tabular/tabularAllSMT.bin"
-+C2D_COMMAND = "c2d"
-+D4_COMMAND = "d4"
-+TABULAR_ALLSMT_COMMAND = "tabularAllSMT"
++C2D_COMMAND = "/root/.nix-profile/bin/c2d"
++D4_COMMAND = "/root/.nix-profile/bin/d4"
++TABULAR_ALLSMT_COMMAND = "/root/.nix-profile/bin/tabularAllSMT"
  
  # regex for tlemmas files
  TLEMMAS_FILE_REGEX = "tlemma_[0-9]+.smt2"
