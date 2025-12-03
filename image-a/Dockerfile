@@ -14,4 +14,4 @@ COPY . .
 
 RUN nix profile install .#bundle
 
-CMD ["sleep", "infinity"]
+CMD ["bash"]
