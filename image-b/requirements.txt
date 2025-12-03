@@ -1,5 +1,5 @@
 cython
 wheel
 pytest
-theorydd@git+https://github.com/ecivini/tddnnf@5c5259b3f829ae33c943d22372d7811661928434
+theorydd@git+https://github.com/ecivini/tddnnf@8c048eafb718acd9af4d5ff4e032d55dbd23c7cb
 wmpy@git+https://github.com/unitn-sml/wmpy@aa1244af94a66526b18465c5d207086d91404101
