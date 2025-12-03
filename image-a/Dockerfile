@@ -12,6 +12,6 @@ WORKDIR /flake
 
 COPY . .
 
-RUN nix profile install .#bundle
+RUN nix profile add .#bundle
 
 CMD ["bash"]
