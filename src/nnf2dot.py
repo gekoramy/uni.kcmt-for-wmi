@@ -1,12 +1,12 @@
-import sys
-import typing as t
+import argparse
 import itertools as it
+import typing as t
 import graphviz
 
 from pathlib import Path
 
 
-def nnf2svg(file: t.Iterator[str]) -> graphviz.Graph:
+def nnf2dot(file: t.Iterator[str]) -> graphviz.Graph:
     dot = graphviz.Graph('wide')
 
     ids = (str(i) for i in it.count(-1, -1))
@@ -70,15 +70,17 @@ def nnf2svg(file: t.Iterator[str]) -> graphviz.Graph:
     return dot
 
 
+def main(nnf: Path, dot: Path) -> None:
+    with open(nnf, 'rt') as f:
+        output = nnf2dot(f)
+
+    output.render(dot.as_posix())
+
+
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print(f'Usage: python {Path(sys.argv[0]).name} <input.nnf> <output.dot>')
-        sys.exit(1)
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
+    parser.add_argument('--nnf', type=Path, required=True)
+    parser.add_argument('--dot', type=Path, required=True)
+    args: argparse.Namespace = parser.parse_args()
 
-    nnf = Path(sys.argv[1])
-    svg = Path(sys.argv[2])
-
-    with open(nnf, 'r') as f:
-        output = nnf2svg(f)
-
-    output.render(svg.as_posix())
+    main(args.nnf, args.dot)
