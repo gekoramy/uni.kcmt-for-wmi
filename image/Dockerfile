@@ -13,8 +13,20 @@ ENV PATH="${PATH}:/nix/var/nix/profiles/default/bin"
 
 WORKDIR /flake
 
-COPY . .
+COPY ./flake .
 
 RUN nix profile add .#bundle
+
+ENV DD_FETCH=1
+ENV DD_CUDD=1
+
+WORKDIR /deps
+
+COPY ./python .
+
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pysmt-install --msat --confirm-agreement
+RUN patch -i constants.patch $(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")/theorydd/constants.py
+RUN python pysmt-postinstall.py
 
 CMD ["bash"]
