@@ -8,7 +8,7 @@ name: Docker
 on:
   push:
     branches: [ "main" ]
-    paths: [ "image" ]
+    paths: [ "image/**" ]
   # allows manual triggering
   workflow_dispatch: 
 
