@@ -1,5 +1,5 @@
+import argparse
 import itertools as it
-import sys
 import typing as t
 
 from dataclasses import dataclass
@@ -108,16 +108,18 @@ def sdd2nnf(sdd: t.Iterator[str]) -> list[str]:
     return nodes + edges
 
 
-if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print(f'Usage: python {Path(sys.argv[0]).name} <input.sdd> <output.nnf>')
-        sys.exit(1)
-
-    sdd = Path(sys.argv[1])
-    nnf = Path(sys.argv[2])
-
-    with open(sdd, 'r') as f:
+def main(sdd: Path, nnf: Path) -> None:
+    with open(sdd, 'rt') as f:
         output = sdd2nnf(f)
 
-    with open(nnf, 'w') as f:
+    with open(nnf, 'wt') as f:
         f.writelines(line + ' 0\n' for line in output)
+
+
+if __name__ == '__main__':
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
+    parser.add_argument('--ssd', type=Path, required=True)
+    parser.add_argument('--nnf', type=Path, required=True)
+    args: argparse.Namespace = parser.parse_args()
+
+    main(args.ssd, args.nnf)
