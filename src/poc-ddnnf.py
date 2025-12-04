@@ -96,7 +96,7 @@ decdnnf: Popen[str] = subprocess.Popen(
 
 for line in decdnnf.stdout:
 
-    model = line.removeprefix('v ').removesuffix(' 0')
+    model = line.strip().removesuffix('0')
 
     P = list(map(int, re.findall(r' (\d+)', model)))
     N = list(map(int, re.findall(r'-(\d+)', model)))
