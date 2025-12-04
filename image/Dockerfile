@@ -2,11 +2,9 @@ FROM python:3.13
 
 RUN apt update -y
 RUN apt install curl -y
-RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
-  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install linux \
+RUN curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install linux \
   --determinate \
   --init none \
-  --extra-conf "access-tokens = github.com=${GITHUB_TOKEN}"\
   --no-confirm
 ENV PATH="${PATH}:/nix/var/nix/profiles/default/bin"
 
@@ -14,7 +12,8 @@ WORKDIR /flake
 
 COPY ./flake .
 
-RUN nix profile add .#bundle
+RUN --mount=type=secret,id=nix-config,env=NIX_CONFIG \
+  nix profile add .#bundle
 
 ENV DD_FETCH=1
 ENV DD_CUDD=1

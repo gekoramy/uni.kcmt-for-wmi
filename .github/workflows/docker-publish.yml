@@ -59,10 +59,12 @@ jobs:
       - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@v6.18.0
+        env:
+          NIX_CONFIG: access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
         with:
           context: ./image
           push: true
-          secret-envs: GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          secret-envs: nix-config=NIX_CONFIG
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
