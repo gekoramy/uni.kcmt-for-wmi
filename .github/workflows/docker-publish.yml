@@ -39,8 +39,8 @@ jobs:
           push: true
           secret-envs: nix-config=NIX_CONFIG
           tags: |
-            ${{ env.IMAGE_NAME }}/latest
-            ${{ env.IMAGE_NAME }}/${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
