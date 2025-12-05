@@ -22,6 +22,7 @@ from src.nnf2dot import main as nnf2dot
 cwd = Path('.')
 
 # %%
+a = s.Symbol('a', s.BOOL)
 x = s.Symbol('x', s.REAL)
 y = s.Symbol('y', s.REAL)
 z = s.Symbol('z', s.REAL)
@@ -34,6 +35,10 @@ phi: FNode = s.And(
     s.Or(s.LE(s.Real(-10), z), s.LT(y, z)),
     s.Iff(
         s.LT(x, y),
+        s.LT(z, y),
+    ),
+    s.Iff(
+        a,
         s.LT(z, y),
     ),
 )
@@ -90,17 +95,18 @@ decdnnf: Popen[str] = subprocess.Popen(
     text=True,
 )
 
+b2regex: dict[bool, re.Pattern] = {
+    False: re.compile(r'-(\d+)'),
+    True: re.compile(r' (\d+)'),
+}
+
 for line in decdnnf.stdout:
+    model: str = line.strip().removesuffix('0')
 
-    model = line.strip().removesuffix('0')
-
-    P = list(map(int, re.findall(r' (\d+)', model)))
-    N = list(map(int, re.findall(r'-(\d+)', model)))
-
-    print(
-        [abs2theory.get(l, l) for l in P],
-        [abs2theory.get(l, l) for l in N],
-    )
+    print({
+        boolean: [abs2theory[int(l)] for l in regex.findall(model)]
+        for boolean, regex in b2regex.items()
+    })
 
 decdnnf.poll()
 print(decdnnf.returncode)
