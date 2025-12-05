@@ -67,5 +67,6 @@ jobs:
           secret-envs: nix-config=NIX_CONFIG
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
