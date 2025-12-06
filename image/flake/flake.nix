@@ -16,12 +16,12 @@
     craneLib = crane.mkLib pkgs;
   in {
     packages.${system} = {
-      c2d = i686.callPackage ./nix/c2d.nix {};
-      d4 = pkgs.callPackage ./nix/d4.nix {};
-      mathsat = pkgs.callPackage ./nix/mathsat.nix {};
-      tabularAllSMT = pkgs.callPackage ./nix/tabularAllSMT.nix {};
-      volesti-integrate = pkgs.callPackage ./nix/volesti.nix {};
-      decdnnf_rs = pkgs.callPackage ./nix/decdnnf_rs.nix {inherit craneLib;};
+      c2d = i686.callPackage ./nix/c2d {};
+      d4 = pkgs.callPackage ./nix/d4 {};
+      mathsat = pkgs.callPackage ./nix/mathsat {};
+      tabularAllSMT = pkgs.callPackage ./nix/tabularAllSMT {};
+      volesti-integrate = pkgs.callPackage ./nix/volesti {};
+      decdnnf_rs = pkgs.callPackage ./nix/decdnnf_rs {inherit craneLib;};
 
       bundle = pkgs.buildEnv {
         name = "bundle";
