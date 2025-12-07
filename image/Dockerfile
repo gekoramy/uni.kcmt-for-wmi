@@ -13,7 +13,8 @@ WORKDIR /flake
 COPY ./flake .
 
 RUN --mount=type=secret,id=nix-config,env=NIX_CONFIG \
-  nix profile add .#bundle
+  nix profile add .#bundle \
+  && nix-collect-garbage -d
 
 ENV DD_FETCH=1
 ENV DD_CUDD=1
