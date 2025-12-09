@@ -4,3 +4,4 @@ pytest
 theorydd@git+https://github.com/ecivini/tddnnf@246d08628718ad091609ee59c9f16752ae67af38
 wmpy@git+https://github.com/unitn-sml/wmpy@aa1244af94a66526b18465c5d207086d91404101
 graphviz
+pyrefly
