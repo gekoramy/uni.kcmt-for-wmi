@@ -8,9 +8,10 @@ import re
 import subprocess
 import tempfile
 import typing as t
-from concurrent.futures import ThreadPoolExecutor, Future, CancelledError
 from dataclasses import dataclass
+from datetime import timedelta
 from io import StringIO
+from multiprocessing import Process
 from operator import isub
 from pathlib import Path
 from subprocess import Popen
@@ -24,7 +25,7 @@ from pysmt.typing import BOOL
 from theorydd.tdd.theory_sdd import TheorySDD
 from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF
 from wmpy.core.weights import Weights
-from wmpy.enumeration import SAEnumerator
+from wmpy.enumeration import SAEnumerator, Enumerator
 from wmpy.integration import LattEIntegrator, Integrator
 from wmpy.solvers import WMISolver
 
@@ -204,7 +205,13 @@ integrator: Integrator = (LattEIntegrator())
 cwd: Path = Path(__file__).parent
 parser: SmtLibParser = SmtLibParser(environment=env)
 
+
 # %%
+
+def execute(enumerator: Enumerator) -> None:
+    logging.info(WMISolver(enumerator, integrator).compute(s.Bool(True), A + x))
+
+
 for file in it.islice(list((cwd / 'benchmarks' / 'structured').rglob('*.json')), 1, 2):
 
     if 0 == os.path.getsize(file):
@@ -236,16 +243,15 @@ for file in it.islice(list((cwd / 'benchmarks' / 'structured').rglob('*.json')),
                 case _:
                     raise RuntimeError(f'unknown tuple : {t}')
 
-    with ThreadPoolExecutor(max_workers=1) as executor:
-
         for name, enumerator in [
             ('sae', SAEnumerator(support, w, env)),
             (' d4', FnEnumerator(env, support, w, fn.partial(enum, with_tddnnf))),
             ('sdd', FnEnumerator(env, support, w, fn.partial(enum, with_tssdd))),
         ]:
-            with Log(f'solwing with {name}'):
-                try:
-                    future: Future = executor.submit(lambda : WMISolver(enumerator, integrator).compute(s.Bool(True), A + x))
-                    logging.info(future.result(5 * 60))
-                except CancelledError:
+
+            with Log(f'solving with {name}'):
+                p = Process(target=execute, args=(enumerator,))
+                p.start()
+                if 0 != p.join(timedelta(minutes=10).total_seconds()):
+                    p.kill()
                     logging.error("timed out")
