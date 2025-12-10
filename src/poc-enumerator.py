@@ -16,6 +16,7 @@ from operator import isub
 from pathlib import Path
 from subprocess import Popen
 
+import numpy as np
 import pysmt.environment
 import pysmt.shortcuts as s
 from pysmt.environment import Environment
@@ -26,7 +27,7 @@ from theorydd.tdd.theory_sdd import TheorySDD
 from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF
 from wmpy.core.weights import Weights
 from wmpy.enumeration import SAEnumerator, Enumerator
-from wmpy.integration import LattEIntegrator, Integrator
+from wmpy.integration import Integrator
 from wmpy.solvers import WMISolver
 
 from src.parse import nested_to_smt
@@ -199,8 +200,16 @@ logging.basicConfig(
 )
 
 # %%
+class PlaceHolderIntegrator:
+    def integrate(self, polytope, integrand) -> float:
+        return 1
+
+    def integrate_batch(self, convex_integrals) -> np.ndarray:
+        return np.ones(len(convex_integrals))
+
+
 env: Environment = pysmt.environment.get_env()
-integrator: Integrator = (LattEIntegrator())
+integrator: Integrator = PlaceHolderIntegrator()
 
 cwd: Path = Path(__file__).parent
 parser: SmtLibParser = SmtLibParser(environment=env)
@@ -212,10 +221,10 @@ def execute(enumerator: Enumerator) -> None:
     logging.info(WMISolver(enumerator, integrator).compute(s.Bool(True), A + x))
 
 
-for file in it.islice(list((cwd / 'benchmarks' / 'structured').rglob('*.json')), 1, 2):
+for file in (cwd / 'benchmarks' / 'structured').rglob('*.json'):
 
     if 0 == os.path.getsize(file):
-        print(f'skipping {file}')
+        logging.warning(f'skipping {file}')
         continue
 
     with Log(f'reading {file.name}'):
@@ -252,6 +261,7 @@ for file in it.islice(list((cwd / 'benchmarks' / 'structured').rglob('*.json')),
             with Log(f'solving with {name}'):
                 p = Process(target=execute, args=(enumerator,))
                 p.start()
-                if 0 != p.join(timedelta(minutes=10).total_seconds()):
+                p.join(timedelta(minutes=10).total_seconds())
+                if p.is_alive():
                     p.kill()
                     logging.error("timed out")
