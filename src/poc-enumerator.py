@@ -8,6 +8,7 @@ import re
 import subprocess
 import tempfile
 import typing as t
+from concurrent.futures import ThreadPoolExecutor, Future, CancelledError
 from dataclasses import dataclass
 from io import StringIO
 from operator import isub
@@ -235,10 +236,16 @@ for file in it.islice(list((cwd / 'benchmarks' / 'structured').rglob('*.json')),
                 case _:
                     raise RuntimeError(f'unknown tuple : {t}')
 
-    for name, enumerator in [
-        ('sae', SAEnumerator(support, w, env)),
-        (' d4', FnEnumerator(env, support, w, fn.partial(enum, with_tddnnf))),
-        ('sdd', FnEnumerator(env, support, w, fn.partial(enum, with_tssdd))),
-    ]:
-        with Log(f'solwing with {name}'):
-            logging.info(WMISolver(enumerator, integrator).compute(s.Bool(True), A + x))
+    with ThreadPoolExecutor(max_workers=1) as executor:
+
+        for name, enumerator in [
+            ('sae', SAEnumerator(support, w, env)),
+            (' d4', FnEnumerator(env, support, w, fn.partial(enum, with_tddnnf))),
+            ('sdd', FnEnumerator(env, support, w, fn.partial(enum, with_tssdd))),
+        ]:
+            with Log(f'solwing with {name}'):
+                try:
+                    future: Future = executor.submit(lambda : WMISolver(enumerator, integrator).compute(s.Bool(True), A + x))
+                    logging.info(future.result(5 * 60))
+                except CancelledError:
+                    logging.error("timed out")
