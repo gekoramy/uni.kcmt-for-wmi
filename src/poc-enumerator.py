@@ -229,8 +229,8 @@ for file in it.islice(list((cwd / 'benchmarks' / 'structured').rglob('*.json')),
 
         A: list[s.Symbol] = []
         x: list[s.Symbol] = []
-        for t in domain:
-            match t:
+        for tpl in domain:
+            match tpl:
                 case name, 'real', [lower, upper]:
                     symbol = s.Symbol(name, s.REAL)
                     x.append(symbol)
