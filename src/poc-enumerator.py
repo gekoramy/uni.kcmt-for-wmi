@@ -2,6 +2,8 @@
 import functools as fn
 import itertools as it
 import json
+import logging
+import os.path
 import re
 import subprocess
 import tempfile
@@ -25,6 +27,7 @@ from wmpy.enumeration import SAEnumerator
 from wmpy.integration import LattEIntegrator, Integrator
 from wmpy.solvers import WMISolver
 
+from src.parse import nested_to_smt
 from src.sdd2nnf import main as sdd2nnf
 
 
@@ -177,31 +180,65 @@ def enum(
 
 
 # %%
-x = s.Symbol('x', s.REAL)
-y = s.Symbol('y', s.REAL)
+@dataclass(frozen=True)
+class Log:
+    what: str
 
-support = s.And(
-    s.LE(s.Real(0), x),
-    s.LE(s.Real(0), y),
-    s.Or(
-        s.LE(s.Plus(x, y), s.Real(1)),
-        s.And(s.GE(x, y), s.LE(x, s.Real(1))),
-    ),
+    def __enter__(self):
+        logging.info(f'enter [{self.what}]')
+
+    def __exit__(self, *_):
+        logging.info(f' exit [{self.what}]')
+
+
+logging.basicConfig(
+    format='%(asctime)s :: %(levelname)-4s :: %(message)s',
+    level=logging.INFO,
 )
 
+# %%
 env: Environment = pysmt.environment.get_env()
 integrator: Integrator = (LattEIntegrator())
 
-for w in [
-    (s.Real(1)),
-    (s.Plus(s.Pow(x, s.Real(2)), s.Real(1)))
-]:
+cwd: Path = Path(__file__).parent
+parser: SmtLibParser = SmtLibParser(environment=env)
 
-    print(f'WMI of {s.serialize(w)} :')
+# %%
+for file in it.islice(list((cwd / 'benchmarks' / 'structured').rglob('*.json')), 1, 2):
+
+    if 0 == os.path.getsize(file):
+        print(f'skipping {file}')
+        continue
+
+    with Log(f'reading {file.name}'):
+
+        with open(file, 'rt') as f:
+            instance = json.load(f)
+
+        domain: tuple[str, t.Literal['real'] | t.Literal['bool'], tuple[int, int] | None] = instance['domain']
+        support: FNode = nested_to_smt(instance['formula'])
+        w = s.Real(1)
+
+        A: list[s.Symbol] = []
+        x: list[s.Symbol] = []
+        for t in domain:
+            match t:
+                case name, 'real', [lower, upper]:
+                    symbol = s.Symbol(name, s.REAL)
+                    x.append(symbol)
+                    support = env.formula_manager.And(support, s.LE(s.Real(lower), symbol), s.LE(symbol, s.Real(upper)))
+
+                case name, 'bool', None:
+                    symbol = s.Symbol(name, s.BOOL)
+                    A.append(symbol)
+
+                case _:
+                    raise RuntimeError(f'unknown tuple : {t}')
 
     for name, enumerator in [
         ('sae', SAEnumerator(support, w, env)),
-        ('d4', FnEnumerator(env, support, w, fn.partial(enum, with_tddnnf))),
+        (' d4', FnEnumerator(env, support, w, fn.partial(enum, with_tddnnf))),
         ('sdd', FnEnumerator(env, support, w, fn.partial(enum, with_tssdd))),
     ]:
-        print(f' * {name} : ', WMISolver(enumerator, integrator).compute(s.Bool(True), {x, y})['wmi'])
+        with Log(f'solwing with {name}'):
+            logging.info(WMISolver(enumerator, integrator).compute(s.Bool(True), A + x))
