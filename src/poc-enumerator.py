@@ -25,12 +25,12 @@ from pysmt.smtlib.parser import SmtLibParser
 from pysmt.typing import BOOL
 from theorydd.tdd.theory_sdd import TheorySDD
 from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF
+from wmpy.cli.density import Density
 from wmpy.core.weights import Weights
 from wmpy.enumeration import SAEnumerator, Enumerator
 from wmpy.integration import Integrator
 from wmpy.solvers import WMISolver
 
-from src.parse import nested_to_smt
 from src.sdd2nnf import main as sdd2nnf
 
 # %%
@@ -221,8 +221,8 @@ parser: SmtLibParser = SmtLibParser(environment=env)
 
 # %%
 
-def execute(enumerator: Enumerator) -> None:
-    LOG.info(WMISolver(enumerator, integrator).compute(s.Bool(True), A + x))
+def execute(enumerator: Enumerator, density: Density) -> None:
+    LOG.info(WMISolver(enumerator, integrator).compute(s.Bool(True), density.domain.keys()))
 
 
 for file in (cwd / 'benchmarks' / 'structured').rglob('*.json'):
@@ -232,38 +232,18 @@ for file in (cwd / 'benchmarks' / 'structured').rglob('*.json'):
         continue
 
     with Log(f'reading {file.name}'):
-
-        with open(file, 'rt') as f:
-            instance = json.load(f)
-
-        domain: tuple[str, t.Literal['real'] | t.Literal['bool'], tuple[int, int] | None] = instance['domain']
-        support: FNode = nested_to_smt(instance['formula'])
+        density = Density.from_file(file.as_posix())
+        density.add_bounds()
         w = s.Real(1)
 
-        A: list[s.Symbol] = []
-        x: list[s.Symbol] = []
-        for tpl in domain:
-            match tpl:
-                case name, 'real', [lower, upper]:
-                    symbol = s.Symbol(name, s.REAL)
-                    x.append(symbol)
-                    support = env.formula_manager.And(support, s.LE(s.Real(lower), symbol), s.LE(symbol, s.Real(upper)))
-
-                case name, 'bool', None:
-                    symbol = s.Symbol(name, s.BOOL)
-                    A.append(symbol)
-
-                case _:
-                    raise RuntimeError(f'unknown tuple : {t}')
-
         for name, enumerator in [
-            ('sae', SAEnumerator(support, w, env)),
-            (' d4', FnEnumerator(env, support, w, fn.partial(enum, with_tddnnf))),
-            ('sdd', FnEnumerator(env, support, w, fn.partial(enum, with_tssdd))),
+            ('sae', SAEnumerator(density.support, w, env)),
+            (' d4', FnEnumerator(env, density.support, w, fn.partial(enum, with_tddnnf))),
+            ('sdd', FnEnumerator(env, density.support, w, fn.partial(enum, with_tssdd))),
         ]:
 
             with Log(f'solving with {name}'):
-                p = Process(target=execute, args=(enumerator,))
+                p = Process(target=execute, args=(enumerator, density,))
                 p.start()
                 p.join(timedelta(minutes=10).total_seconds())
                 if p.is_alive():
