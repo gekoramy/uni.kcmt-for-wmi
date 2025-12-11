@@ -33,6 +33,15 @@ from wmpy.solvers import WMISolver
 from src.parse import nested_to_smt
 from src.sdd2nnf import main as sdd2nnf
 
+# %%
+formatter = logging.Formatter('%(asctime)s :: %(levelname)-4s :: %(message)s')
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+
+LOG = logging.getLogger(__name__)
+LOG.setLevel(logging.DEBUG)
+LOG.propagate = False
+LOG.addHandler(handler)
 
 # %%
 @dataclass
@@ -188,16 +197,11 @@ class Log:
     what: str
 
     def __enter__(self):
-        logging.info(f'enter [{self.what}]')
+        LOG.info(f'enter [{self.what}]')
 
     def __exit__(self, *_):
-        logging.info(f' exit [{self.what}]')
+        LOG.info(f' exit [{self.what}]')
 
-
-logging.basicConfig(
-    format='%(asctime)s :: %(levelname)-4s :: %(message)s',
-    level=logging.INFO,
-)
 
 # %%
 class PlaceHolderIntegrator:
@@ -218,13 +222,13 @@ parser: SmtLibParser = SmtLibParser(environment=env)
 # %%
 
 def execute(enumerator: Enumerator) -> None:
-    logging.info(WMISolver(enumerator, integrator).compute(s.Bool(True), A + x))
+    LOG.info(WMISolver(enumerator, integrator).compute(s.Bool(True), A + x))
 
 
 for file in (cwd / 'benchmarks' / 'structured').rglob('*.json'):
 
     if 0 == os.path.getsize(file):
-        logging.warning(f'skipping {file}')
+        LOG.warning(f'skipping {file}')
         continue
 
     with Log(f'reading {file.name}'):
@@ -264,4 +268,4 @@ for file in (cwd / 'benchmarks' / 'structured').rglob('*.json'):
                 p.join(timedelta(minutes=10).total_seconds())
                 if p.is_alive():
                     p.kill()
-                    logging.error("timed out")
+                    LOG.error("timed out")
