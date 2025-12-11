@@ -1,4 +1,3 @@
-# %%
 import functools as fn
 import itertools as it
 import json
@@ -33,7 +32,6 @@ from wmpy.solvers import WMISolver
 
 from src.sdd2nnf import main as sdd2nnf
 
-# %%
 formatter = logging.Formatter('%(asctime)s :: %(levelname)-4s :: %(message)s')
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
@@ -43,7 +41,18 @@ LOG.setLevel(logging.DEBUG)
 LOG.propagate = False
 LOG.addHandler(handler)
 
-# %%
+
+@dataclass(frozen=True)
+class Log:
+    what: str
+
+    def __enter__(self):
+        LOG.info(f'enter [{self.what}]')
+
+    def __exit__(self, *_):
+        LOG.info(f' exit [{self.what}]')
+
+
 @dataclass
 class Domain:
     chi: FNode
@@ -68,7 +77,6 @@ class FnEnumerator:
         return self.fn(self.env, Domain(self.support, self.weights), phi)
 
 
-# %%
 def decdnnf(
         env: Environment,
         nnf: Path,
@@ -120,12 +128,13 @@ def with_tddnnf(
     with tempfile.TemporaryDirectory() as path:
         folder: Path = Path(path)
 
-        TheoryDDNNF(
-            phi,
-            base_out_path=folder.as_posix(),
-            store_tlemmas=True,
-            stop_after_allsmt=False,
-        )
+        with Log('pysmt -> t-d-DNNF'):
+            TheoryDDNNF(
+                phi,
+                base_out_path=folder.as_posix(),
+                store_tlemmas=True,
+                stop_after_allsmt=False,
+            )
 
         yield from decdnnf(
             env,
@@ -143,17 +152,18 @@ def with_tssdd(
     with tempfile.TemporaryDirectory() as path:
         folder: Path = Path(path)
 
-        tdd: TheorySDD = TheorySDD(
-            phi,
-            vtree_type='balanced',
-        )
+        with Log('pysmt -> t-SDD'):
+            tdd: TheorySDD = TheorySDD(
+                phi,
+                vtree_type='balanced',
+            )
 
-        tdd.save_to_folder(folder.as_posix())
+            tdd.save_to_folder(folder.as_posix())
 
-        sdd: Path = folder / 'sdd.sdd'
-        nnf: Path = folder / 'sdd.nff'
+            sdd: Path = folder / 'sdd.sdd'
+            nnf: Path = folder / 'sdd.nff'
 
-        sdd2nnf(sdd, nnf)
+            sdd2nnf(sdd, nnf)
 
         yield from decdnnf(
             env,
@@ -191,20 +201,7 @@ def enum(
     )
 
 
-# %%
-@dataclass(frozen=True)
-class Log:
-    what: str
-
-    def __enter__(self):
-        LOG.info(f'enter [{self.what}]')
-
-    def __exit__(self, *_):
-        LOG.info(f' exit [{self.what}]')
-
-
-# %%
-class PlaceHolderIntegrator:
+class NoOpIntegrator:
     def integrate(self, polytope, integrand) -> float:
         return 1
 
@@ -212,40 +209,54 @@ class PlaceHolderIntegrator:
         return np.ones(len(convex_integrals))
 
 
-env: Environment = pysmt.environment.get_env()
-integrator: Integrator = PlaceHolderIntegrator()
-
-cwd: Path = Path(__file__).parent
-parser: SmtLibParser = SmtLibParser(environment=env)
-
-
-# %%
-
-def execute(enumerator: Enumerator, density: Density) -> None:
-    LOG.info(WMISolver(enumerator, integrator).compute(s.Bool(True), density.domain.keys()))
+def compute(enumerator: Enumerator, density: Density) -> None:
+    integrator: Integrator = NoOpIntegrator()
+    LOG.info(
+        WMISolver(enumerator, integrator).compute(
+            s.Bool(True),
+            [v for v in density.domain.keys() if v.symbol_type() == s.REAL]
+        )
+    )
 
 
-for file in (cwd / 'benchmarks' / 'structured').rglob('*.json'):
+def sae(density: Density) -> None:
+    env: Environment = pysmt.environment.get_env()
+    compute(SAEnumerator(density.support, s.Real(1), env), density)
 
-    if 0 == os.path.getsize(file):
-        LOG.warning(f'skipping {file}')
-        continue
 
-    with Log(f'reading {file.name}'):
-        density = Density.from_file(file.as_posix())
-        density.add_bounds()
-        w = s.Real(1)
+def td4(density: Density) -> None:
+    env: Environment = pysmt.environment.get_env()
+    compute(FnEnumerator(env, density.support, s.Real(1), fn.partial(enum, with_tddnnf)), density)
 
-        for name, enumerator in [
-            ('sae', SAEnumerator(density.support, w, env)),
-            (' d4', FnEnumerator(env, density.support, w, fn.partial(enum, with_tddnnf))),
-            ('sdd', FnEnumerator(env, density.support, w, fn.partial(enum, with_tssdd))),
+
+def tsdd(density: Density) -> None:
+    env: Environment = pysmt.environment.get_env()
+    compute(FnEnumerator(env, density.support, s.Real(1), fn.partial(enum, with_tssdd)), density)
+
+
+if __name__ == "__main__":
+
+    for file in (Path(__file__).parent / 'benchmarks').rglob('*.json', recurse_symlinks=True):
+
+        if 0 == os.path.getsize(file):
+            LOG.warning(f'skipping {file}')
+            continue
+
+        with Log(f'reading {file.name}'):
+            density = Density.from_file(file.as_posix())
+            density.add_bounds()
+
+        for name, method in [
+            ('sae', sae),
+            (' d4', td4),
+            ('sdd', tsdd),
         ]:
 
             with Log(f'solving with {name}'):
-                p = Process(target=execute, args=(enumerator, density,))
+                p = Process(target=method, args=(density,))
                 p.start()
                 p.join(timedelta(minutes=10).total_seconds())
                 if p.is_alive():
-                    p.kill()
+                    p.terminate()
                     LOG.error("timed out")
+                    p.join()
