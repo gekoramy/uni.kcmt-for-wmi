@@ -1,7 +1,7 @@
 cython
 wheel
 pytest
-theorydd@git+https://github.com/ecivini/tddnnf@246d08628718ad091609ee59c9f16752ae67af38
+theorydd@git+https://github.com/ecivini/tddnnf@6199fba3c66699a21b57ff1f65affa7f200dcc5a
 wmpy@git+https://github.com/unitn-sml/wmpy@aa1244af94a66526b18465c5d207086d91404101
 graphviz
 pyrefly
