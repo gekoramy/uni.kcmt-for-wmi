@@ -1,19 +1,23 @@
+import csv
 import functools as fn
 import itertools as it
 import json
 import logging
+import multiprocessing.context
 import os.path
 import re
 import subprocess
 import tempfile
 import typing as t
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import timedelta
 from io import StringIO
-from multiprocessing import Process
+from multiprocessing import Pool
 from operator import isub
 from pathlib import Path
 from subprocess import Popen
+from typing import Callable
 
 import numpy as np
 import pysmt.environment
@@ -209,54 +213,73 @@ class NoOpIntegrator:
         return np.ones(len(convex_integrals))
 
 
-def compute(enumerator: Enumerator, density: Density) -> None:
+def compute(enumerator: Enumerator, density: Density) -> int:
     integrator: Integrator = NoOpIntegrator()
-    LOG.info(
-        WMISolver(enumerator, integrator).compute(
-            s.Bool(True),
-            [v for v in density.domain.keys() if v.symbol_type() == s.REAL]
-        )
+    result: dict[str, t.Any] = WMISolver(enumerator, integrator).compute(
+        s.Bool(True),
+        [v for v in density.domain.keys() if v.symbol_type() == s.REAL]
     )
+    LOG.info(result)
+    return result['npolys']
 
 
-def sae(density: Density) -> None:
+def sae(file: Path) -> int:
     env: Environment = pysmt.environment.get_env()
-    compute(SAEnumerator(density.support, s.Real(1), env), density)
+    density = read_density(file)
+    return compute(SAEnumerator(density.support, s.Real(1), env), density)
 
 
-def td4(density: Density) -> None:
+def td4(file: Path) -> int:
     env: Environment = pysmt.environment.get_env()
-    compute(FnEnumerator(env, density.support, s.Real(1), fn.partial(enum, with_tddnnf)), density)
+    density = read_density(file)
+    return compute(FnEnumerator(env, density.support, s.Real(1), fn.partial(enum, with_tddnnf)), density)
 
 
-def tsdd(density: Density) -> None:
+def tsdd(file: Path) -> int:
     env: Environment = pysmt.environment.get_env()
-    compute(FnEnumerator(env, density.support, s.Real(1), fn.partial(enum, with_tssdd)), density)
+    density = read_density(file)
+    return compute(FnEnumerator(env, density.support, s.Real(1), fn.partial(enum, with_tssdd)), density)
+
+
+def read_density(file: Path) -> Density:
+    with Log(f'reading {file.name}'):
+        density = Density.from_file(file.as_posix())
+        density.add_bounds()
+        return density
 
 
 if __name__ == "__main__":
 
-    for file in (Path(__file__).parent / 'benchmarks').rglob('*.json', recurse_symlinks=True):
+    wdir: Path = Path(__file__).parent
+    names: list[str] = ['sae', 'd4', 'sdd']
+    methods: list[Callable[[Path], int]] = [sae, td4, tsdd]
 
-        if 0 == os.path.getsize(file):
-            LOG.warning(f'skipping {file}')
-            continue
+    with open(wdir / 'result.csv', 'wt') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',')
+        writer.writerow(['density'] + names)
 
-        with Log(f'reading {file.name}'):
-            density = Density.from_file(file.as_posix())
-            density.add_bounds()
+        for file in (wdir / 'benchmarks').rglob('*.json', recurse_symlinks=True):
 
-        for name, method in [
-            ('sae', sae),
-            (' d4', td4),
-            ('sdd', tsdd),
-        ]:
+            if 0 == os.path.getsize(file):
+                LOG.warning(f'skipping {file}')
+                continue
 
-            with Log(f'solving with {name}'):
-                p = Process(target=method, args=(density,))
-                p.start()
-                p.join(timedelta(minutes=10).total_seconds())
-                if p.is_alive():
-                    p.terminate()
-                    LOG.error("timed out")
-                    p.join()
+            row: dict[str, str] = defaultdict(lambda: 'N/A')
+
+            for name, method in zip(names, methods):
+
+                with Log(f'solving with {name}'):
+                    try:
+                        pool = Pool(1)
+                        polys = (
+                            pool
+                            .apply_async(func=method, args=(file,))
+                            .get(timedelta(seconds=10).total_seconds())
+                        )
+                        row[name] = str(polys)
+                    except multiprocessing.context.TimeoutError as e:
+                        LOG.error("timed out")
+                        pool.terminate()
+                        pool.join()
+
+            writer.writerow([file.name] + [row[name] for name in names])
