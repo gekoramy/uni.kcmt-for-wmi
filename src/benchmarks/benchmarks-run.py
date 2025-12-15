@@ -71,12 +71,10 @@ if __name__ == '__main__':
                         )
                     )
 
+                    if 0 != wmi.returncode:
+                        path_err.rename(path_err.parent / f'{enumerator}-{integrator}-{density.name}-stderr.log')
+                        path_err.touch()
+                        logger.error(f'{enumerator} {integrator} {density} non-zero exit')
+
                 except TimeoutExpired as e:
                     logger.warning(f'{enumerator} {integrator} {density} timed out')
-
-            if 0 != wmi.returncode:
-                path_err.rename(path_err.parent / f'{enumerator}-{integrator}-{density.name}-stderr.log')
-                path_out.rename(path_out.parent / f'{enumerator}-{integrator}-{density.name}-stdout.log')
-                logger.error(f'{enumerator} {integrator} {density} non-zero exit')
-                path_err.touch()
-                path_out.touch()
