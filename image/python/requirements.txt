@@ -8,3 +8,4 @@ pyrefly
 orjson
 jsonlines
 polars
+tqdm
