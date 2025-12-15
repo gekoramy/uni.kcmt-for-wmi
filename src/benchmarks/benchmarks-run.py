@@ -44,11 +44,13 @@ if __name__ == '__main__':
                     subprocess.run(
                         [
                             'python',
-                            src / 'wmi.py',
+                            '-m',
+                            'src.wmi',
                             f'--density={density.as_posix()}',
                             f'--enumerator={enumerator}',
                             f'--integrator={integrator}'
                         ],
+                        cwd=wdr,
                         text=True,
                         timeout=timedelta(minutes=1).total_seconds(),
                         stdout=out,
