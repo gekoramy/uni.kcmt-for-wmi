@@ -34,7 +34,7 @@ if __name__ == '__main__':
             iterable=it.product(enumerators, integrators, densities),
             total=prod(map(len, (enumerators, integrators, densities))),
             ascii=' ⠁⠃⠇⠏⠟⠯⠷⠿⡿⣟⣯⣷⣾⣿',
-            bar_format='{bar} {n_fmt}/{total_fmt} {elapsed}⌶{remaining}',
+            bar_format='{bar} {n_fmt}/{total_fmt} {elapsed}/{remaining}',
     ) as todo:
 
         for enumerator, integrator, density in todo:
