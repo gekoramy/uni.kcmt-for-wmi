@@ -9,3 +9,4 @@ orjson
 jsonlines
 polars
 tqdm
+matplotlib
