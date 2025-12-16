@@ -55,11 +55,12 @@ if __name__ == '__main__':
     )
 
     # filter out null-only columns
-    (
+    merge = (
         merge_raw.select(
             col.name
             for col in merge_raw
             if col.count()
         )
-        .write_csv(rsc / "merge.csv")
     )
+
+    merge.write_csv(rsc / "merge.csv")
