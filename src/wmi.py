@@ -206,7 +206,7 @@ def with_d4(
         )
 
 
-def with_cudd(
+def with_sdd(
         env: Environment,
         phi: FNode,
 ) -> t.Generator[dict[bool, list[FNode]]]:
@@ -280,7 +280,7 @@ def read_density(file: Path) -> Density:
 if __name__ == '__main__':
 
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
-    parser.add_argument('--enumerator', type=str, choices=['sae', 'd4', 'cudd'], required=True)
+    parser.add_argument('--enumerator', type=str, choices=['sae', 'd4', 'sdd'], required=True)
     parser.add_argument('--integrator', type=str, choices=['latte', 'noop'], required=True)
     parser.add_argument('--parallel', action='store_true')
     parser.add_argument('--cached', action='store_true')
@@ -298,8 +298,8 @@ if __name__ == '__main__':
         case 'd4':
             enumerator = FnEnumerator(env, density.support, s.Real(1), fn.partial(enum, with_d4))
 
-        case 'cudd':
-            enumerator = FnEnumerator(env, density.support, s.Real(1), fn.partial(enum, with_cudd))
+        case 'sdd':
+            enumerator = FnEnumerator(env, density.support, s.Real(1), fn.partial(enum, with_sdd))
 
         case _:
             raise RuntimeError()

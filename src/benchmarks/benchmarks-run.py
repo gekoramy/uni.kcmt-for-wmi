@@ -26,7 +26,7 @@ if __name__ == '__main__':
     results: Path = rsc / 'results'
     results.mkdir(exist_ok=True)
 
-    enumerators: list[str] = ['sae', 'd4', 'cudd']
+    enumerators: list[str] = ['sae', 'd4', 'sdd']
     integrators: list[str] = ['noop']
     densities: list[Path] = list((rsc / 'densities').rglob('*.json', recurse_symlinks=True))
 

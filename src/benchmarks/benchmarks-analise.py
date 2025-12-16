@@ -21,7 +21,7 @@ if __name__ == '__main__':
     results: Path = rsc / 'results'
     assert results.exists()
 
-    enumerators = ['sae', 'd4', 'cudd']
+    enumerators = ['sae', 'd4', 'sdd']
     integrators = ['noop']
     densities = (rsc / 'densities').rglob('*.json', recurse_symlinks=True)
 
