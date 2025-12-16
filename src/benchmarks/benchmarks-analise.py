@@ -1,7 +1,17 @@
 import itertools as it
+import logging
+import sys
 from pathlib import Path
 
 import polars as pl
+
+handler: logging.Handler = logging.StreamHandler(sys.stderr)
+handler.setFormatter(logging.Formatter('%(asctime)s :: %(levelname)-4s :: %(message)s'))
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.propagate = False
+logger.addHandler(handler)
 
 if __name__ == '__main__':
 
@@ -23,6 +33,8 @@ if __name__ == '__main__':
 
         for enumerator, integrator in it.product(enumerators, integrators):
             df_enumerator: pl.DataFrame = pl.DataFrame({'enumerator': enumerator})
+
+            logger.debug(f'{enumerator} {integrator} {density.name}')
 
             err: Path = results / f'{enumerator}-{integrator}-{density.name}-stderr.ndjson'
             out: Path = results / f'{enumerator}-{integrator}-{density.name}-stdout.ndjson'
