@@ -1,5 +1,6 @@
 import itertools as it
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -13,19 +14,40 @@ logger.setLevel(logging.DEBUG)
 logger.propagate = False
 logger.addHandler(handler)
 
-if __name__ == '__main__':
 
-    wdr: Path = Path(__file__).parent.parent.parent
-    rsc: Path = wdr / 'resources'
+def read_tlemmas(
+        tlemmas: Path,
+        densities: list[Path],
+) -> pl.DataFrame:
+    df_tlemmas: list[pl.DataFrame] = []
 
-    results: Path = rsc / 'results'
-    assert results.exists()
+    for density in densities:
+        df_density: pl.DataFrame = pl.DataFrame({'density': density.name})
 
-    enumerators = ['sae', 'd4', 'sdd']
-    integrators = ['noop']
-    densities = (rsc / 'densities').rglob('*.json', recurse_symlinks=True)
+        err: Path = tlemmas / f'{density.name}-stderr.ndjson'
 
-    dataframes: list[pl.DataFrame] = []
+        df_err: pl.DataFrame = (
+            pl.read_ndjson(err, schema={'step': pl.String, 'took': pl.Float64})
+        )
+
+        df_tlemmas.append(
+            df_err.join(df_density, how='cross')
+        )
+
+    return (
+        pl
+        .concat(df_tlemmas, how="vertical")
+        .pivot(on=pl.col('step'), index=pl.col('density'))
+    )
+
+
+def read_enumerators(
+        results: Path,
+        densities: list[Path],
+        enumerators: list[str],
+        integrators: list[str],
+) -> pl.DataFrame:
+    dfs: list[pl.DataFrame] = []
 
     for density in densities:
 
@@ -52,7 +74,7 @@ if __name__ == '__main__':
                 else pl.DataFrame()
             )
 
-            dataframes.append(
+            dfs.append(
                 df_err
                 .join(df_density, how='cross')
                 .pivot(on=pl.col('step'), index=pl.col('density'))
@@ -60,19 +82,38 @@ if __name__ == '__main__':
                 .join(df_enumerator, how='cross')
             )
 
-    merge_raw = (
+    merge: pl.DataFrame = (
         pl
-        .concat(dataframes, how='diagonal')
+        .concat(dfs, how='diagonal')
         .pivot(on=pl.col('enumerator'), index=pl.col('density'))
     )
 
     # filter out null-only columns
-    merge = (
-        merge_raw.select(
-            col.name
-            for col in merge_raw
-            if col.count()
-        )
-    )
+    return merge.select(col.name for col in merge if col.count())
+
+
+if __name__ == '__main__':
+    wdr: Path = Path(__file__).parent.parent.parent
+    rsc: Path = wdr / 'resources'
+
+    results: Path = rsc / 'results'
+    assert results.exists()
+
+    tlemmas: Path = results / 'tlemmas'
+    assert tlemmas.exists()
+
+    enumerators = ['sae', 'd4', 'sdd']
+    integrators = ['noop']
+    densities: list[Path] = [
+        density
+        for density in (rsc / 'densities').rglob('*-1.json', recurse_symlinks=True)
+        if 0 != os.path.getsize(density)
+    ]
+
+    df_tlemmas = read_tlemmas(tlemmas, densities)
+
+    df_enumerators = read_enumerators(results, densities, enumerators, integrators)
+
+    merge = df_enumerators.join(df_tlemmas, on=pl.col('density'), how='left')
 
     merge.write_csv(rsc / "merge.csv")
