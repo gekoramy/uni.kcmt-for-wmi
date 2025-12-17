@@ -22,6 +22,7 @@ from pysmt.environment import Environment
 from pysmt.fnode import FNode
 from pysmt.smtlib.parser import SmtLibParser
 from pysmt.typing import BOOL
+from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
 from theorydd.tdd.theory_sdd import TheorySDD
 from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF
 from wmpy.cli.density import Density
@@ -59,9 +60,9 @@ def dump_step(step: str, took: float) -> None:
     logger.debug('{"step": "%s", "took": %f}', step, took)
 
 
-def extract(whatever: dict[str, dict | float]) -> t.Iterable[tuple[str, float]]:
+def times(whatever: dict[str, dict | float]) -> t.Iterable[tuple[str, float]]:
     """
-    >>> list(extract({ 'alpha time': 1.0, 'alpha': { 'beta time': 2.0, 'beta': { 'gamma time': 3.0 } } }))
+    >>> list(times({ 'alpha time': 1.0, 'alpha': { 'beta time': 2.0, 'beta': { 'gamma time': 3.0 } } }))
     [('alpha time', 1.0), ('beta time', 2.0), ('gamma time', 3.0)]
     """
 
@@ -72,7 +73,7 @@ def extract(whatever: dict[str, dict | float]) -> t.Iterable[tuple[str, float]]:
                 yield key, value
 
             case dict():
-                yield from extract(value)
+                yield from times(value)
 
 
 class NoOpIntegrator:
@@ -164,21 +165,22 @@ def decdnnf(
             text=True,
         )
 
-    for line in decdnnf.stdout:
-        model: str = line.strip().removesuffix('0')
+        for line in decdnnf.stdout:
+            model: str = line.strip().removesuffix('0')
 
-        yield {
-            boolean: list(abs2original[int(l)] for l in regex.findall(model))
-            for boolean, regex in b2regex
-        }
+            yield {
+                boolean: list(abs2original[int(l)] for l in regex.findall(model))
+                for boolean, regex in b2regex
+            }
 
-    decdnnf.poll()
-    assert 0 == decdnnf.returncode
+        decdnnf.poll()
+        assert 0 == decdnnf.returncode
 
 
 def with_d4(
         env: Environment,
         phi: FNode,
+        tlemmas: Path | None = None,
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with tempfile.TemporaryDirectory() as path:
         folder: Path = Path(path)
@@ -188,14 +190,20 @@ def with_d4(
         with Log('pysmt -> t-d-DNNF'):
             TheoryDDNNF(
                 phi,
+                load_lemmas=tlemmas.as_posix() if tlemmas else None,
+                sat_result=True if tlemmas else None,
                 base_out_path=folder.as_posix(),
                 store_tlemmas=True,
                 stop_after_allsmt=False,
                 computation_logger=computations,
+                solver=MathSATExtendedPartialEnumerator(
+                    computation_logger=computations,
+                    parallel_procs=os.process_cpu_count(),
+                ),
             )
 
-        for step, took in extract(computations):
-            dump_step(step.removesuffix(' time'), took)
+            for step, took in times(computations):
+                dump_step(step.removesuffix(' time'), took)
 
         yield from decdnnf(
             env,
@@ -209,6 +217,7 @@ def with_d4(
 def with_sdd(
         env: Environment,
         phi: FNode,
+        tlemmas: Path | None = None,
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with tempfile.TemporaryDirectory() as path:
         folder: Path = Path(path)
@@ -218,11 +227,16 @@ def with_sdd(
 
             tdd: TheorySDD = TheorySDD(
                 phi,
+                load_lemmas=tlemmas.as_posix() if tlemmas else None,
                 vtree_type='balanced',
                 computation_logger=computations,
+                solver=MathSATExtendedPartialEnumerator(
+                    computation_logger=computations,
+                    parallel_procs=os.process_cpu_count(),
+                ),
             )
 
-            for step, took in extract(computations):
+            for step, took in times(computations):
                 dump_step(step.removesuffix(' time'), took)
 
         with Log('extract sdd'):
@@ -277,6 +291,13 @@ def read_density(file: Path) -> Density:
         return density
 
 
+def file(arg: str) -> Path:
+    if not (path := Path(arg)).is_file():
+        raise FileNotFoundError(path)
+
+    return path
+
+
 if __name__ == '__main__':
 
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
@@ -284,7 +305,8 @@ if __name__ == '__main__':
     parser.add_argument('--integrator', type=str, choices=['latte', 'noop'], required=True)
     parser.add_argument('--parallel', action='store_true')
     parser.add_argument('--cached', action='store_true')
-    parser.add_argument('--density', type=Path, required=True)
+    parser.add_argument('--density', type=file, required=True)
+    parser.add_argument('--tlemmas', type=file, required=False)
     args: argparse.Namespace = parser.parse_args()
 
     env: Environment = pysmt.environment.get_env()
@@ -296,13 +318,23 @@ if __name__ == '__main__':
             enumerator = SAEnumerator(density.support, s.Real(1), env)
 
         case 'd4':
-            enumerator = FnEnumerator(env, density.support, s.Real(1), fn.partial(enum, with_d4))
+            enumerator = FnEnumerator(
+                env,
+                density.support,
+                s.Real(1),
+                fn.partial(enum, fn.partial(with_d4, tlemmas=args.tlemmas))
+            )
 
         case 'sdd':
-            enumerator = FnEnumerator(env, density.support, s.Real(1), fn.partial(enum, with_sdd))
+            enumerator = FnEnumerator(
+                env,
+                density.support,
+                s.Real(1),
+                fn.partial(enum, fn.partial(with_sdd, tlemmas=args.tlemmas))
+            )
 
         case _:
-            raise RuntimeError()
+            raise argparse.ArgumentError()
 
     integrator: Integrator
     match args.integrator:
