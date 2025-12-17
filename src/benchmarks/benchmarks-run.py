@@ -59,10 +59,11 @@ if __name__ == '__main__':
 
         for density in todo:
 
+            path_xxx = tlemmas / f'{density.name}.timeout'
             path_err = tlemmas / f'{density.name}-stderr.ndjson'
             path_out = tlemmas / f'{density.name}.smt2'
 
-            if all(path.exists() for path in (path_out, path_err)):
+            if any(path.exists() for path in (path_err, path_xxx)):
                 logger.warning(f'skipping computing tlemmas for {density}')
                 continue
 
@@ -89,9 +90,11 @@ if __name__ == '__main__':
 
                     if 0 != p4tlemmas.returncode:
                         logger.error(f'tlemmas {density} non-zero exit')
+                        path_xxx.touch(exist_ok=True)
 
                 except TimeoutExpired:
                     logger.warning(f'tlemmas {density} timed out')
+                    path_xxx.touch(exist_ok=True)
                     extract_ndjson(path_err)
 
     with tqdm(
