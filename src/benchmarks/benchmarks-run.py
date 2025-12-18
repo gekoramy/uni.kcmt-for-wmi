@@ -51,6 +51,8 @@ if __name__ == '__main__':
         if 0 != os.path.getsize(density)
     ]
 
+    logger.debug(f'compute tlemmas')
+
     with tqdm(
             iterable=densities,
             ascii=' ⠁⠃⠇⠏⠟⠯⠷⠿⡿⣟⣯⣷⣾⣿',
@@ -63,7 +65,7 @@ if __name__ == '__main__':
             path_err = tlemmas / f'{density.name}-stderr.ndjson'
             path_out = tlemmas / f'{density.name}.smt2'
 
-            if any(path.exists() for path in (path_err, path_xxx)):
+            if any(path.exists() for path in (path_out, path_xxx)):
                 logger.warning(f'skipping computing tlemmas for {density}')
                 continue
 
@@ -97,6 +99,8 @@ if __name__ == '__main__':
                     path_xxx.touch(exist_ok=True)
                     extract_ndjson(path_err)
 
+    logger.debug(f'compute wmi')
+
     with tqdm(
             iterable=it.product(enumerators, integrators, densities),
             total=prod(map(len, (enumerators, integrators, densities))),
@@ -105,8 +109,6 @@ if __name__ == '__main__':
     ) as todo:
 
         for enumerator, integrator, density in todo:
-
-            # todo.set_postfix({'e': enumerator, 'i': integrator, 'd': density.name})
 
             path_err = results / f'{enumerator}-{integrator}-{density.name}-stderr.ndjson'
             path_out = results / f'{enumerator}-{integrator}-{density.name}-stdout.ndjson'
