@@ -34,11 +34,6 @@ from wmpy.solvers import WMISolver
 
 from src.sdd2nnf import main as sdd2nnf
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logger.propagate = False
-logger.addHandler(logging.StreamHandler(sys.stderr))
-
 b2regex: frozenset[tuple[bool, re.Pattern]] = frozenset([
     (False, re.compile(r'-(\d+)')),
     (True, re.compile(r' (\d+)')),
@@ -301,6 +296,7 @@ def file(arg: str) -> Path:
 if __name__ == '__main__':
 
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
+    parser.add_argument('--steps', type=Path, required=True)
     parser.add_argument('--enumerator', type=str, choices=['sae', 'd4', 'sdd'], required=True)
     parser.add_argument('--integrator', type=str, choices=['latte', 'noop'], required=True)
     parser.add_argument('--parallel', action='store_true')
@@ -308,6 +304,11 @@ if __name__ == '__main__':
     parser.add_argument('--density', type=file, required=True)
     parser.add_argument('--tlemmas', type=file, required=False)
     args: argparse.Namespace = parser.parse_args()
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    logger.propagate = False
+    logger.addHandler(logging.FileHandler(args.steps))
 
     env: Environment = pysmt.environment.get_env()
     density: Density = read_density(args.density)

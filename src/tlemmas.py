@@ -1,7 +1,6 @@
 import argparse
 import logging
 import os
-import sys
 import typing as t
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,11 +12,6 @@ from pysmt.shortcuts import write_smtlib
 from theorydd.solvers.lemma_extractor import extract
 from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
 from wmpy.cli.density import Density
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logger.propagate = False
-logger.addHandler(logging.StreamHandler(sys.stderr))
 
 
 @dataclass
@@ -60,9 +54,15 @@ def times(whatever: dict[str, dict | float]) -> t.Iterable[tuple[str, float]]:
 
 if __name__ == '__main__':
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
+    parser.add_argument('--steps', type=Path, required=True)
     parser.add_argument('--density', type=Path, required=True)
     parser.add_argument('--tlemmas', type=Path, required=True)
     args: argparse.Namespace = parser.parse_args()
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    logger.propagate = False
+    logger.addHandler(logging.FileHandler(args.steps))
 
     density: Density = read_density(args.density)
     formula: FNode = smt.And(density.support, smt.Bool(True))
