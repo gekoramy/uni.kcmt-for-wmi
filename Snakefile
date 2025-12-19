@@ -1,6 +1,6 @@
 from snakemake.utils import validate
 
-configfile: "configs/easy.json"
+configfile: "configs/easy.yaml"
 
 validate(config, schema="configs/schema.json")
 

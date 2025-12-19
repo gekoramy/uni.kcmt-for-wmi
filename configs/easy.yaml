@@ -1,0 +1,22 @@
+# $schema ./schema.json
+
+enum: [ sae, d4, sdd ]
+int: [ noop ]
+type: [ synthetic-wmpy ]
+
+density:
+  n_reals: [ 1, 2, 3 ]
+  n_bools: [ 3 ]
+  n_clauses: [ 3 ]
+  len_clauses: [ 3 ]
+  p_bool: [ 0.5 ]
+  seed: [ 1, 2, 3 ]
+  n_queries: [ 0 ]
+  depth: [ 3 ]
+  max_mono: [ 3 ]
+  v_lbound: [ 0 ]
+  v_ubound: [ 1 ]
+  d_lbound: [ 0 ]
+  d_ubound: [ 3 ]
+  c_lbound: [ -10 ]
+  c_ubound: [ 10 ]
