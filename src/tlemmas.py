@@ -1,6 +1,5 @@
 import argparse
 import logging
-import os
 import typing as t
 from dataclasses import dataclass
 from pathlib import Path
@@ -57,6 +56,7 @@ if __name__ == '__main__':
     parser.add_argument('--steps', type=Path, required=True)
     parser.add_argument('--density', type=Path, required=True)
     parser.add_argument('--tlemmas', type=Path, required=True)
+    parser.add_argument('--cores', type=int, required=True)
     args: argparse.Namespace = parser.parse_args()
 
     logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ if __name__ == '__main__':
             formula,
             MathSATExtendedPartialEnumerator(
                 computation_logger=computations,
-                parallel_procs=os.process_cpu_count(),
+                parallel_procs=args.cores,
             )
         )
 

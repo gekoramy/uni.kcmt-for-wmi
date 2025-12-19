@@ -3,7 +3,6 @@ import functools as fn
 import itertools as it
 import json
 import logging
-import os.path
 import re
 import subprocess
 import sys
@@ -193,7 +192,7 @@ def with_d4(
                 computation_logger=computations,
                 solver=MathSATExtendedPartialEnumerator(
                     computation_logger=computations,
-                    parallel_procs=os.process_cpu_count(),
+                    parallel_procs=cores,
                 ),
             )
 
@@ -227,7 +226,7 @@ def with_sdd(
                 computation_logger=computations,
                 solver=MathSATExtendedPartialEnumerator(
                     computation_logger=computations,
-                    parallel_procs=os.process_cpu_count(),
+                    parallel_procs=cores,
                 ),
             )
 
@@ -303,12 +302,15 @@ if __name__ == '__main__':
     parser.add_argument('--cached', action='store_true')
     parser.add_argument('--density', type=file, required=True)
     parser.add_argument('--tlemmas', type=file, required=False)
+    parser.add_argument('--cores', type=int, required=True)
     args: argparse.Namespace = parser.parse_args()
 
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     logger.propagate = False
     logger.addHandler(logging.FileHandler(args.steps))
+
+    cores: int = args.cores
 
     env: Environment = pysmt.environment.get_env()
     density: Density = read_density(args.density)
@@ -349,7 +351,7 @@ if __name__ == '__main__':
             raise RuntimeError()
 
     if args.parallel:
-        integrator = ParallelWrapper(integrator, os.process_cpu_count())
+        integrator = ParallelWrapper(integrator, cores)
 
     if args.cached:
         integrator = CacheWrapper(integrator)

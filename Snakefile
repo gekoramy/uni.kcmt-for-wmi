@@ -18,6 +18,7 @@ rule all:
         )
 
 rule generate_synthetic_wmpy:
+    threads: 1
     output:
         "assets/densities/synthetic-wmpy/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}.json"
     params:
@@ -41,6 +42,7 @@ rule generate_synthetic_wmpy:
         """
 
 rule compute_tlemmas:
+    threads: 17
     input:
         "assets/densities/{type}/{density}.json"
     output:
@@ -53,10 +55,12 @@ rule compute_tlemmas:
         timeout 20m python -m {params.script} \
           --density {input} \
           --tlemmas {output.tlemmas} \
-          --steps {output.steps}
+          --steps {output.steps} \
+          --cores {threads}
         """
 
 rule compute_wmi_with_sae:
+    threads: 17
     input:
         "assets/densities/{type}/{density}.json"
     output:
@@ -71,10 +75,12 @@ rule compute_wmi_with_sae:
           --enumerator sae \
           --integrator {wildcards.int} \
           --steps {output.steps} \
+          --cores {threads} \
           > {output.wmi}
         """
 
 rule compute_wmi_with_decdnnf:
+    threads: 17
     input:
         density="assets/densities/{type}/{density}.json",
         tlemmas="assets/tlemmas/{type}/{density}.smt2"
@@ -91,5 +97,6 @@ rule compute_wmi_with_decdnnf:
           --integrator {wildcards.int} \
           --tlemmas {input.tlemmas} \
           --steps {output.steps} \
+          --cores {threads} \
           > {output.wmi}
         """
