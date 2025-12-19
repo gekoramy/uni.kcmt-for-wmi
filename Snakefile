@@ -4,6 +4,8 @@ configfile: "configs/easy.yaml"
 
 validate(config, schema="configs/schema.json")
 
+container: "docker://ghcr.io/gekoramy/playground:latest"
+
 rule all:
     input:
         expand(
