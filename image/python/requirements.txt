@@ -10,3 +10,4 @@ jsonlines
 polars
 tqdm
 matplotlib
+snakemake
