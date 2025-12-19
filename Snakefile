@@ -49,16 +49,23 @@ rule compute_tlemmas:
         "assets/densities/{type}/{density}.json"
     output:
         tlemmas="assets/tlemmas/{type}/{density}.smt2",
-        steps="assets/tlemmas/{type}/{density}.ndjson"
+        steps="assets/tlemmas/{type}/{density}.ndjson",
+        timeout="assets/tlemmas/{type}/{density}.tout"
     params:
         script="src.tlemmas"
     shell:
         """
-        timeout 20m python -m {params.script} \
+        timeout --verbose 20m \
+          python -m {params.script} \
           --density {input} \
           --tlemmas {output.tlemmas} \
           --steps {output.steps} \
-          --cores {threads}
+          --cores {threads} \
+          2> {output.timeout} \
+          || [ $? -eq 124 ]
+        
+        touch {output.tlemmas}
+        touch {output.steps}
         """
 
 rule compute_wmi_with_sae:
@@ -67,18 +74,26 @@ rule compute_wmi_with_sae:
         "assets/densities/{type}/{density}.json"
     output:
         wmi="assets/wmi/sae/{int,(noop)|(latte)}/{type}/{density}.txt",
-        steps="assets/wmi/sae/{int,(noop)|(latte)}/{type}/{density}.ndjson"
+        steps="assets/wmi/sae/{int,(noop)|(latte)}/{type}/{density}.ndjson",
+        timeout="assets/wmi/sae/{int,(noop)|(latte)}/{type}/{density}.tout"
     params:
         script="src.wmi"
     shell:
         """
-        timeout 10m python -m {params.script} \
+        timeout --verbose 10m \
+          python -m {params.script} \
           --density {input} \
           --enumerator sae \
           --integrator {wildcards.int} \
           --steps {output.steps} \
           --cores {threads} \
-          > {output.wmi}
+          1> {output.wmi} \
+          2> {output.timeout} \
+          || [ $? -eq 124 ]
+        
+        touch {output.wmi}
+        touch {output.steps}
+        touch {output.timeout}
         """
 
 rule compute_wmi_with_decdnnf:
@@ -88,17 +103,27 @@ rule compute_wmi_with_decdnnf:
         tlemmas="assets/tlemmas/{type}/{density}.smt2"
     output:
         wmi="assets/wmi/{enum,(d4)|(sdd)}/{int,(noop)|(latte)}/{type}/{density}.txt",
-        steps="assets/wmi/{enum,(d4)|(sdd)}/{int,(noop)|(latte)}/{type}/{density}.ndjson"
+        steps="assets/wmi/{enum,(d4)|(sdd)}/{int,(noop)|(latte)}/{type}/{density}.ndjson",
+        timeout="assets/wmi/{enum,(d4)|(sdd)}/{int,(noop)|(latte)}/{type}/{density}.tout"
     params:
         script="src.wmi"
     shell:
         """
-        timeout 10m python -m {params.script} \
-          --density {input.density} \
-          --enumerator {wildcards.enum} \
-          --integrator {wildcards.int} \
-          --tlemmas {input.tlemmas} \
-          --steps {output.steps} \
-          --cores {threads} \
-          > {output.wmi}
+        if [[ -s "{input.tlemmas}" ]]; then
+          timeout --verbose 10m \
+            python -m {params.script} \
+            --density {input.density} \
+            --enumerator {wildcards.enum} \
+            --integrator {wildcards.int} \
+            --tlemmas {input.tlemmas} \
+            --steps {output.steps} \
+            --cores {threads} \
+            1> {output.wmi} \
+            2> {output.timeout} \
+            || [ $? -eq 124 ]
+        fi
+          
+        touch {output.wmi}
+        touch {output.steps}
+        touch {output.timeout}
         """
