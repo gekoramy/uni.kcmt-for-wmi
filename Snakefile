@@ -2,7 +2,7 @@ from snakemake.utils import validate
 
 configfile: "configs/easy.yaml"
 
-validate(config, schema="configs/schema.json")
+validate(config,schema="configs/schema.json")
 
 container: "docker://ghcr.io/gekoramy/playground:latest"
 
@@ -60,7 +60,7 @@ rule plot:
         "assets/aggregate.csv"
     output:
         "assets/plots/{column}.pdf",
-        "assets/plots/{column}.png",
+        "assets/plots/{column}.png"
     params:
         script="src/plot.py"
     shell:
