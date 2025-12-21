@@ -8,7 +8,11 @@ container: "docker://ghcr.io/gekoramy/playground:latest"
 
 
 def densities() -> list[str]:
-    return synthetic_wmpy() + wmibench_synthetic_structured()
+    return [
+        *synthetic_wmpy(),
+        *wmibench_synthetic_structured(),
+        *wmibench_synthetic_pa(),
+    ]
 
 
 def synthetic_wmpy() -> list[str]:
@@ -28,6 +32,17 @@ def wmibench_synthetic_structured() -> list[str]:
     return expand(
         "wmibench_synthetic_structured/{name}_{size}_{seed}",
         **config["wmibench_synthetic_structured"],
+    )
+
+
+def wmibench_synthetic_pa() -> list[str]:
+    if "wmibench_synthetic_pa" not in config:
+        return []
+
+    return expand(
+        "wmibench_synthetic_pa/r{reals}_b{bools}_d{depth}_s{seed}_{m}",
+        m=[f"{n:02}" for n in range(1,21)],
+        **config["wmibench_synthetic_pa"],
     )
 
 
@@ -114,6 +129,33 @@ rule generate_wmibench_synthetic_structured:
           {wildcards.size} \
           --seed {wildcards.seed} \
           --output_folder assets/densities/wmibench_synthetic_structured
+        """
+
+
+rule generate_wmibench_synthetic_pa:
+    container: "docker://ghcr.io/gekoramy/wmibench:latest"
+    threads: 1
+    output:
+        *[
+            r"assets/densities/wmibench_synthetic_pa/r{reals,\d+}_b{bools,\d+}_d{depth,\d+}_s{seed,\d+}_" f"{n:02}" ".json"
+            for n in range(1,21)
+        ]
+    shell:
+        """
+        folder=$(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
+        
+        tmp_dir=$(mktemp -d -t wmibench-XXXXXXXXXX)
+
+        python $folder/wmibench/synthetic/synthetic_pa.py \
+          --reals {wildcards.reals} \
+          --booleans {wildcards.bools} \
+          --depth {wildcards.depth} \
+          --seed {wildcards.seed} \
+          --output $tmp_dir
+          
+        mv $tmp_dir/*/* assets/densities/wmibench_synthetic_pa
+        
+        rm -rf $tmp_dir
         """
 
 

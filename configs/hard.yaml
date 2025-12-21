@@ -28,3 +28,9 @@ wmibench_synthetic_structured:
     - uni
   size: [ 37, 73 ]
   seed: [ 17 ]
+
+wmibench_synthetic_pa:
+  reals: [ 3 ]
+  bools: [ 3 ]
+  depth: [ 3 ]
+  seed: [ 17 ]

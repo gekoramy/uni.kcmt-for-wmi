@@ -177,6 +177,49 @@
         "seed"
       ],
       "type": "object"
+    },
+    "wmibench_synthetic_pa": {
+      "properties": {
+        "reals": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "bools": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "depth": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "seed": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "reals",
+        "bools",
+        "depth",
+        "seed"
+      ],
+      "type": "object"
     }
   },
   "required": [],
