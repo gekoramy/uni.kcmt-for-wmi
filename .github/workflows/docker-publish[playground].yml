@@ -1,0 +1,13 @@
+name: Docker[playground]
+
+on:
+  push:
+    branches: [ "main" ]
+    paths: [ "image/playground/**" ]
+  workflow_dispatch:
+
+jobs:
+  call-workflow:
+    uses: ./.github/workflows/docker-publish.yml
+    with:
+      folder: playground

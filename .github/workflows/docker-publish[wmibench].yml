@@ -1,0 +1,13 @@
+name: Docker[wmibench]
+
+on:
+  push:
+    branches: [ "main" ]
+    paths: [ "image/wmibench/**" ]
+  workflow_dispatch:
+
+jobs:
+  call-workflow:
+    uses: ./.github/workflows/docker-publish.yml
+    with:
+      folder: wmibench
