@@ -1,6 +1,6 @@
 # $schema ./schema.json
 
-synthetic_wmpy:
+wmpy_synthetic:
   n_reals: [ 1, 2, 3 ]
   n_bools: [ 3 ]
   n_clauses: [ 3 ]

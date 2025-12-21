@@ -9,19 +9,19 @@ container: "docker://ghcr.io/gekoramy/playground:latest"
 
 def densities() -> list[str]:
     return [
-        *synthetic_wmpy(),
+        *wmpy_synthetic(),
         *wmibench_synthetic_structured(),
         *wmibench_synthetic_pa(),
     ]
 
 
-def synthetic_wmpy() -> list[str]:
-    if "synthetic_wmpy" not in config:
+def wmpy_synthetic() -> list[str]:
+    if "wmpy_synthetic" not in config:
         return []
 
     return expand(
-        "synthetic_wmpy/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}",
-        **config["synthetic_wmpy"],
+        "wmpy_synthetic/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}",
+        **config["wmpy_synthetic"],
     )
 
 
@@ -90,17 +90,17 @@ rule aggregate:
         "src/aggregate.py"
 
 
-rule generate_synthetic_wmpy:
+rule generate_wmpy_synthetic:
     threads: 1
     output:
-        "assets/densities/synthetic_wmpy/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}.json"
+        "assets/densities/wmpy_synthetic/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}.json"
     params:
         script="src/synthetic.py"
     shell:
         """
         python {params.script} \
           {wildcards.seed} \
-          --directory assets/densities/synthetic_wmpy \
+          --directory assets/densities/wmpy_synthetic \
           --n_reals {wildcards.n_reals} \
           --n_bools {wildcards.n_bools} \
           --n_clauses {wildcards.n_clauses} \
