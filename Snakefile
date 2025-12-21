@@ -16,7 +16,28 @@ def synthetic_wmpy():
 
 rule all:
     input:
+        expand("assets/plots/{column}.{suffix}",
+            column=["enumerating", "npolys", "enumerating full", "parsing density"],
+            suffix=["pdf", "png"]
+        )
+
+
+rule plot:
+    threads: 1
+    input:
         "assets/aggregate.csv"
+    output:
+        "assets/plots/{column}.pdf",
+        "assets/plots/{column}.png",
+    params:
+        script="src/plot.py"
+    shell:
+        """
+        python {params.script} \
+          --column {wildcards.column:q} \
+          --csv {input} \
+          --output {output:q}
+        """
 
 
 rule aggregate:
