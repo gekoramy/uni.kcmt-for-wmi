@@ -16,3 +16,15 @@ synthetic_wmpy:
   c_ubound: [ 10 ]
   max_mono: [ 3 ]
   seed: [ 1, 2, 3 ]
+
+wmibench_synthetic_structured:
+  name:
+    - and_overlap
+    - dual_paths
+    - dual_paths_distinct
+    - tpg_3ary_tree
+    - tpg_path
+    - tpg_star
+    - uni
+  size: [ 37, 73 ]
+  seed: [ 17 ]

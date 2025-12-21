@@ -7,10 +7,27 @@ validate(config, schema="configs/schema.json")
 container: "docker://ghcr.io/gekoramy/playground:latest"
 
 
-def synthetic_wmpy():
+def densities() -> list[str]:
+    return synthetic_wmpy() + wmibench_synthetic_structured()
+
+
+def synthetic_wmpy() -> list[str]:
+    if "synthetic_wmpy" not in config:
+        return []
+
     return expand(
-        "nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}",
+        "synthetic_wmpy/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}",
         **config["synthetic_wmpy"],
+    )
+
+
+def wmibench_synthetic_structured() -> list[str]:
+    if "wmibench_synthetic_structured" not in config:
+        return []
+
+    return expand(
+        "wmibench_synthetic_structured/{name}_{size}_{seed}",
+        **config["wmibench_synthetic_structured"],
     )
 
 
@@ -43,13 +60,13 @@ rule plot:
 rule aggregate:
     threads: 1
     input:
-        expand("assets/wmi/{enum}/noop/synthetic_wmpy/{density}.{suffix}",
+        expand("assets/wmi/{enum}/noop/{density}.{suffix}",
             enum=["sae", "d4", "sdd"],
-            density=synthetic_wmpy(),
+            density=densities(),
             suffix=["steps", "out", "err"],
         ),
-        expand("assets/tlemmas/synthetic_wmpy/{density}.{suffix}",
-            density=synthetic_wmpy(),
+        expand("assets/tlemmas/{density}.{suffix}",
+            density=densities(),
             suffix=["steps", "err"],
         )
     output:
@@ -81,6 +98,24 @@ rule generate_synthetic_wmpy:
           --cbounds {wildcards.c_lbound} {wildcards.c_ubound} \
           --max_monomials {wildcards.max_mono}
         """
+
+
+rule generate_wmibench_synthetic_structured:
+    container: "docker://ghcr.io/gekoramy/wmibench:latest"
+    threads: 1
+    output:
+        r"assets/densities/wmibench_synthetic_structured/{name,and_overlap|dual_paths|dual_paths_distinct|tpg_3ary_tree|tpg_path|tpg_star|uni}_{size,\d+}_{seed,\d+}.json"
+    shell:
+        """
+        folder=$(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
+        
+        python $folder/wmibench/synthetic/synthetic_structured.py \
+          {wildcards.name} \
+          {wildcards.size} \
+          --seed {wildcards.seed} \
+          --output_folder assets/densities/wmibench_synthetic_structured
+        """
+
 
 rule compute_tlemmas:
     threads: 17

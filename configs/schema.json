@@ -143,10 +143,42 @@
         "v_ubound"
       ],
       "type": "object"
+    },
+    "wmibench_synthetic_structured": {
+      "properties": {
+        "name": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "size": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "seed": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "name",
+        "size",
+        "seed"
+      ],
+      "type": "object"
     }
   },
-  "required": [
-    "synthetic_wmpy"
-  ],
+  "required": [],
   "additionalProperties": false
 }
