@@ -63,7 +63,7 @@ rule generate_synthetic_wmpy:
     output:
         "assets/densities/synthetic_wmpy/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}.json"
     params:
-        script="wmpy/benchmarks/synthetic.py"
+        script="src/synthetic.py"
     shell:
         """
         python {params.script} \
