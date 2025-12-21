@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
-    "density": {
+    "synthetic_wmpy": {
       "properties": {
         "n_reals": {
           "type": "array",
@@ -143,37 +143,10 @@
         "v_ubound"
       ],
       "type": "object"
-    },
-    "enum": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "minItems": 1,
-      "uniqueItems": true
-    },
-    "int": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "minItems": 1,
-      "uniqueItems": true
-    },
-    "type": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "minItems": 1,
-      "uniqueItems": true
     }
   },
   "required": [
-    "density",
-    "enum",
-    "int",
-    "type"
+    "synthetic_wmpy"
   ],
   "additionalProperties": false
 }

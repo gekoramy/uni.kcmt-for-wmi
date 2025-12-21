@@ -6,30 +6,48 @@ validate(config, schema="configs/schema.json")
 
 container: "docker://ghcr.io/gekoramy/playground:latest"
 
+
+def synthetic_wmpy():
+    return expand(
+        "nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}",
+        **config["synthetic_wmpy"],
+    )
+
+
 rule all:
     input:
-        expand(
-            "assets/wmi/{enum}/{int}/{type}/{density}.txt",
-            enum=config["enum"],
-            int=config["int"],
-            type=config["type"],
-            density=expand(
-                "nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}",
-                **config["density"],
-            ),
+        "assets/aggregate.csv"
+
+
+rule aggregate:
+    threads: 1
+    input:
+        expand("assets/wmi/{enum}/noop/synthetic_wmpy/{density}.{suffix}",
+            enum=["sae", "d4", "sdd"],
+            density=synthetic_wmpy(),
+            suffix=["steps", "out", "err"],
+        ),
+        expand("assets/tlemmas/synthetic_wmpy/{density}.{suffix}",
+            density=synthetic_wmpy(),
+            suffix=["steps", "err"],
         )
+    output:
+        "assets/aggregate.csv"
+    script:
+        "src/aggregate.py"
+
 
 rule generate_synthetic_wmpy:
     threads: 1
     output:
-        "assets/densities/synthetic-wmpy/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}.json"
+        "assets/densities/synthetic_wmpy/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}.json"
     params:
         script="wmpy/benchmarks/synthetic.py"
     shell:
         """
         python {params.script} \
           {wildcards.seed} \
-          --directory assets/densities/synthetic-wmpy \
+          --directory assets/densities/synthetic_wmpy \
           --n_reals {wildcards.n_reals} \
           --n_bools {wildcards.n_bools} \
           --n_clauses {wildcards.n_clauses} \
@@ -49,8 +67,8 @@ rule compute_tlemmas:
         "assets/densities/{type}/{density}.json"
     output:
         tlemmas="assets/tlemmas/{type}/{density}.smt2",
-        steps="assets/tlemmas/{type}/{density}.ndjson",
-        timeout="assets/tlemmas/{type}/{density}.tout"
+        steps="assets/tlemmas/{type}/{density}.steps",
+        timeout="assets/tlemmas/{type}/{density}.err"
     params:
         script="src.tlemmas"
     shell:
@@ -73,9 +91,9 @@ rule compute_wmi_with_sae:
     input:
         "assets/densities/{type}/{density}.json"
     output:
-        wmi="assets/wmi/sae/{int,(noop)|(latte)}/{type}/{density}.txt",
-        steps="assets/wmi/sae/{int,(noop)|(latte)}/{type}/{density}.ndjson",
-        timeout="assets/wmi/sae/{int,(noop)|(latte)}/{type}/{density}.tout"
+        wmi="assets/wmi/sae/{int,noop|latte}/{type}/{density}.out",
+        steps="assets/wmi/sae/{int,noop|latte}/{type}/{density}.steps",
+        timeout="assets/wmi/sae/{int,noop|latte}/{type}/{density}.err"
     params:
         script="src.wmi"
     shell:
@@ -102,9 +120,9 @@ rule compute_wmi_with_decdnnf:
         density="assets/densities/{type}/{density}.json",
         tlemmas="assets/tlemmas/{type}/{density}.smt2"
     output:
-        wmi="assets/wmi/{enum,(d4)|(sdd)}/{int,(noop)|(latte)}/{type}/{density}.txt",
-        steps="assets/wmi/{enum,(d4)|(sdd)}/{int,(noop)|(latte)}/{type}/{density}.ndjson",
-        timeout="assets/wmi/{enum,(d4)|(sdd)}/{int,(noop)|(latte)}/{type}/{density}.tout"
+        wmi="assets/wmi/{enum,d4|sdd}/{int,noop|latte}/{type}/{density}.out",
+        steps="assets/wmi/{enum,d4|sdd}/{int,noop|latte}/{type}/{density}.steps",
+        timeout="assets/wmi/{enum,d4|sdd}/{int,noop|latte}/{type}/{density}.err"
     params:
         script="src.wmi"
     shell:

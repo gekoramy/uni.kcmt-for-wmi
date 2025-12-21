@@ -1,10 +1,6 @@
 # $schema ./schema.json
 
-enum: [ sae, d4, sdd ]
-int: [ noop ]
-type: [ synthetic-wmpy ]
-
-density:
+synthetic_wmpy:
   n_reals: [ 1, 2, 3 ]
   n_bools: [ 3 ]
   n_clauses: [ 3 ]
