@@ -160,7 +160,7 @@ rule generate_wmibench_synthetic_pa:
 
 
 rule compute_tlemmas:
-    threads: 17
+    threads: 13
     input:
         "assets/densities/{type}/{density}.json"
     output:
@@ -171,7 +171,7 @@ rule compute_tlemmas:
         script="src.tlemmas"
     shell:
         """
-        timeout --verbose 20m \
+        timeout --verbose 40m \
           python -m {params.script} \
           --density {input} \
           --tlemmas {output.tlemmas} \
@@ -185,7 +185,7 @@ rule compute_tlemmas:
         """
 
 rule compute_wmi_with_sae:
-    threads: 17
+    threads: 13
     input:
         "assets/densities/{type}/{density}.json"
     output:
@@ -196,7 +196,7 @@ rule compute_wmi_with_sae:
         script="src.wmi"
     shell:
         """
-        timeout --verbose 10m \
+        timeout --verbose 20m \
           python -m {params.script} \
           --density {input} \
           --enumerator sae \
@@ -213,7 +213,7 @@ rule compute_wmi_with_sae:
         """
 
 rule compute_wmi_with_decdnnf:
-    threads: 17
+    threads: 13
     input:
         density="assets/densities/{type}/{density}.json",
         tlemmas="assets/tlemmas/{type}/{density}.smt2"
@@ -226,7 +226,7 @@ rule compute_wmi_with_decdnnf:
     shell:
         """
         if [[ -s "{input.tlemmas}" ]]; then
-          timeout --verbose 10m \
+          timeout --verbose 20m \
             python -m {params.script} \
             --density {input.density} \
             --enumerator {wildcards.enum} \
