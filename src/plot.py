@@ -1,5 +1,8 @@
 import argparse
+import dataclasses
 import itertools as it
+import typing
+from datetime import timedelta
 from pathlib import Path
 
 import math
@@ -7,25 +10,70 @@ import polars as pl
 from matplotlib import pyplot as plt
 
 
-def plot(df: pl.DataFrame, enumerators: list[str], column: str) -> plt.Figure:
-    padding: float = 21 / 20
+@dataclasses.dataclass(frozen=True)
+class Timeout:
+    enumerator: timedelta
+    tlemmas: timedelta
 
-    maximum: float = (
+def plot(
+        df: pl.DataFrame,
+        column: str,
+        timeout: Timeout | None = None,
+) -> plt.Figure:
+    padding: float = 2
+
+    enumerators_wout_tlemmas: list[str] = ['sae']
+    enumerators_with_tlemmas: list[str] = ['d4', 'sdd']
+
+    limit_enum: float
+    limit_tlemmas: float
+    limit_tlemmas_enum: float
+
+    match timeout:
+        case None:
+            maximum: float = (
+                df.select(
+                    pl.col(f'{column}_{enum}')
+                    for enum in enumerators_wout_tlemmas + enumerators_with_tlemmas
+                )
+                .max()
+                .max_horizontal()
+                .first()
+            )
+
+            limit_enum = padding * maximum
+            limit_tlemmas = padding * maximum
+            limit_tlemmas_enum = padding * padding * maximum
+
+        case Timeout(tlemmas=tout_tlemmas, enumerator=tout_enumerator):
+            limit_enum = tout_enumerator.seconds
+            limit_tlemmas = tout_tlemmas.seconds
+            limit_tlemmas_enum = (tout_tlemmas + tout_enumerator).seconds
+
+    minimum: float = (
         df.select(
             pl.col(f'{column}_{enum}')
-            for enum in enumerators
+            for enum in enumerators_wout_tlemmas + enumerators_with_tlemmas
         )
-        .max()
-        .max_horizontal()
+        .min()
+        .min_horizontal()
         .first()
     )
 
-    limit: float = maximum * padding
+    nrows: int = 1
+    ncols: int = sum((
+        len(enumerators_wout_tlemmas) * len(enumerators_with_tlemmas),
+        math.comb(len(enumerators_with_tlemmas), 2),
+    ))
+    fig, axs = plt.subplots(nrows, ncols, figsize=(6 * ncols, 6 * nrows))
 
-    fig, axs = plt.subplots(1, math.comb(len(enumerators), 2), figsize=(6 * 3, 6 * 1), )
+    iter4axs: typing.Iterator[plt.Axes] = iter(axs)
 
     ax: plt.Axes
-    for (enum_x, enum_y), ax in zip(it.combinations(enumerators, 2), axs):
+    for (enum_x, enum_y), ax in zip(
+            it.product(enumerators_wout_tlemmas, enumerators_with_tlemmas),
+            iter4axs,
+    ):
         both: pl.DataFrame = (
             df.filter(
                 pl.col(f'{column}_{enum_x}').is_not_null() & pl.col(f'{column}_{enum_y}').is_not_null()
@@ -38,19 +86,23 @@ def plot(df: pl.DataFrame, enumerators: list[str], column: str) -> plt.Figure:
             )
         )
 
-        ax.set_xlim(0, limit * padding)
-        ax.set_ylim(0, limit * padding)
+        ax.set_xscale('log')
+        ax.set_yscale('log')
 
-        ax.axvline(x=limit, color='darkgrey', linestyle='--')
-        ax.axhline(y=limit, color='darkgrey', linestyle='--')
+        ax.set_xlim(minimum, padding * limit_enum)
+        ax.set_ylim(minimum, padding * limit_tlemmas_enum)
 
-        ax.axline((0, 0), slope=1, color='darkgrey', linestyle=':')
+        ax.axvline(x=limit_enum, color='darkgrey', linestyle='--')
+        ax.axhline(y=limit_tlemmas, color='darkgrey', linestyle='--')
+        ax.axhline(y=limit_tlemmas_enum, color='darkgrey', linestyle='--')
 
-        for x in ax.get_xticks()[1:]:
-            ax.axline((0, x), slope=1, color='darkgrey', linestyle=':', linewidth=.75, alpha=.5)
-
-        for y in ax.get_yticks()[1:]:
-            ax.axline((y, 0), slope=1, color='darkgrey', linestyle=':', linewidth=.75, alpha=.5)
+        ax.plot(
+            (minimum, padding * limit_tlemmas_enum),
+            (minimum, padding * limit_tlemmas_enum),
+            color='darkgrey',
+            linestyle=':',
+            linewidth=1,
+        )
 
         ax.scatter(
             x=both.select_seq(pl.col(f'{column}_{enum_x}')),
@@ -59,11 +111,87 @@ def plot(df: pl.DataFrame, enumerators: list[str], column: str) -> plt.Figure:
             alpha=.5,
         )
 
+        tout_tlemmas_t: pl.DataFrame = tout.filter(pl.col('stderr_tlemmas').is_not_null())
+        tout_tlemmas_f: pl.DataFrame = tout.filter(pl.col('stderr_tlemmas').is_null())
+
         ax.scatter(
-            x=tout.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit)),
-            y=tout.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit)),
+            x=tout_tlemmas_t.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_enum)),
+            y=tout_tlemmas_t.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas)),
             marker='x',
             color='C1',
+            alpha=.5,
+        )
+
+        ax.scatter(
+            x=tout_tlemmas_f.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_enum)),
+            y=tout_tlemmas_f.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_enum)),
+            marker='x',
+            color='C2',
+            alpha=.5,
+        )
+
+        ax.set_xlabel(enum_x)
+        ax.set_ylabel(enum_y)
+        ax.set_aspect('equal')
+
+    for (enum_x, enum_y), ax in zip(
+            it.combinations(enumerators_with_tlemmas, 2),
+            iter4axs
+    ):
+        both: pl.DataFrame = (
+            df.filter(
+                pl.col(f'{column}_{enum_x}').is_not_null() & pl.col(f'{column}_{enum_y}').is_not_null()
+            )
+        )
+
+        tout: pl.DataFrame = (
+            df.filter(
+                pl.col(f'{column}_{enum_x}').is_null() | pl.col(f'{column}_{enum_y}').is_null()
+            )
+        )
+
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+
+        ax.set_xlim(minimum, padding * limit_tlemmas_enum)
+        ax.set_ylim(minimum, padding * limit_tlemmas_enum)
+
+        ax.axvline(x=limit_tlemmas, color='darkgrey', linestyle='--')
+        ax.axvline(x=limit_tlemmas_enum, color='darkgrey', linestyle='--')
+        ax.axhline(y=limit_tlemmas, color='darkgrey', linestyle='--')
+        ax.axhline(y=limit_tlemmas_enum, color='darkgrey', linestyle='--')
+
+        ax.plot(
+            (minimum, padding * limit_tlemmas_enum),
+            (minimum, padding * limit_tlemmas_enum),
+            color='darkgrey',
+            linestyle=':',
+            linewidth=1,
+        )
+
+        ax.scatter(
+            x=both.select_seq(pl.col(f'{column}_{enum_x}')),
+            y=both.select_seq(pl.col(f'{column}_{enum_y}')),
+            color='C0',
+            alpha=.5,
+        )
+
+        tout_tlemmas_t: pl.DataFrame = tout.filter(pl.col('stderr_tlemmas').is_not_null())
+        tout_tlemmas_f: pl.DataFrame = tout.filter(pl.col('stderr_tlemmas').is_null())
+
+        ax.scatter(
+            x=tout_tlemmas_t.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_tlemmas)),
+            y=tout_tlemmas_t.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas)),
+            marker='x',
+            color='C1',
+            alpha=.5,
+        )
+
+        ax.scatter(
+            x=tout_tlemmas_f.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_tlemmas_enum)),
+            y=tout_tlemmas_f.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_enum)),
+            marker='x',
+            color='C2',
             alpha=.5,
         )
 
@@ -87,16 +215,13 @@ if __name__ == '__main__':
     parser.add_argument('--csv', type=file, required=True)
     parser.add_argument('--column', type=str, required=True)
     parser.add_argument('--output', type=Path, required=True, nargs='+')
+    parser.add_argument('--timeout_enumerator', type=int, required=True)
+    parser.add_argument('--timeout_tlemmas', type=int, required=True)
+    parser.add_argument('--type', type=str, required=False)
     args: argparse.Namespace = parser.parse_args()
 
-    path: Path = args.csv
-    column: str = args.column
-    outputs: list[Path] = args.output
-
-    enumerators: list[str] = ['sae', 'd4', 'sdd']
-
     df: pl.DataFrame = pl.read_csv(
-        path,
+        args.csv,
         has_header=True,
     ).with_columns(
         pl.col('enumerating_sae').alias('enumerating full_sae'),
@@ -111,6 +236,16 @@ if __name__ == '__main__':
         ],
     )
 
-    fig: plt.Figure = plot(df, enumerators, column)
-    for out in outputs:
+    fig: plt.Figure
+    match args.type:
+        case 'time':
+            fig = plot(df, args.column, Timeout(
+                enumerator=timedelta(minutes=args.timeout_enumerator),
+                tlemmas=timedelta(minutes=args.timeout_tlemmas),
+            ))
+
+        case _:
+            fig = plot(df, args.column)
+
+    for out in args.output:
         fig.savefig(out)

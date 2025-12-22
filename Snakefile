@@ -48,8 +48,11 @@ def wmibench_synthetic_pa() -> list[str]:
 
 rule all:
     input:
-        expand("assets/plots/{column}.{suffix}",
-            column=["enumerating", "npolys", "enumerating full", "parsing density"],
+        expand("assets/plots/{column}.time.{suffix}",
+            column=["enumerating", "enumerating full", "parsing density"],
+            suffix=["pdf", "png"]
+        ),
+        expand("assets/plots/npolys.int.{suffix}",
             suffix=["pdf", "png"]
         )
 
@@ -59,14 +62,17 @@ rule plot:
     input:
         "assets/aggregate.csv"
     output:
-        "assets/plots/{column}.pdf",
-        "assets/plots/{column}.png"
+        "assets/plots/{column}.{type}.pdf",
+        "assets/plots/{column}.{type}.png"
     params:
         script="src/plot.py"
     shell:
         """
         python {params.script} \
           --column {wildcards.column:q} \
+          --type {wildcards.type} \
+          --timeout_tlemmas {config[timeout][tlemmas]} \
+          --timeout_enumerator {config[timeout][enumerator]} \
           --csv {input} \
           --output {output:q}
         """
@@ -171,7 +177,7 @@ rule compute_tlemmas:
         script="src.tlemmas"
     shell:
         """
-        timeout --verbose 40m \
+        timeout --verbose {config[timeout][tlemmas]}m \
           python -m {params.script} \
           --density {input} \
           --tlemmas {output.tlemmas} \
@@ -196,7 +202,7 @@ rule compute_wmi_with_sae:
         script="src.wmi"
     shell:
         """
-        timeout --verbose 20m \
+        timeout --verbose {config[timeout][enumerator]}m \
           python -m {params.script} \
           --density {input} \
           --enumerator sae \
@@ -226,7 +232,7 @@ rule compute_wmi_with_decdnnf:
     shell:
         """
         if [[ -s "{input.tlemmas}" ]]; then
-          timeout --verbose 20m \
+          timeout --verbose {config[timeout][enumerator]}m \
             python -m {params.script} \
             --density {input.density} \
             --enumerator {wildcards.enum} \

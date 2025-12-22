@@ -1,5 +1,9 @@
 # $schema ./schema.json
 
+timeout:
+  enumerator: 20
+  tlemmas: 40
+
 wmpy_synthetic:
   n_reals: [ 1, 2, 3 ]
   n_bools: [ 3 ]

@@ -2,6 +2,23 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "timeout": {
+      "type": "object",
+      "properties": {
+        "enumerator": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tlemmas": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "enumerator",
+        "tlemmas"
+      ]
+    },
     "wmpy_synthetic": {
       "properties": {
         "n_reals": {
@@ -222,6 +239,8 @@
       "type": "object"
     }
   },
-  "required": [],
+  "required": [
+    "timeout"
+  ],
   "additionalProperties": false
 }
