@@ -13,7 +13,9 @@ from matplotlib import pyplot as plt
 @dataclasses.dataclass(frozen=True)
 class Timeout:
     enumerator: timedelta
+    compilator: timedelta
     tlemmas: timedelta
+
 
 def plot(
         df: pl.DataFrame,
@@ -27,7 +29,8 @@ def plot(
 
     limit_enum: float
     limit_tlemmas: float
-    limit_tlemmas_enum: float
+    limit_tlemmas_comp: float
+    limit_tlemmas_comp_enum: float
 
     match timeout:
         case None:
@@ -43,12 +46,14 @@ def plot(
 
             limit_enum = padding * maximum
             limit_tlemmas = padding * maximum
-            limit_tlemmas_enum = padding * padding * maximum
+            limit_tlemmas_comp = padding * padding * maximum
+            limit_tlemmas_comp_enum = padding * padding * padding * maximum
 
-        case Timeout(tlemmas=tout_tlemmas, enumerator=tout_enumerator):
+        case Timeout(tlemmas=tout_tlemmas, compilator=tout_compilator, enumerator=tout_enumerator):
             limit_enum = tout_enumerator.seconds
             limit_tlemmas = tout_tlemmas.seconds
-            limit_tlemmas_enum = (tout_tlemmas + tout_enumerator).seconds
+            limit_tlemmas_comp = (tout_tlemmas + tout_compilator).seconds
+            limit_tlemmas_comp_enum = (tout_tlemmas + tout_compilator + tout_enumerator).seconds
 
     minimum: float = (
         df.select(
@@ -90,15 +95,16 @@ def plot(
         ax.set_yscale('log')
 
         ax.set_xlim(minimum, padding * limit_enum)
-        ax.set_ylim(minimum, padding * limit_tlemmas_enum)
+        ax.set_ylim(minimum, padding * limit_tlemmas_comp_enum)
 
         ax.axvline(x=limit_enum, color='darkgrey', linestyle='--')
         ax.axhline(y=limit_tlemmas, color='darkgrey', linestyle='--')
-        ax.axhline(y=limit_tlemmas_enum, color='darkgrey', linestyle='--')
+        ax.axhline(y=limit_tlemmas_comp, color='darkgrey', linestyle='--')
+        ax.axhline(y=limit_tlemmas_comp_enum, color='darkgrey', linestyle='--')
 
         ax.plot(
-            (minimum, padding * limit_tlemmas_enum),
-            (minimum, padding * limit_tlemmas_enum),
+            (minimum, padding * limit_tlemmas_comp_enum),
+            (minimum, padding * limit_tlemmas_comp_enum),
             color='darkgrey',
             linestyle=':',
             linewidth=1,
@@ -111,22 +117,34 @@ def plot(
             alpha=.5,
         )
 
-        tout_tlemmas_t: pl.DataFrame = tout.filter(pl.col('stderr_tlemmas').is_not_null())
-        tout_tlemmas_f: pl.DataFrame = tout.filter(pl.col('stderr_tlemmas').is_null())
+        tout_tlemmas: pl.DataFrame = tout.filter(pl.col('stderr_tlemmas').is_not_null())
+        tout_enum: pl.DataFrame = tout.filter(pl.col(f'stderr_{enum_y}').is_not_null())
+        tout_comp: pl.DataFrame = tout.filter(
+            pl.col('stderr_tlemmas').is_null(),
+            pl.col(f'stderr_{enum_y}').is_null(),
+        )
 
         ax.scatter(
-            x=tout_tlemmas_t.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_enum)),
-            y=tout_tlemmas_t.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas)),
+            x=tout_tlemmas.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_enum)),
+            y=tout_tlemmas.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas)),
             marker='x',
             color='C1',
             alpha=.5,
         )
 
         ax.scatter(
-            x=tout_tlemmas_f.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_enum)),
-            y=tout_tlemmas_f.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_enum)),
+            x=tout_comp.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_enum)),
+            y=tout_comp.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_comp)),
             marker='x',
             color='C2',
+            alpha=.5,
+        )
+
+        ax.scatter(
+            x=tout_enum.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_enum)),
+            y=tout_enum.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_comp_enum)),
+            marker='x',
+            color='C3',
             alpha=.5,
         )
 
@@ -153,17 +171,19 @@ def plot(
         ax.set_xscale('log')
         ax.set_yscale('log')
 
-        ax.set_xlim(minimum, padding * limit_tlemmas_enum)
-        ax.set_ylim(minimum, padding * limit_tlemmas_enum)
+        ax.set_xlim(minimum, padding * limit_tlemmas_comp_enum)
+        ax.set_ylim(minimum, padding * limit_tlemmas_comp_enum)
 
         ax.axvline(x=limit_tlemmas, color='darkgrey', linestyle='--')
-        ax.axvline(x=limit_tlemmas_enum, color='darkgrey', linestyle='--')
+        ax.axvline(x=limit_tlemmas_comp, color='darkgrey', linestyle='--')
+        ax.axvline(x=limit_tlemmas_comp_enum, color='darkgrey', linestyle='--')
         ax.axhline(y=limit_tlemmas, color='darkgrey', linestyle='--')
-        ax.axhline(y=limit_tlemmas_enum, color='darkgrey', linestyle='--')
+        ax.axhline(y=limit_tlemmas_comp, color='darkgrey', linestyle='--')
+        ax.axhline(y=limit_tlemmas_comp_enum, color='darkgrey', linestyle='--')
 
         ax.plot(
-            (minimum, padding * limit_tlemmas_enum),
-            (minimum, padding * limit_tlemmas_enum),
+            (minimum, padding * limit_tlemmas_comp_enum),
+            (minimum, padding * limit_tlemmas_comp_enum),
             color='darkgrey',
             linestyle=':',
             linewidth=1,
@@ -176,22 +196,34 @@ def plot(
             alpha=.5,
         )
 
-        tout_tlemmas_t: pl.DataFrame = tout.filter(pl.col('stderr_tlemmas').is_not_null())
-        tout_tlemmas_f: pl.DataFrame = tout.filter(pl.col('stderr_tlemmas').is_null())
+        tout_tlemmas: pl.DataFrame = tout.filter(pl.col('stderr_tlemmas').is_not_null())
+        tout_enum: pl.DataFrame = tout.filter(pl.col(f'stderr_{enum_y}').is_not_null())
+        tout_comp: pl.DataFrame = tout.filter(
+            pl.col('stderr_tlemmas').is_null(),
+            pl.col(f'stderr_{enum_y}').is_null(),
+        )
 
         ax.scatter(
-            x=tout_tlemmas_t.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_tlemmas)),
-            y=tout_tlemmas_t.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas)),
+            x=tout_tlemmas.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_tlemmas)),
+            y=tout_tlemmas.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas)),
             marker='x',
             color='C1',
             alpha=.5,
         )
 
         ax.scatter(
-            x=tout_tlemmas_f.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_tlemmas_enum)),
-            y=tout_tlemmas_f.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_enum)),
+            x=tout_comp.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_tlemmas_comp)),
+            y=tout_comp.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_comp)),
             marker='x',
             color='C2',
+            alpha=.5,
+        )
+
+        ax.scatter(
+            x=tout_enum.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_tlemmas_comp_enum)),
+            y=tout_enum.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_comp_enum)),
+            marker='x',
+            color='C3',
             alpha=.5,
         )
 
@@ -210,12 +242,13 @@ def file(arg: str) -> Path:
     return path
 
 
-if __name__ == '__main__':
+def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument('--csv', type=file, required=True)
     parser.add_argument('--column', type=str, required=True)
     parser.add_argument('--output', type=Path, required=True, nargs='+')
     parser.add_argument('--timeout_enumerator', type=int, required=True)
+    parser.add_argument('--timeout_compilator', type=int, required=True)
     parser.add_argument('--timeout_tlemmas', type=int, required=True)
     parser.add_argument('--type', type=str, required=False)
     args: argparse.Namespace = parser.parse_args()
@@ -236,7 +269,9 @@ if __name__ == '__main__':
             for enumerator in ['decdnnf_baseline']
         ],
     ).with_columns(
-        stderr_tlemmas=pl.coalesce(pl.col('^stderr_tlemmas$'), pl.lit(None))
+        stderr_tlemmas=pl.coalesce(pl.col('^stderr_tlemmas$'), pl.lit(None)),
+        stderr_decdnnf_baseline_d4=pl.coalesce(pl.col('^stderr_decdnnf_baseline_d4$'), pl.lit(None)),
+        stderr_decdnnf_baseline_sdd=pl.coalesce(pl.col('^stderr_decdnnf_baseline_sdd$'), pl.lit(None)),
     )
 
     fig: plt.Figure
@@ -244,6 +279,7 @@ if __name__ == '__main__':
         case 'time':
             fig = plot(df, args.column, Timeout(
                 enumerator=timedelta(minutes=args.timeout_enumerator),
+                compilator=timedelta(minutes=args.timeout_compilator),
                 tlemmas=timedelta(minutes=args.timeout_tlemmas),
             ))
 
@@ -252,3 +288,7 @@ if __name__ == '__main__':
 
     for out in args.output:
         fig.savefig(out)
+
+
+if __name__ == '__main__':
+    main()

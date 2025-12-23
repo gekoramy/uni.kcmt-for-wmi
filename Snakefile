@@ -72,6 +72,7 @@ rule plot:
           --column {wildcards.column:q} \
           --type {wildcards.type} \
           --timeout_tlemmas {config[timeout][tlemmas]} \
+          --timeout_compilator {config[timeout][compilator]} \
           --timeout_enumerator {config[timeout][enumerator]} \
           --csv {input} \
           --output {output:q}
