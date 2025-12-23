@@ -23,7 +23,7 @@ def plot(
     padding: float = 2
 
     enumerators_wout_tlemmas: list[str] = ['sae']
-    enumerators_with_tlemmas: list[str] = ['d4', 'sdd']
+    enumerators_with_tlemmas: list[str] = ['decdnnf_baseline_d4', 'decdnnf_baseline_sdd']
 
     limit_enum: float
     limit_tlemmas: float
@@ -227,13 +227,16 @@ if __name__ == '__main__':
         pl.col('enumerating_sae').alias('enumerating full_sae'),
         *[
             (
-                pl.col(f'enumerating_{tddnnf}')
-                .sub(pl.col(f'lemmas loading_{tddnnf}'))
+                pl.col(f'enumerating_{enumerator}_{tddnnf}')
+                .add(pl.col(f'total_tddnnf_{tddnnf}'))
                 .add(pl.col('Partial AllSMT_tlemmas'))
                 .add(pl.col('extract tlemmas_tlemmas'))
-            ).alias(f'enumerating full_{tddnnf}')
+            ).alias(f'enumerating full_{enumerator}_{tddnnf}')
             for tddnnf in ['d4', 'sdd']
+            for enumerator in ['decdnnf_baseline']
         ],
+    ).with_columns(
+        stderr_tlemmas=pl.coalesce(pl.col('^stderr_tlemmas$'), pl.lit(None))
     )
 
     fig: plt.Figure

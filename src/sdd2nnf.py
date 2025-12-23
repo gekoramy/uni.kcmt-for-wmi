@@ -1,10 +1,9 @@
 import argparse
 import itertools as it
 import typing as t
-
+from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
-from collections import OrderedDict
 
 
 @dataclass
@@ -118,8 +117,8 @@ def main(sdd: Path, nnf: Path) -> None:
 
 if __name__ == '__main__':
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
-    parser.add_argument('--ssd', type=Path, required=True)
+    parser.add_argument('--sdd', type=Path, required=True)
     parser.add_argument('--nnf', type=Path, required=True)
     args: argparse.Namespace = parser.parse_args()
 
-    main(args.ssd, args.nnf)
+    main(args.sdd, args.nnf)

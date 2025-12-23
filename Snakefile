@@ -49,7 +49,7 @@ def wmibench_synthetic_pa() -> list[str]:
 rule all:
     input:
         expand("assets/plots/{column}.time.{suffix}",
-            column=["enumerating", "enumerating full", "parsing density"],
+            column=["enumerating", "enumerating full"],
             suffix=["pdf", "png"]
         ),
         expand("assets/plots/npolys.int.{suffix}",
@@ -79,21 +79,30 @@ rule plot:
 
 
 rule aggregate:
-    threads: 1
+    threads: 13
     input:
-        expand("assets/wmi/{enum}/noop/{density}.{suffix}",
-            enum=["sae", "d4", "sdd"],
-            density=densities(),
-            suffix=["steps", "out", "err"],
-        ),
-        expand("assets/tlemmas/{density}.{suffix}",
-            density=densities(),
-            suffix=["steps", "err"],
+        expand("assets/aggregates/{density}.csv",
+            density=densities()
         )
     output:
         "assets/aggregate.csv"
     script:
         "src/aggregate.py"
+
+
+rule aggregate_density:
+    threads: 1
+    input:
+        tlemmas=["assets/tlemmas/{type}/{density}." + suffix for suffix in ["err", "steps"]],
+        tddnnf_d4=["assets/tddnnf/d4/{type}/{density}." + suffix for suffix in ["err", "steps"]],
+        tddnnf_sdd=["assets/tddnnf/sdd/{type}/{density}." + suffix for suffix in ["err", "steps"]],
+        sae=["assets/wmi/sae/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+        decdnnf_baseline_d4=["assets/wmi/decdnnf_baseline/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+        decdnnf_baseline_sdd=["assets/wmi/decdnnf_baseline/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]]
+    output:
+        "assets/aggregates/{type}/{density}.csv"
+    script:
+        "src/aggregate_density.py"
 
 
 rule generate_wmpy_synthetic:
@@ -186,8 +195,85 @@ rule compute_tlemmas:
           2> {output.timeout} \
           || [ $? -eq 124 ]
         
-        touch {output.tlemmas}
-        touch {output.steps}
+        touch {output}
+        """
+
+
+rule compile_tddnnf_with_d4:
+    threads: 1
+    input:
+        density="assets/densities/{type}/{density}.json",
+        tlemmas="assets/tlemmas/{type}/{density}.smt2"
+    output:
+        steps="assets/tddnnf/d4/{type}/{density}.steps",
+        timeout="assets/tddnnf/d4/{type}/{density}.err",
+        mapping="assets/tddnnf/d4/{type}/{density}.json",
+        nnf="assets/tddnnf/d4/{type}/{density}.nnf"
+    params:
+        script="src.tddnnf"
+    shell:
+        """
+        timeout --verbose {config[timeout][compilator]}m \
+          python -m {params.script} \
+          --cores {threads} \
+          --density {input.density} \
+          --tlemmas {input.tlemmas} \
+          --steps {output.steps} \
+          --mapping {output.mapping} \
+          d4 \
+          --nnf {output.nnf} \
+          2> {output.timeout} \
+          || [ $? -eq 124 ]
+
+        touch {output}
+        """
+
+
+rule compile_tddnnf_with_sdd:
+    threads: 1
+    input:
+        density="assets/densities/{type}/{density}.json",
+        tlemmas="assets/tlemmas/{type}/{density}.smt2"
+    output:
+        steps="assets/tddnnf/sdd/{type}/{density}.steps",
+        timeout="assets/tddnnf/sdd/{type}/{density}.err",
+        mapping="assets/tddnnf/sdd/{type}/{density}.json",
+        sdd="assets/tddnnf/sdd/{type}/{density}.sdd",
+        vtree="assets/tddnnf/sdd/{type}/{density}.vtree"
+    params:
+        script="src.tddnnf"
+    shell:
+        """
+        timeout --verbose {config[timeout][compilator]}m \
+          python -m {params.script} \
+          --cores {threads} \
+          --density {input.density} \
+          --tlemmas {input.tlemmas} \
+          --steps {output.steps} \
+          --mapping {output.mapping} \
+          sdd \
+          --sdd {output.sdd} \
+          --vtree {output.vtree} \
+          2> {output.timeout} \
+          || [ $? -eq 124 ]
+
+        touch {output}
+        """
+
+
+rule sdd_to_nnf:
+    threads: 1
+    input:
+        "{sdd}.sdd"
+    output:
+        "{sdd}.nnf"
+    params:
+        script="src.sdd2nnf"
+    shell:
+        """
+        python -m {params.script} \
+          --sdd {input} \
+          --nnf {output}
         """
 
 
@@ -206,48 +292,46 @@ rule compute_wmi_with_sae:
         timeout --verbose {config[timeout][enumerator]}m \
           python -m {params.script} \
           --density {input} \
-          --enumerator sae \
           --integrator {wildcards.int} \
           --steps {output.steps} \
           --cores {threads} \
+          sae \
           1> {output.wmi} \
           2> {output.timeout} \
           || [ $? -eq 124 ]
         
-        touch {output.wmi}
-        touch {output.steps}
-        touch {output.timeout}
+        touch {output}
         """
 
 
-rule compute_wmi_with_decdnnf:
+rule compute_wmi_with_decdnnf_baseline:
     threads: 13
     input:
         density="assets/densities/{type}/{density}.json",
-        tlemmas="assets/tlemmas/{type}/{density}.smt2"
+        nnf="assets/tddnnf/{compiler}/{type}/{density}.nnf",
+        mapping="assets/tddnnf/{compiler}/{type}/{density}.json"
     output:
-        wmi="assets/wmi/{enum,d4|sdd}/{int,noop|latte}/{type}/{density}.out",
-        steps="assets/wmi/{enum,d4|sdd}/{int,noop|latte}/{type}/{density}.steps",
-        timeout="assets/wmi/{enum,d4|sdd}/{int,noop|latte}/{type}/{density}.err"
+        wmi="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.out",
+        steps="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.steps",
+        timeout="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.err"
     params:
         script="src.wmi"
     shell:
         """
-        if [[ -s "{input.tlemmas}" ]]; then
+        if [[ -s {input.nnf:q} ]]; then
           timeout --verbose {config[timeout][enumerator]}m \
             python -m {params.script} \
             --density {input.density} \
-            --enumerator {wildcards.enum} \
             --integrator {wildcards.int} \
-            --tlemmas {input.tlemmas} \
             --steps {output.steps} \
             --cores {threads} \
+            decdnnf_baseline \
+            --nnf {input.nnf} \
+            --mapping {input.mapping} \
             1> {output.wmi} \
             2> {output.timeout} \
             || [ $? -eq 124 ]
         fi
           
-        touch {output.wmi}
-        touch {output.steps}
-        touch {output.timeout}
+        touch {output}
         """
