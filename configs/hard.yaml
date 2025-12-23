@@ -37,5 +37,5 @@ wmibench_synthetic_structured:
 wmibench_synthetic_pa:
   reals: [ 3 ]
   bools: [ 3 ]
-  depth: [ 3 ]
+  depth: [ 4, 5, 6, 7 ]
   seed: [ 17 ]
