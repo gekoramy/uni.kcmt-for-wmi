@@ -190,6 +190,7 @@ rule compute_tlemmas:
         touch {output.steps}
         """
 
+
 rule compute_wmi_with_sae:
     threads: 13
     input:
@@ -217,6 +218,7 @@ rule compute_wmi_with_sae:
         touch {output.steps}
         touch {output.timeout}
         """
+
 
 rule compute_wmi_with_decdnnf:
     threads: 13
