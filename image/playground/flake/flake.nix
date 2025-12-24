@@ -22,6 +22,7 @@
       tabularAllSMT = pkgs.callPackage ./nix/tabularAllSMT {};
       volesti-integrate = pkgs.callPackage ./nix/volesti {};
       decdnnf_rs = pkgs.callPackage ./nix/decdnnf_rs {inherit craneLib;};
+      query-dnnf = pkgs.callPackage ./nix/query-dnnf {};
 
       bundle = pkgs.buildEnv {
         name = "bundle";
@@ -36,6 +37,7 @@
           pkgs-self.tabularAllSMT
           pkgs-self.volesti-integrate
           pkgs-self.decdnnf_rs
+          pkgs-self.query-dnnf
         ];
       };
     };
