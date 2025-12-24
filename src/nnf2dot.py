@@ -1,9 +1,11 @@
 import argparse
 import itertools as it
 import typing as t
+from pathlib import Path
+
 import graphviz
 
-from pathlib import Path
+from src import utils
 
 
 def nnf2dot(file: t.Iterator[str]) -> graphviz.Graph:
@@ -79,7 +81,7 @@ def main(nnf: Path, dot: Path) -> None:
 
 if __name__ == '__main__':
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
-    parser.add_argument('--nnf', type=Path, required=True)
+    parser.add_argument('--nnf', type=utils.file, required=True)
     parser.add_argument('--dot', type=Path, required=True)
     args: argparse.Namespace = parser.parse_args()
 

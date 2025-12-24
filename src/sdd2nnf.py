@@ -5,18 +5,20 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 
+from src import utils
 
-@dataclass
+
+@dataclass(frozen=True)
 class NNF:
     id: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class B:
     id: bool
 
 
-@dataclass
+@dataclass(frozen=True)
 class OR:
     l_n_l: list[tuple[str, str]]
     nnf_n_l: list[tuple[NNF | B, str]]
@@ -112,12 +114,16 @@ def main(sdd: Path, nnf: Path) -> None:
         output = sdd2nnf(f)
 
     with open(nnf, 'wt') as f:
-        f.writelines(line + ' 0\n' for line in output)
+        f.writelines(
+            part
+            for line in output
+            for part in (line, ' 0\n')
+        )
 
 
 if __name__ == '__main__':
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
-    parser.add_argument('--sdd', type=Path, required=True)
+    parser.add_argument('--sdd', type=utils.file, required=True)
     parser.add_argument('--nnf', type=Path, required=True)
     args: argparse.Namespace = parser.parse_args()
 
