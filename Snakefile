@@ -182,7 +182,8 @@ rule compute_tlemmas:
     input:
         "assets/densities/{type}/{density}.json"
     output:
-        tlemmas="assets/tlemmas/{type}/{density}.smt2",
+        tlemmas="assets/tlemmas/{type}/{density}.smt2"
+    log:
         steps="assets/tlemmas/{type}/{density}.steps",
         timeout="assets/tlemmas/{type}/{density}.err"
     params:
@@ -193,9 +194,9 @@ rule compute_tlemmas:
           python -m {params.script} \
           --density {input} \
           --tlemmas {output.tlemmas} \
-          --steps {output.steps} \
+          --steps {log.steps} \
           --cores {threads} \
-          2> {output.timeout} \
+          2> {log.timeout} \
           || [ $? -eq 124 ]
         
         touch {output}
@@ -210,10 +211,11 @@ rule compile_tddnnf_with_d4:
         density="assets/densities/{type}/{density}.json",
         tlemmas="assets/tlemmas/{type}/{density}.smt2"
     output:
-        steps="assets/tddnnf/d4/{type}/{density}.steps",
-        timeout="assets/tddnnf/d4/{type}/{density}.err",
         mapping="assets/tddnnf/d4/{type}/{density}.json",
         nnf="assets/tddnnf/d4/{type}/{density}.nnf"
+    log:
+        steps="assets/tddnnf/d4/{type}/{density}.steps",
+        timeout="assets/tddnnf/d4/{type}/{density}.err"
     params:
         script="src.tddnnf"
     shell:
@@ -223,11 +225,11 @@ rule compile_tddnnf_with_d4:
           --cores {threads} \
           --density {input.density} \
           --tlemmas {input.tlemmas} \
-          --steps {output.steps} \
+          --steps {log.steps} \
           --mapping {output.mapping} \
           d4 \
           --nnf {output.nnf} \
-          2> {output.timeout} \
+          2> {log.timeout} \
           || [ $? -eq 124 ]
 
         touch {output}
@@ -242,11 +244,12 @@ rule compile_tddnnf_with_sdd:
         density="assets/densities/{type}/{density}.json",
         tlemmas="assets/tlemmas/{type}/{density}.smt2"
     output:
-        steps="assets/tddnnf/sdd/{type}/{density}.steps",
-        timeout="assets/tddnnf/sdd/{type}/{density}.err",
         mapping="assets/tddnnf/sdd/{type}/{density}.json",
         sdd="assets/tddnnf/sdd/{type}/{density}.sdd",
         vtree="assets/tddnnf/sdd/{type}/{density}.vtree"
+    log:
+        steps="assets/tddnnf/sdd/{type}/{density}.steps",
+        timeout="assets/tddnnf/sdd/{type}/{density}.err"
     params:
         script="src.tddnnf"
     shell:
@@ -256,12 +259,12 @@ rule compile_tddnnf_with_sdd:
           --cores {threads} \
           --density {input.density} \
           --tlemmas {input.tlemmas} \
-          --steps {output.steps} \
+          --steps {log.steps} \
           --mapping {output.mapping} \
           sdd \
           --sdd {output.sdd} \
           --vtree {output.vtree} \
-          2> {output.timeout} \
+          2> {log.timeout} \
           || [ $? -eq 124 ]
 
         touch {output}
@@ -292,6 +295,7 @@ rule compute_wmi_with_sae:
         "assets/densities/{type}/{density}.json"
     output:
         wmi="assets/wmi/sae/{int,noop|latte}/{type}/{density}.out",
+    log:
         steps="assets/wmi/sae/{int,noop|latte}/{type}/{density}.steps",
         timeout="assets/wmi/sae/{int,noop|latte}/{type}/{density}.err"
     params:
@@ -302,11 +306,11 @@ rule compute_wmi_with_sae:
           python -m {params.script} \
           --density {input} \
           --integrator {wildcards.int} \
-          --steps {output.steps} \
+          --steps {log.steps} \
           --cores {threads} \
           sae \
           1> {output.wmi} \
-          2> {output.timeout} \
+          2> {log.timeout} \
           || [ $? -eq 124 ]
         
         touch {output}
@@ -322,7 +326,8 @@ rule compute_wmi_with_decdnnf_baseline:
         nnf="assets/tddnnf/{compiler}/{type}/{density}.nnf",
         mapping="assets/tddnnf/{compiler}/{type}/{density}.json"
     output:
-        wmi="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.out",
+        wmi="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.out"
+    log:
         steps="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.steps",
         timeout="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.err"
     params:
@@ -334,13 +339,13 @@ rule compute_wmi_with_decdnnf_baseline:
             python -m {params.script} \
             --density {input.density} \
             --integrator {wildcards.int} \
-            --steps {output.steps} \
+            --steps {log.steps} \
             --cores {threads} \
             decdnnf_baseline \
             --nnf {input.nnf} \
             --mapping {input.mapping} \
             1> {output.wmi} \
-            2> {output.timeout} \
+            2> {log.timeout} \
             || [ $? -eq 124 ]
         fi
           
