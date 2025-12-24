@@ -220,17 +220,19 @@ rule compile_tddnnf_with_d4:
         script="src.tddnnf"
     shell:
         """
-        timeout --verbose {config[timeout][compilator]}m \
-          python -m {params.script} \
-          --cores {threads} \
-          --density {input.density} \
-          --tlemmas {input.tlemmas} \
-          --steps {log.steps} \
-          --mapping {output.mapping} \
-          d4 \
-          --nnf {output.nnf} \
-          2> {log.timeout} \
-          || [ $? -eq 124 ]
+        if [[ -s {input.tlemmas:q} ]]; then
+          timeout --verbose {config[timeout][compilator]}m \
+            python -m {params.script} \
+            --cores {threads} \
+            --density {input.density} \
+            --tlemmas {input.tlemmas} \
+            --steps {log.steps} \
+            --mapping {output.mapping} \
+            d4 \
+            --nnf {output.nnf} \
+            2> {log.timeout} \
+            || [ $? -eq 124 ]
+        fi
 
         touch {output}
         """
@@ -254,18 +256,20 @@ rule compile_tddnnf_with_sdd:
         script="src.tddnnf"
     shell:
         """
-        timeout --verbose {config[timeout][compilator]}m \
-          python -m {params.script} \
-          --cores {threads} \
-          --density {input.density} \
-          --tlemmas {input.tlemmas} \
-          --steps {log.steps} \
-          --mapping {output.mapping} \
-          sdd \
-          --sdd {output.sdd} \
-          --vtree {output.vtree} \
-          2> {log.timeout} \
-          || [ $? -eq 124 ]
+        if [[ -s {input.tlemmas:q} ]]; then
+          timeout --verbose {config[timeout][compilator]}m \
+            python -m {params.script} \
+            --cores {threads} \
+            --density {input.density} \
+            --tlemmas {input.tlemmas} \
+            --steps {log.steps} \
+            --mapping {output.mapping} \
+            sdd \
+            --sdd {output.sdd} \
+            --vtree {output.vtree} \
+            2> {log.timeout} \
+            || [ $? -eq 124 ]
+        fi
 
         touch {output}
         """
