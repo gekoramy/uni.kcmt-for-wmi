@@ -188,6 +188,8 @@ rule compute_tlemmas:
         timeout="assets/tlemmas/{type}/{density}.err"
     params:
         script="src.tlemmas"
+    benchmark:
+        "assets/benchmarks/tlemmas/{type}/{density}.jsonl"
     shell:
         """
         timeout --verbose {config[timeout][tlemmas]}m \
@@ -216,6 +218,8 @@ rule compile_tddnnf_with_d4:
     log:
         steps="assets/tddnnf/d4/{type}/{density}.steps",
         timeout="assets/tddnnf/d4/{type}/{density}.err"
+    benchmark:
+        "assets/benchmarks/tddnnf/d4/{type}/{density}.jsonl"
     params:
         script="src.tddnnf"
     shell:
@@ -252,6 +256,8 @@ rule compile_tddnnf_with_sdd:
     log:
         steps="assets/tddnnf/sdd/{type}/{density}.steps",
         timeout="assets/tddnnf/sdd/{type}/{density}.err"
+    benchmark:
+        "assets/benchmarks/tddnnf/sdd/{type}/{density}.jsonl"
     params:
         script="src.tddnnf"
     shell:
@@ -302,6 +308,8 @@ rule compute_wmi_with_sae:
     log:
         steps="assets/wmi/sae/{int,noop|latte}/{type}/{density}.steps",
         timeout="assets/wmi/sae/{int,noop|latte}/{type}/{density}.err"
+    benchmark:
+        "assets/benchmarks/sae/{int,noop|latte}/{type}/{density}.jsonl"
     params:
         script="src.wmi"
     shell:
@@ -334,6 +342,8 @@ rule compute_wmi_with_decdnnf_baseline:
     log:
         steps="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.steps",
         timeout="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.err"
+    benchmark:
+        "assets/benchmarks/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.jsonl"
     params:
         script="src.wmi"
     shell:
