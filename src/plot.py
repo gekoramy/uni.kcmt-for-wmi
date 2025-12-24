@@ -120,8 +120,10 @@ def plot(
         tout_tlemmas: pl.DataFrame = tout.filter(pl.col('stderr_tlemmas').is_not_null())
         tout_enum: pl.DataFrame = tout.filter(pl.col(f'stderr_{enum_y}').is_not_null())
         tout_comp: pl.DataFrame = tout.filter(
-            pl.col('stderr_tlemmas').is_null(),
-            pl.col(f'stderr_{enum_y}').is_null(),
+            ~(
+                    pl.col('stderr_tlemmas').is_not_null() |
+                    pl.col(f'stderr_{enum_y}').is_not_null()
+            )
         )
 
         ax.scatter(
@@ -197,10 +199,14 @@ def plot(
         )
 
         tout_tlemmas: pl.DataFrame = tout.filter(pl.col('stderr_tlemmas').is_not_null())
-        tout_enum: pl.DataFrame = tout.filter(pl.col(f'stderr_{enum_y}').is_not_null())
+        tout_enum: pl.DataFrame = tout.filter(
+            pl.col(f'stderr_{enum_x}').is_not_null() | pl.col(f'stderr_{enum_y}').is_not_null()
+        )
         tout_comp: pl.DataFrame = tout.filter(
-            pl.col('stderr_tlemmas').is_null(),
-            pl.col(f'stderr_{enum_y}').is_null(),
+            ~(
+                    pl.col('stderr_tlemmas').is_not_null() |
+                    pl.col(f'stderr_{enum_x}').is_not_null() | pl.col(f'stderr_{enum_y}').is_not_null()
+            )
         )
 
         ax.scatter(
