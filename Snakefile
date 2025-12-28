@@ -198,7 +198,7 @@ rule generate_wmibench_synthetic_pa:
 rule compute_tlemmas:
     threads: 13
     resources:
-        mem="30GB"
+        mem="20GB"
     input:
         "assets/densities/{type}/{density}.json"
     output:
@@ -227,7 +227,7 @@ rule compute_tlemmas:
 rule compile_tddnnf_with_d4:
     threads: 1
     resources:
-        mem="30GB"
+        mem="20GB"
     input:
         density="assets/densities/{type}/{density}.json",
         tlemmas="assets/tlemmas/{type}/{density}.smt2"
@@ -263,7 +263,7 @@ rule compile_tddnnf_with_d4:
 rule compile_tddnnf_with_sdd:
     threads: 1
     resources:
-        mem="30GB"
+        mem="60GB"
     input:
         density="assets/densities/{type}/{density}.json",
         tlemmas="assets/tlemmas/{type}/{density}.smt2"
@@ -317,7 +317,7 @@ rule sdd_to_nnf:
 rule compute_wmi_with_sae:
     threads: 13
     resources:
-        mem="30GB"
+        mem="20GB"
     input:
         "assets/densities/{type}/{density}.json"
     output:
@@ -348,7 +348,7 @@ rule compute_wmi_with_sae:
 rule compute_wmi_with_decdnnf_baseline:
     threads: 13
     resources:
-        mem="30GB"
+        mem="20GB"
     input:
         density="assets/densities/{type}/{density}.json",
         nnf="assets/tddnnf/{compiler}/{type}/{density}.nnf",
