@@ -94,12 +94,30 @@ rule aggregate:
 rule aggregate_density:
     threads: 1
     input:
-        tlemmas=["assets/tlemmas/{type}/{density}." + suffix for suffix in ["err", "steps"]],
-        tddnnf_d4=["assets/tddnnf/d4/{type}/{density}." + suffix for suffix in ["err", "steps"]],
-        tddnnf_sdd=["assets/tddnnf/sdd/{type}/{density}." + suffix for suffix in ["err", "steps"]],
-        sae=["assets/wmi/sae/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
-        decdnnf_baseline_d4=["assets/wmi/decdnnf_baseline/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
-        decdnnf_baseline_sdd=["assets/wmi/decdnnf_baseline/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]]
+        tlemmas=[
+            *["assets/tlemmas/{type}/{density}." + suffix for suffix in ["err", "steps"]],
+            "assets/benchmarks/tlemmas/{type}/{density}.jsonl"
+        ],
+        tddnnf_d4=[
+            *["assets/tddnnf/d4/{type}/{density}." + suffix for suffix in ["err", "steps"]],
+            "assets/benchmarks/tddnnf/d4/{type}/{density}.jsonl"
+        ],
+        tddnnf_sdd=[
+            *["assets/tddnnf/sdd/{type}/{density}." + suffix for suffix in ["err", "steps"]],
+            "assets/benchmarks/tddnnf/sdd/{type}/{density}.jsonl"
+        ],
+        sae=[
+            *["assets/wmi/sae/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/benchmarks/sae/noop/{type}/{density}.jsonl"
+        ],
+        decdnnf_baseline_d4=[
+            *["assets/wmi/decdnnf_baseline/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/benchmarks/decdnnf_baseline/d4/noop/{type}/{density}.jsonl"
+        ],
+        decdnnf_baseline_sdd=[
+            *["assets/wmi/decdnnf_baseline/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/benchmarks/decdnnf_baseline/sdd/noop/{type}/{density}.jsonl"
+        ]
     output:
         "assets/aggregates/{type}/{density}.csv"
     script:

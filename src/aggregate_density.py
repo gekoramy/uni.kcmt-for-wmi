@@ -36,6 +36,23 @@ def parse_data(
             text: str = path.read_text()
             data: pl.DataFrame = pl.DataFrame({'stderr': text})
 
+        case '.jsonl':
+            data: pl.DataFrame = pl.read_ndjson(
+                patch(path),
+                schema={
+                    'cpu_time': pl.Float64,
+                    'h:m:s': pl.String,
+                    'io_in': pl.Float64,
+                    'io_out': pl.Float64,
+                    'max_pss': pl.Float64,
+                    'max_rss': pl.Float64,
+                    'max_uss': pl.Float64,
+                    'max_vms': pl.Float64,
+                    'mean_load': pl.Float64,
+                    's': pl.Float64,
+                }
+            )
+
     return data.with_columns(
         pl.lit(path.stem).alias('density'),
         pl.lit(who).alias('who'),
@@ -49,7 +66,7 @@ def main(who2paths: dict[str, list[Path]], output: Path) -> None:
                         path
                         for paths in who2paths.values()
                         for path in paths
-                        if path.suffix not in ('.steps', '.out', '.err')
+                        if path.suffix not in ('.steps', '.out', '.err', '.jsonl')
                 ),
                 None,
             ))
