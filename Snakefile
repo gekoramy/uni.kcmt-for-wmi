@@ -6,6 +6,8 @@ validate(config,schema="configs/schema.json")
 
 container: "docker://ghcr.io/gekoramy/playground:latest"
 
+limit: str = "src.limit"
+
 
 def densities() -> list[str]:
     return [
@@ -203,22 +205,21 @@ rule compute_tlemmas:
         tlemmas="assets/tlemmas/{type}/{density}.smt2"
     log:
         steps="assets/tlemmas/{type}/{density}.steps",
-        timeout="assets/tlemmas/{type}/{density}.err"
+        err="assets/tlemmas/{type}/{density}.err"
     params:
         script="src.tlemmas"
     benchmark:
         "assets/benchmarks/tlemmas/{type}/{density}.jsonl"
     shell:
         """
-        timeout --verbose {config[timeout][tlemmas]}m \
+        python -m {limit} --minutes {config[timeout][tlemmas]} --MBs {resources.mem_mb} -- \
           python -m {params.script} \
           --density {input} \
           --tlemmas {output.tlemmas} \
           --steps {log.steps} \
           --cores {threads} \
-          2> {log.timeout} \
-          || [ $? -eq 124 ]
-        
+          2> {log.err}
+
         touch {output}
         """
 
@@ -235,7 +236,7 @@ rule compile_tddnnf_with_d4:
         nnf="assets/tddnnf/d4/{type}/{density}.nnf"
     log:
         steps="assets/tddnnf/d4/{type}/{density}.steps",
-        timeout="assets/tddnnf/d4/{type}/{density}.err"
+        err="assets/tddnnf/d4/{type}/{density}.err"
     benchmark:
         "assets/benchmarks/tddnnf/d4/{type}/{density}.jsonl"
     params:
@@ -243,7 +244,7 @@ rule compile_tddnnf_with_d4:
     shell:
         """
         if [[ -s {input.tlemmas:q} ]]; then
-          timeout --verbose {config[timeout][compilator]}m \
+          python -m {limit} --minutes {config[timeout][compilator]} --MBs {resources.mem_mb} -- \
             python -m {params.script} \
             --cores {threads} \
             --density {input.density} \
@@ -252,8 +253,7 @@ rule compile_tddnnf_with_d4:
             --mapping {output.mapping} \
             d4 \
             --nnf {output.nnf} \
-            2> {log.timeout} \
-            || [ $? -eq 124 ]
+            2> {log.err}
         fi
 
         touch {output}
@@ -273,7 +273,7 @@ rule compile_tddnnf_with_sdd:
         vtree="assets/tddnnf/sdd/{type}/{density}.vtree"
     log:
         steps="assets/tddnnf/sdd/{type}/{density}.steps",
-        timeout="assets/tddnnf/sdd/{type}/{density}.err"
+        err="assets/tddnnf/sdd/{type}/{density}.err"
     benchmark:
         "assets/benchmarks/tddnnf/sdd/{type}/{density}.jsonl"
     params:
@@ -281,7 +281,7 @@ rule compile_tddnnf_with_sdd:
     shell:
         """
         if [[ -s {input.tlemmas:q} ]]; then
-          timeout --verbose {config[timeout][compilator]}m \
+          python -m {limit} --minutes {config[timeout][compilator]} --MBs {resources.mem_mb} -- \
             python -m {params.script} \
             --cores {threads} \
             --density {input.density} \
@@ -291,8 +291,7 @@ rule compile_tddnnf_with_sdd:
             sdd \
             --sdd {output.sdd} \
             --vtree {output.vtree} \
-            2> {log.timeout} \
-            || [ $? -eq 124 ]
+            2> {log.err}
         fi
 
         touch {output}
@@ -325,14 +324,14 @@ rule compute_wmi_with_sae:
         wmi="assets/wmi/sae/{int,noop|latte}/{type}/{density}.out",
     log:
         steps="assets/wmi/sae/{int,noop|latte}/{type}/{density}.steps",
-        timeout="assets/wmi/sae/{int,noop|latte}/{type}/{density}.err"
+        err="assets/wmi/sae/{int,noop|latte}/{type}/{density}.err"
     benchmark:
         "assets/benchmarks/sae/{int,noop|latte}/{type}/{density}.jsonl"
     params:
         script="src.wmi"
     shell:
         """
-        timeout --verbose {config[timeout][enumerator]}m \
+        python -m {limit} --minutes {config[timeout][enumerator]} --MBs {resources.mem_mb} -- \
           python -m {params.script} \
           --density {input} \
           --integrator {wildcards.int} \
@@ -340,9 +339,8 @@ rule compute_wmi_with_sae:
           --cores {threads} \
           sae \
           1> {output.wmi} \
-          2> {log.timeout} \
-          || [ $? -eq 124 ]
-        
+          2> {log.err}
+
         touch {output}
         """
 
@@ -359,7 +357,7 @@ rule compute_wmi_with_decdnnf_baseline:
         wmi="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.out"
     log:
         steps="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.steps",
-        timeout="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.err"
+        err="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.err"
     benchmark:
         "assets/benchmarks/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.jsonl"
     params:
@@ -367,7 +365,7 @@ rule compute_wmi_with_decdnnf_baseline:
     shell:
         """
         if [[ -s {input.nnf:q} ]]; then
-          timeout --verbose {config[timeout][enumerator]}m \
+          python -m {limit} --minutes {config[timeout][enumerator]} --MBs {resources.mem_mb} -- \
             python -m {params.script} \
             --density {input.density} \
             --integrator {wildcards.int} \
@@ -377,8 +375,7 @@ rule compute_wmi_with_decdnnf_baseline:
             --nnf {input.nnf} \
             --mapping {input.mapping} \
             1> {output.wmi} \
-            2> {log.timeout} \
-            || [ $? -eq 124 ]
+            2> {log.err}
         fi
           
         touch {output}
