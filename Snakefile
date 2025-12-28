@@ -159,7 +159,7 @@ rule generate_wmibench_synthetic_structured:
     shell:
         """
         folder=$(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
-        
+
         python $folder/wmibench/synthetic/synthetic_structured.py \
           {wildcards.name} \
           {wildcards.size} \
@@ -179,7 +179,7 @@ rule generate_wmibench_synthetic_pa:
     shell:
         """
         folder=$(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
-        
+
         tmp_dir=$(mktemp -d -t wmibench-XXXXXXXXXX)
 
         python $folder/wmibench/synthetic/synthetic_pa.py \
@@ -188,9 +188,9 @@ rule generate_wmibench_synthetic_pa:
           --depth {wildcards.depth} \
           --seed {wildcards.seed} \
           --output $tmp_dir
-          
+
         mv $tmp_dir/*/* assets/densities/wmibench_synthetic_pa
-        
+
         rm -rf $tmp_dir
         """
 
@@ -377,6 +377,6 @@ rule compute_wmi_with_decdnnf_baseline:
             1> {output.wmi} \
             2> {log.err}
         fi
-          
+
         touch {output}
         """
