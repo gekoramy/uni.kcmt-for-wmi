@@ -42,7 +42,7 @@ def conditioning(
     ...   '1 2 2 -1 0',
     ... ]
     >>> conditioning(iter(nnf), frozenset([1]))
-    ['a 1', 'f 2', '1 2 1']
+    ['f 1']
 
     >>> nnf = [
     ...   'a 1 0',
@@ -51,7 +51,7 @@ def conditioning(
     ...   '1 2 -1 0',
     ... ]
     >>> conditioning(iter(nnf), frozenset([1]))
-    ['a 1', 'f 2', '1 2 1']
+    ['f 1']
 
     >>> nnf = [
     ...   'a 1 0',
@@ -61,7 +61,7 @@ def conditioning(
     ...   '2 3 2 0',
     ... ]
     >>> conditioning(iter(nnf), frozenset([1, -2]))
-    ['a 1', 'a 2', 'f 3', '1 2 1 -2', '2 3']
+    ['a 1', 'f 2', '1 2']
 
     >>> nnf = [
     ...   'o 1 0',
@@ -77,7 +77,7 @@ def conditioning(
     ...   '3 5 3 0',
     ... ]
     >>> conditioning(iter(nnf), frozenset([1, 3]))
-    ['a 1', 'o 2', 't 3', '1 2 1 3', '2 3']
+    ['o 1', 't 2', '1 2']
     """
 
     nnfs: list[t.Literal['a', 'o', 't', 'f']] = ['a']
@@ -130,7 +130,7 @@ def conditioning(
 
     cnt = it.count(1)
     ids: list[int] = [
-        next(cnt) if rootable[i] and leafable[i] else -1
+        next(cnt) if rootable[i] and leafable[i] and 0 != i else -1
         for i in range(len(nnfs))
     ]
 
