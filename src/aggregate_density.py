@@ -40,17 +40,24 @@ def parse_data(
             data: pl.DataFrame = pl.read_ndjson(
                 patch(path),
                 schema={
-                    'cpu_time': pl.Float64,
+                    'cpu_time': pl.String,
                     'h:m:s': pl.String,
-                    'io_in': pl.Float64,
-                    'io_out': pl.Float64,
-                    'max_pss': pl.Float64,
-                    'max_rss': pl.Float64,
-                    'max_uss': pl.Float64,
-                    'max_vms': pl.Float64,
-                    'mean_load': pl.Float64,
-                    's': pl.Float64,
+                    'io_in': pl.String,
+                    'io_out': pl.String,
+                    'max_pss': pl.String,
+                    'max_rss': pl.String,
+                    'max_uss': pl.String,
+                    'max_vms': pl.String,
+                    'mean_load': pl.String,
+                    's': pl.String,
                 }
+            )
+            data = (
+                data
+                .with_columns(
+                    pl.col('h:m:s'),
+                    pl.all().exclude('h:m:s').cast(pl.Float64, strict=False),
+                )
             )
 
     return data.with_columns(
