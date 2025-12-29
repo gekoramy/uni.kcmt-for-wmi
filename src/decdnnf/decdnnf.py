@@ -42,7 +42,11 @@ def raw(
                 '--compact-free-vars',
                 '--logging-level', 'off',
                 '--input', nnf.as_posix(),
-                '--threads', str(cores),
+                *(
+                    ['--threads', str(cores)]
+                    if cores > 1
+                    else []
+                )
             ],
             text=True,
             capture_output=True,
