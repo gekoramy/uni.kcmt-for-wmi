@@ -6,8 +6,6 @@ validate(config,schema="configs/schema.json")
 
 container: "docker://ghcr.io/gekoramy/playground:latest"
 
-limit: str = "src.limit"
-
 
 def densities() -> list[str]:
     return [
@@ -212,15 +210,14 @@ rule compute_tlemmas:
         "assets/benchmarks/tlemmas/{type}/{density}.jsonl"
     shell:
         """
-        python -m {limit} --minutes {config[timeout][tlemmas]} --MBs {resources.mem_mb} -- \
+        timeout --verbose {config[timeout][tlemmas]}m \
           python -m {params.script} \
           --density {input} \
           --tlemmas {output.tlemmas} \
           --steps {log.steps} \
           --cores {threads} \
-          2> {log.err}
-
-        touch {output}
+          2> {log.err} \
+          || touch {output}
         """
 
 
@@ -244,7 +241,7 @@ rule compile_tddnnf_with_d4:
     shell:
         """
         if [[ -s {input.tlemmas:q} ]]; then
-          python -m {limit} --minutes {config[timeout][compilator]} --MBs {resources.mem_mb} -- \
+          timeout --verbose {config[timeout][compilator]}m \
             python -m {params.script} \
             --cores {threads} \
             --density {input.density} \
@@ -253,7 +250,8 @@ rule compile_tddnnf_with_d4:
             --mapping {output.mapping} \
             d4 \
             --nnf {output.nnf} \
-            2> {log.err}
+            2> {log.err} \
+            || touch {output}
         fi
 
         touch {output}
@@ -281,7 +279,7 @@ rule compile_tddnnf_with_sdd:
     shell:
         """
         if [[ -s {input.tlemmas:q} ]]; then
-          python -m {limit} --minutes {config[timeout][compilator]} --MBs {resources.mem_mb} -- \
+          timeout --verbose {config[timeout][compilator]}m \
             python -m {params.script} \
             --cores {threads} \
             --density {input.density} \
@@ -291,7 +289,8 @@ rule compile_tddnnf_with_sdd:
             sdd \
             --sdd {output.sdd} \
             --vtree {output.vtree} \
-            2> {log.err}
+            2> {log.err} \
+            || touch {output}
         fi
 
         touch {output}
@@ -331,7 +330,7 @@ rule compute_wmi_with_sae:
         script="src.wmi"
     shell:
         """
-        python -m {limit} --minutes {config[timeout][enumerator]} --MBs {resources.mem_mb} -- \
+        timeout --verbose {config[timeout][enumerator]}m \
           python -m {params.script} \
           --density {input} \
           --integrator {wildcards.int} \
@@ -339,9 +338,8 @@ rule compute_wmi_with_sae:
           --cores {threads} \
           sae \
           1> {output.wmi} \
-          2> {log.err}
-
-        touch {output}
+          2> {log.err} \
+          || touch {output}
         """
 
 
@@ -365,7 +363,7 @@ rule compute_wmi_with_decdnnf_baseline:
     shell:
         """
         if [[ -s {input.nnf:q} ]]; then
-          python -m {limit} --minutes {config[timeout][enumerator]} --MBs {resources.mem_mb} -- \
+          timeout --verbose {config[timeout][enumerator]}m \
             python -m {params.script} \
             --density {input.density} \
             --integrator {wildcards.int} \
@@ -375,7 +373,8 @@ rule compute_wmi_with_decdnnf_baseline:
             --nnf {input.nnf} \
             --mapping {input.mapping} \
             1> {output.wmi} \
-            2> {log.err}
+            2> {log.err} \
+            || touch {output}
         fi
 
         touch {output}
