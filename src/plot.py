@@ -25,7 +25,12 @@ def plot(
     padding: float = 2
 
     enumerators_wout_tlemmas: list[str] = ['sae']
-    enumerators_with_tlemmas: list[str] = ['decdnnf_baseline_d4', 'decdnnf_baseline_sdd']
+    enumerators_with_tlemmas: list[str] = [
+        'decdnnf_baseline_d4',
+        'decdnnf_baseline_sdd',
+        'decdnnf_two_steps_d4',
+        'decdnnf_two_steps_sdd',
+    ]
 
     limit_enum: float
     limit_tlemmas: float
@@ -263,21 +268,32 @@ def main() -> None:
         args.csv,
         has_header=True,
     ).with_columns(
-        pl.col('enumerating_sae').alias('enumerating full_sae'),
+        pl.col('s_sae').alias('enumerating full_sae'),
         *[
             (
-                pl.col(f'enumerating_{enumerator}_{tddnnf}')
-                .add(pl.col(f'total_tddnnf_{tddnnf}'))
-                .add(pl.col('Partial AllSMT_tlemmas'))
-                .add(pl.col('extract tlemmas_tlemmas'))
+                pl.col(f's_{enumerator}_{tddnnf}')
+                .add(pl.col(f's_tddnnf_{tddnnf}'))
+                .add(pl.col('s_tlemmas'))
             ).alias(f'enumerating full_{enumerator}_{tddnnf}')
             for tddnnf in ['d4', 'sdd']
             for enumerator in ['decdnnf_baseline']
+        ],
+        *[
+            (
+                pl.col(f's_{enumerator}_{tddnnf}')
+                .add(pl.col(f's_tddnnf_{tddnnf}'))
+                .add(pl.col(f's_tddnnf_exists_x_{tddnnf}'))
+                .add(pl.col('s_tlemmas'))
+            ).alias(f'enumerating full_{enumerator}_{tddnnf}')
+            for tddnnf in ['d4', 'sdd']
+            for enumerator in ['decdnnf_two_steps']
         ],
     ).with_columns(
         stderr_tlemmas=pl.coalesce(pl.col('^stderr_tlemmas$'), pl.lit(None)),
         stderr_decdnnf_baseline_d4=pl.coalesce(pl.col('^stderr_decdnnf_baseline_d4$'), pl.lit(None)),
         stderr_decdnnf_baseline_sdd=pl.coalesce(pl.col('^stderr_decdnnf_baseline_sdd$'), pl.lit(None)),
+        stderr_decdnnf_two_steps_d4=pl.coalesce(pl.col('^stderr_decdnnf_two_steps_d4$'), pl.lit(None)),
+        stderr_decdnnf_two_steps_sdd=pl.coalesce(pl.col('^stderr_decdnnf_two_steps_sdd$'), pl.lit(None)),
     )
 
     fig: plt.Figure
