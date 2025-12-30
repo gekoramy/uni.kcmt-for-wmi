@@ -92,7 +92,6 @@ def main() -> None:
         parser.add_argument('--density', type=utils.file, required=True)
         parser.add_argument('--tlemmas', type=utils.file, required=True)
         parser.add_argument('--mapping', type=Path, required=True)
-        parser.add_argument('--exists_x', action='store_true')
 
         with utils.use(parser.add_subparsers(dest='compiler', required=True)) as sub:
             with utils.use(sub.add_parser('d4')) as subparser:
