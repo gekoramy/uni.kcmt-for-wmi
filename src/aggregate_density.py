@@ -22,7 +22,7 @@ def parse_data(
             data = (
                 data
                 .with_columns(pl.lit(True).alias('tmp'))
-                .pivot(on=pl.col('step'), index=pl.col('tmp'))
+                .pivot(on=pl.col('step'), index=pl.col('tmp'), aggregate_function="mean")
                 .select(pl.all().exclude('tmp'))
             )
 
