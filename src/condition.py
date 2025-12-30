@@ -78,20 +78,31 @@ def conditioning(
     ... ]
     >>> conditioning(iter(nnf), frozenset([1, 3]))
     ['o 1', 't 2', '1 2']
+
+    >>> nnf = [
+    ...   'a 1 0',
+    ...   'o 2 0',
+    ...   'o 3 0',
+    ...   't 4 0',
+    ...   '1 2 0',
+    ...   '1 3 0',
+    ...   '2 4 1 2 0',
+    ...   '2 4 -1 2 0',
+    ...   '3 4 3 0',
+    ...   '3 4 -3 0',
+    ... ]
+    >>> conditioning(iter(nnf), frozenset([-2]))
+    ['a 1', 'f 2', 'o 3', 't 4', '1 2', '1 3', '3 4 3', '3 4 -3']
     """
 
     nnfs: list[t.Literal['a', 'o', 't', 'f']] = ['a']
     pruned: list[tuple[int, int, t.Iterable[int]]] = [(0, 1, assumptions)]
 
-    # check if it can reach a leaf node
-    leafable: list[bool] = [False]
-    parents: list[list[int]] = [[], [0]]
-
     # check if it is reachable by the root node
-    rootable: list[bool] = [True]
+    rootable: list[bool]
     children: list[list[int]] = [[1]]
 
-    # ands can become false in the process
+    # and-nodes and or-nodes can become false in the process
     falsable: list[bool] = [False]
 
     for line in raw:
@@ -100,37 +111,32 @@ def conditioning(
 
         if words[0].isalpha():
             nnfs.append(words[0])
-            leafable.append(words[0] in 'ft')
-            rootable.append(False)
             falsable.append(False)
-            parents.append([])
             children.append([])
         else:
             u, v, *literals = map(int, words[:-1])
 
             if any(-l in assumptions for l in literals):
-                falsable[u] |= 'a' == nnfs[u]
+                falsable[u] = True
                 continue
 
             pruned.append((u, v, [l for l in literals if l not in assumptions]))
-            parents[v].append(u)
             children[u].append(v)
 
     for i, flag in enumerate(falsable):
         if not flag: continue
+        if 'o' == nnfs[i] and children[i]: continue
         nnfs[i] = 'f'
-        leafable[i] = True
         children[i] = []
 
-    dfs(leafable, parents)
-    dfs(rootable, children)
+    rootable = [False] * len(nnfs)
+    rootable[1] = True
 
-    if not leafable[0]:
-        return ['f 1']
+    dfs(rootable, children)
 
     cnt = it.count(1)
     ids: list[int] = [
-        next(cnt) if rootable[i] and leafable[i] and 0 != i else -1
+        next(cnt) if rootable[i] else -1
         for i in range(len(nnfs))
     ]
 
@@ -143,7 +149,7 @@ def conditioning(
     edges: list[str] = [
         ' '.join(map(str, (idu, idv, *ls)))
         for u, v, ls in pruned
-        if not falsable[u]
+        if 'f' != nnfs[u]
         if -1 != (idu := ids[u])
         if -1 != (idv := ids[v])
     ]
