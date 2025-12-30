@@ -58,6 +58,7 @@ def sdd(args: ArgumentsWithSDD) -> None:
 
         with utils.log('export'):
             shutil.move(folder / 'sdd.sdd', args.sdd)
+            shutil.move(folder / 'vtree.vtree', args.vtree)
 
 
 def d4(args: ArgumentsWithD4) -> None:
