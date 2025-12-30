@@ -38,6 +38,7 @@ def d4(args: ArgumentsWithD4):
         folder: Path = Path(path)
 
         exists_x_bc: Path = folder / 'exists_x.bc'
+        exists_x_to_fix: Path = folder / 'exists_x.nnf'
 
         with utils.log('nnf -> BC-S1.2'):
             nnf2bcs12.translate(
@@ -53,13 +54,19 @@ def d4(args: ArgumentsWithD4):
                     '--input', exists_x_bc,
                     '--input-type', 'circuit',
                     '--remove-gates', '1',
-                    '--dump-file', args.exists_x_nnf,
+                    '--dump-file', exists_x_to_fix,
                 ],
                 capture_output=True,
                 text=True,
             )
 
-        assert 0 == process.returncode, '\n'.join((process.stdout, process.stderr))
+            assert 0 == process.returncode, '\n'.join((process.stdout, process.stderr))
+
+        with utils.log('fix nnf'), open(exists_x_to_fix, 'rt') as fr, open(args.exists_x_nnf, 'wt') as fw:
+            fw.writelines(
+                nnf2bcs12.fix_nnf(line)
+                for line in fr
+            )
 
 
 def sdd(args: ArgumentsWithSDD):
