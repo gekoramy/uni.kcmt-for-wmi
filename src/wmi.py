@@ -21,6 +21,7 @@ from wmpy.integration import Integrator, LattEIntegrator, ParallelWrapper, Cache
 from wmpy.solvers import WMISolver
 
 import src.decdnnf.enumerator_baseline as decdnnf_baseline
+import src.decdnnf.enumerator_two_steps as decdnnf_two_steps
 from src import utils
 
 
@@ -128,6 +129,18 @@ def main() -> None:
                 subparser.add_argument('--nnf', type=utils.file, required=True)
                 subparser.add_argument('--mapping', type=utils.file, required=True)
 
+            with utils.use(sub.add_parser('decdnnf_two_steps')) as subparser:
+                subparser.add_argument('--nnf_exists_x', type=utils.file, required=True)
+                subparser.add_argument('--mapping', type=utils.file, required=True)
+
+                with utils.use(subparser.add_subparsers(dest='using', required=True)) as subsub:
+                    with utils.use(subsub.add_parser('d4')) as subsubparser:
+                        subsubparser.add_argument('--nnf', type=utils.file, required=True)
+
+                    with utils.use(subsub.add_parser('sdd')) as subsubparser:
+                        subsubparser.add_argument('--vtree', type=utils.file, required=True)
+                        subsubparser.add_argument('--sdd', type=utils.file, required=True)
+
         args: argparse.Namespace = parser.parse_args()
 
     utils.setup(args.steps)
@@ -157,15 +170,44 @@ def main() -> None:
         case 'sae':
             enumerator = SAEnumerator(density.support, s.Real(1), env)
 
-        case 'decdnnf_baseline':
-            ta: t.Callable[[], t.Generator[dict[bool, list[FNode]]]] = lambda: decdnnf_baseline.enum(
-                env,
-                decdnnf_baseline.Arguments(
-                    cores=args.cores,
-                    nnf=args.nnf,
-                    mapping=args.mapping
-                )
-            )
+        case 'decdnnf_baseline' | 'decdnnf_two_steps':
+
+            ta: t.Callable[[], t.Generator[dict[bool, list[FNode]]]]
+            match args.enumerator:
+                case 'decdnnf_baseline':
+                    ta = lambda: decdnnf_baseline.enum(
+                        env,
+                        decdnnf_baseline.Arguments(
+                            cores=args.cores,
+                            nnf=args.nnf,
+                            mapping=args.mapping
+                        )
+                    )
+
+                case 'decdnnf_two_steps':
+                    match args.using:
+                        case 'd4':
+                            ta = lambda: decdnnf_two_steps.enum(
+                                env,
+                                decdnnf_two_steps.Arguments(
+                                    cores=args.cores,
+                                    nnf_exists_x=args.nnf_exists_x,
+                                    mapping=args.mapping,
+                                    nnf=args.nnf,
+                                )
+                            )
+
+                        case 'sdd':
+                            ta = lambda: decdnnf_two_steps.enum_with_sdd(
+                                env,
+                                decdnnf_two_steps.ArgumentsWithSDD(
+                                    cores=args.cores,
+                                    nnf_exists_x=args.nnf_exists_x,
+                                    mapping=args.mapping,
+                                    vtree=args.vtree,
+                                    sdd=args.sdd,
+                                )
+                            )
 
             enumerator = FnEnumerator(
                 env,
