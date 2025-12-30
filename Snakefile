@@ -106,6 +106,14 @@ rule aggregate_density:
             *["assets/tddnnf/sdd/{type}/{density}." + suffix for suffix in ["err", "steps"]],
             "assets/benchmarks/tddnnf/sdd/{type}/{density}.jsonl"
         ],
+        tddnnf_exists_x_d4=[
+            *["assets/tddnnf_exists_x/d4/{type}/{density}." + suffix for suffix in ["err", "steps"]],
+            "assets/benchmarks/tddnnf_exists_x/d4/{type}/{density}.jsonl"
+        ],
+        tddnnf_exists_x_sdd=[
+            *["assets/tddnnf_exists_x/sdd/{type}/{density}." + suffix for suffix in ["err", "steps"]],
+            "assets/benchmarks/tddnnf_exists_x/sdd/{type}/{density}.jsonl"
+        ],
         sae=[
             *["assets/wmi/sae/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
             "assets/benchmarks/sae/noop/{type}/{density}.jsonl"
@@ -258,6 +266,40 @@ rule compile_tddnnf_with_d4:
         """
 
 
+rule compile_tddnnf_exists_x_with_d4:
+    threads: 1
+    resources:
+        mem="20GB"
+    input:
+        mapping="assets/tddnnf/d4/{type}/{density}.json",
+        nnf="assets/tddnnf/d4/{type}/{density}.nnf"
+    output:
+        nnf="assets/tddnnf_exists_x/d4/{type}/{density}.nnf"
+    log:
+        steps="assets/tddnnf_exists_x/d4/{type}/{density}.steps",
+        err="assets/tddnnf_exists_x/d4/{type}/{density}.err"
+    benchmark:
+        "assets/benchmarks/tddnnf_exists_x/d4/{type}/{density}.jsonl"
+    params:
+        script="src.exists_x"
+    shell:
+        """
+        if [[ -s {input.nnf:q} ]]; then
+          timeout --verbose {config[timeout][compilator]}m \
+            python -m {params.script} \
+            --steps {log.steps} \
+            --mapping {input.mapping} \
+            d4 \
+            --nnf {input.nnf} \
+            --exists_x_nnf {output.nnf} \
+            2> {log.err} \
+            || touch {output}
+        fi
+
+        touch {output}
+        """
+
+
 rule compile_tddnnf_with_sdd:
     threads: 1
     resources:
@@ -294,6 +336,41 @@ rule compile_tddnnf_with_sdd:
         fi
 
         touch {output}
+        """
+
+
+rule compile_tddnnf_exists_x_with_sdd:
+    threads: 1
+    resources:
+        mem="60GB"
+    input:
+        mapping="assets/tddnnf/sdd/{type}/{density}.json",
+        sdd="assets/tddnnf/sdd/{type}/{density}.sdd",
+        vtree="assets/tddnnf/sdd/{type}/{density}.vtree"
+    output:
+        sdd="assets/tddnnf_exists_x/sdd/{type}/{density}.sdd",
+        vtree="assets/tddnnf_exists_x/sdd/{type}/{density}.vtree"
+    log:
+        steps="assets/tddnnf_exists_x/sdd/{type}/{density}.steps",
+        err="assets/tddnnf_exists_x/sdd/{type}/{density}.err"
+    benchmark:
+        "assets/benchmarks/tddnnf_exists_x/sdd/{type}/{density}.jsonl"
+    params:
+        script="src.exists_x"
+    shell:
+        """
+        if [[ -s {input.sdd:q} ]]; then
+          timeout --verbose {config[timeout][compilator]}m \
+            python -m {params.script} \
+            --steps {log.steps} \
+            --mapping {input.mapping} \
+            sdd \
+            --vtree {input.vtree} \
+            --sdd {input.sdd} \
+            --exists_x_vtree {output.vtree} \
+            --exists_x_sdd {output.sdd} \
+            2> {log.err}
+        fi
         """
 
 
