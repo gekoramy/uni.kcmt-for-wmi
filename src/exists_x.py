@@ -1,4 +1,5 @@
 import argparse
+import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass
@@ -34,60 +35,91 @@ class ArgumentsWithD4:
 
 
 def d4(args: ArgumentsWithD4):
-    with tempfile.TemporaryDirectory() as path:
-        folder: Path = Path(path)
+    A: list[int] = [k for k, v in args.mapping.items() if v.is_symbol(smt.BOOL)]
 
-        exists_x_bc: Path = folder / 'exists_x.bc'
-        exists_x_to_fix: Path = folder / 'exists_x.nnf'
+    match len(A):
+        case 0:
+            with open(args.exists_x_nnf, 'wt') as fw:
+                fw.writelines(
+                    part
+                    for line in ['t 1 0']
+                    for part in [line, '\n']
+                )
 
-        with utils.log('nnf -> BC-S1.2'):
-            nnf2bcs12.translate(
-                nnf=args.nnf,
-                project=[k for k, v in args.mapping.items() if v.is_symbol(smt.BOOL)],
-                bcs12=exists_x_bc,
-            )
+        case n if n == len(args.mapping):
+            shutil.copyfile(args.nnf, args.exists_x_nnf)
 
-        with utils.log('existentially quantifying out x'):
-            process: CompletedProcess[str] = subprocess.run(
-                [
-                    'd4',
-                    '--input', exists_x_bc,
-                    '--input-type', 'circuit',
-                    '--remove-gates', '1',
-                    '--dump-file', exists_x_to_fix,
-                ],
-                capture_output=True,
-                text=True,
-            )
+        case _:
+            with tempfile.TemporaryDirectory() as path:
+                folder: Path = Path(path)
 
-            assert 0 == process.returncode, '\n'.join((process.stdout, process.stderr))
+                exists_x_bc: Path = folder / 'exists_x.bc'
+                exists_x_to_fix: Path = folder / 'exists_x.nnf'
 
-        with utils.log('fix nnf'), open(exists_x_to_fix, 'rt') as fr, open(args.exists_x_nnf, 'wt') as fw:
-            fw.writelines(
-                nnf2bcs12.fix_nnf(line)
-                for line in fr
-            )
+                with utils.log('nnf -> BC-S1.2'):
+                    nnf2bcs12.translate(
+                        nnf=args.nnf,
+                        project=A,
+                        bcs12=exists_x_bc,
+                    )
+
+                with utils.log('existentially quantifying out x'):
+                    process: CompletedProcess[str] = subprocess.run(
+                        [
+                            'd4',
+                            '--input', exists_x_bc,
+                            '--input-type', 'circuit',
+                            '--remove-gates', '1',
+                            '--dump-file', exists_x_to_fix,
+                        ],
+                        capture_output=True,
+                        text=True,
+                    )
+
+                    assert 0 == process.returncode, '\n'.join((process.stdout, process.stderr))
+
+                with utils.log('fix nnf'), open(exists_x_to_fix, 'rt') as fr, open(args.exists_x_nnf, 'wt') as fw:
+                    fw.writelines(
+                        nnf2bcs12.fix_nnf(line)
+                        for line in fr
+                    )
 
 
 def sdd(args: ArgumentsWithSDD):
-    with utils.log('load vtree'):
-        vtree: Vtree = Vtree.from_file(args.vtree.as_posix())
-        mgr: SddManager = SddManager.from_vtree(vtree)
+    A: list[int] = [k for k, v in args.mapping.items() if v.is_symbol(smt.BOOL)]
 
-    with utils.log('load sdd'):
-        phi: SddNode = mgr.read_sdd_file(str.encode(args.sdd.as_posix()))
+    match len(A):
+        case 0:
+            shutil.copyfile(args.vtree, args.exists_x_vtree)
+            with open(args.exists_x_sdd, 'wt') as fw:
+                fw.writelines(
+                    part
+                    for line in ['sdd 1', 'T 0']
+                    for part in [line, '\n']
+                )
 
-    with utils.log('existentially quantifying out x'):
-        which: list[int] = [0] * (1 + len(args.mapping))
-        for k, v in args.mapping.items():
-            if not v.is_symbol(smt.BOOL):
-                which[k] = 1
+        case n if n == len(args.mapping):
+            shutil.copyfile(args.vtree, args.exists_x_vtree)
+            shutil.copyfile(args.sdd, args.exists_x_sdd)
 
-        exists_x_phi: SddNode = mgr.exists_multiple(array('i', which), phi)
+        case _:
+            with utils.log('load vtree'):
+                vtree: Vtree = Vtree.from_file(args.vtree.as_posix())
+                mgr: SddManager = SddManager.from_vtree(vtree)
 
-    with utils.log('store'):
-        vtree.save(str.encode(args.exists_x_vtree.as_posix()))
-        exists_x_phi.save(str.encode(args.exists_x_sdd.as_posix()))
+            with utils.log('load sdd'):
+                phi: SddNode = mgr.read_sdd_file(str.encode(args.sdd.as_posix()))
+
+            with utils.log('existentially quantifying out x'):
+                which: list[int] = [1] * (1 + len(args.mapping))
+                for k in A:
+                    which[k] = 0
+
+                exists_x_phi: SddNode = mgr.exists_multiple(array('i', which), phi)
+
+            with utils.log('store'):
+                vtree.save(str.encode(args.exists_x_vtree.as_posix()))
+                exists_x_phi.save(str.encode(args.exists_x_sdd.as_posix()))
 
 
 def main() -> None:
