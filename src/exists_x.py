@@ -104,7 +104,7 @@ def sdd(args: ArgumentsWithSDD):
 
         case _:
             with utils.log('load vtree'):
-                vtree: Vtree = Vtree.from_file(args.vtree.as_posix())
+                vtree: Vtree = Vtree.from_file(str.encode(args.vtree.as_posix()))
                 mgr: SddManager = SddManager.from_vtree(vtree)
 
             with utils.log('load sdd'):

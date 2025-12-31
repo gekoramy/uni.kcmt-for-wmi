@@ -120,7 +120,7 @@ def conditioning_with_sdd(
     with tempfile.TemporaryDirectory() as path:
         folder: Path = Path(path)
 
-        vtree: Vtree = Vtree.from_file(vtree.as_posix())
+        vtree: Vtree = Vtree.from_file(str.encode(vtree.as_posix()))
         mgr: SddManager = SddManager.from_vtree(vtree)
         root: SddNode = mgr.read_sdd_file(str.encode(sdd.as_posix()))
 
