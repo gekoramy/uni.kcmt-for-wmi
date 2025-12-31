@@ -99,7 +99,7 @@ def conditioning(
                 boolean: [mapping[l] for l in mu_exists_x[boolean] + literals]
                 for boolean, literals in mu_conditioned.items()
             }
-            for mu_conditioned in decdnnf.raw(cores=1, nnf=nnf)
+            for mu_conditioned in decdnnf.raw(cores=1, nnf=conditioned)
         ]
 
 
