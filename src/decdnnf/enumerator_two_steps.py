@@ -39,19 +39,24 @@ def enum(
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with utils.log('two steps'):
         mapping: dict[int, FNode] = decdnnf.mapping(env, args.mapping)
-        mu_exists_x: t.Generator[dict[bool, list[int]]] = decdnnf.raw(nnf=args.nnf_exists_x, cores=args.cores)
+        mus_exists_x: t.Generator[dict[bool, list[int]]] = decdnnf.raw(nnf=args.nnf_exists_x, cores=args.cores)
 
         with Pool(args.cores) as pool:
-            models: list[list[dict[bool, list[FNode]]]] = pool.starmap(
+            models: list[list[dict[bool, list[int]]]] = pool.starmap(
                 conditioning,
                 zip(
                     it.cycle([args.nnf]),
-                    it.cycle([mapping]),
-                    mu_exists_x,
+                    mus_exists_x,
                 )
             )
 
-        yield from it.chain(*models)
+        yield from (
+            {
+                boolean: [mapping[l] for l in literals]
+                for boolean, literals in model.items()
+            }
+            for model in it.chain(*models)
+        )
 
 
 def enum_with_sdd(
@@ -60,27 +65,31 @@ def enum_with_sdd(
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with utils.log('two steps'):
         mapping: dict[int, FNode] = decdnnf.mapping(env, args.mapping)
-        mu_exists_x: t.Generator[dict[bool, list[int]]] = decdnnf.raw(nnf=args.nnf_exists_x, cores=args.cores)
+        mus_exists_x: t.Generator[dict[bool, list[int]]] = decdnnf.raw(nnf=args.nnf_exists_x, cores=args.cores)
 
         with Pool(args.cores) as pool:
-            models: list[list[dict[bool, list[FNode]]]] = pool.starmap(
+            models: list[list[dict[bool, list[int]]]] = pool.starmap(
                 conditioning_with_sdd,
                 zip(
                     it.cycle([args.vtree]),
                     it.cycle([args.sdd]),
-                    it.cycle([mapping]),
-                    mu_exists_x,
+                    mus_exists_x,
                 )
             )
 
-        yield from it.chain(*models)
+        yield from (
+            {
+                boolean: [mapping[l] for l in literals]
+                for boolean, literals in model.items()
+            }
+            for model in it.chain(*models)
+        )
 
 
 def conditioning(
         nnf: Path,
-        mapping: dict[int, FNode],
         mu_exists_x: dict[bool, list[int]],
-) -> list[dict[bool, list[FNode]]]:
+) -> list[dict[bool, list[int]]]:
     with tempfile.TemporaryDirectory() as path:
         folder: Path = Path(path)
         conditioned: Path = folder / 'conditioned.nnf'
@@ -96,7 +105,7 @@ def conditioning(
 
         return [
             {
-                boolean: [mapping[l] for l in mu_exists_x[boolean] + literals]
+                boolean: mu_exists_x[boolean] + literals
                 for boolean, literals in mu_conditioned.items()
             }
             for mu_conditioned in decdnnf.raw(cores=1, nnf=conditioned)
@@ -106,9 +115,8 @@ def conditioning(
 def conditioning_with_sdd(
         vtree: Path,
         sdd: Path,
-        mapping: dict[int, FNode],
         mu_exists_x: dict[bool, list[int]],
-) -> list[dict[bool, list[FNode]]]:
+) -> list[dict[bool, list[int]]]:
     with tempfile.TemporaryDirectory() as path:
         folder: Path = Path(path)
 
@@ -133,7 +141,7 @@ def conditioning_with_sdd(
 
         return [
             {
-                boolean: [mapping[l] for l in mu_exists_x[boolean] + literals]
+                boolean: mu_exists_x[boolean] + literals
                 for boolean, literals in mu_conditioned.items()
             }
             for mu_conditioned in decdnnf.raw(cores=1, nnf=nnf)
