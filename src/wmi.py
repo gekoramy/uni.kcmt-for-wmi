@@ -107,7 +107,11 @@ def enum(
                 for b, atoms in b2atoms.items()
                 for atom in atoms
             },
-            len(fn.reduce(lambda acc, xs: acc.difference(xs), b2atoms.values(), bools))
+            len(
+                bools
+                .difference(b2atoms[False])
+                .difference(b2atoms[True])
+            )
         )
         for b2atoms in ta(env, formula)
     )
