@@ -110,7 +110,7 @@ def conditioning_with_sdd(
         mu_exists_x: dict[bool, list[int]],
 ) -> list[dict[bool, list[FNode]]]:
     with tempfile.TemporaryDirectory() as path:
-        folder = Path(path)
+        folder: Path = Path(path)
 
         vtree: Vtree = Vtree.from_file(vtree.as_posix())
         mgr: SddManager = SddManager.from_vtree(vtree)
