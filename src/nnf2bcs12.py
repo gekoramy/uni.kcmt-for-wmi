@@ -34,7 +34,7 @@ def fix_nnf(line: str) -> str:
     )
 
 
-def nnf2bcs12(file: t.Iterator[str], project: list[int]) -> list[str]:
+def nnf2bcs12(file: t.Iterator[str], project: list[int] | None) -> list[str]:
     gate = t.NewType('gate', tuple[t.Literal['A', 'O'], list[int]])
     atoms: int = 0
     gates: list[gate] = [gate(('A', []))]
