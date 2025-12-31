@@ -20,7 +20,7 @@ wmpy_synthetic:
   c_lbound: [ -10 ]
   c_ubound: [ 10 ]
   max_mono: [ 3 ]
-  seed: [ 1, 2, 3 ]
+  seed: [ 11, 12, 13 ]
 
 wmibench_synthetic_structured:
   name:
@@ -32,10 +32,10 @@ wmibench_synthetic_structured:
     - tpg_star
     - uni
   size: [ 37, 73 ]
-  seed: [ 17 ]
+  seed: [ 117 ]
 
 wmibench_synthetic_pa:
   reals: [ 3 ]
   bools: [ 3 ]
   depth: [ 4, 5, 6, 7 ]
-  seed: [ 17 ]
+  seed: [ 117 ]
