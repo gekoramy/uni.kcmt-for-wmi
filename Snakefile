@@ -377,8 +377,11 @@ rule compile_tddnnf_exists_x_with_sdd:
             --sdd {input.sdd} \
             --exists_x_vtree {output.vtree} \
             --exists_x_sdd {output.sdd} \
-            2> {log.err}
+            2> {log.err} \
+            || touch {output}
         fi
+
+        touch {output}
         """
 
 
