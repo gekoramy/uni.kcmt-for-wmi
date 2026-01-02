@@ -27,11 +27,12 @@ def main() -> None:
     with utils.log('extract tlemmas'), utils.computations() as computations:
         tlemmas: list[FNode]
         _, tlemmas, _ = extract(
-            formula,
-            MathSATExtendedPartialEnumerator(
+            phi=formula,
+            smt_solver=MathSATExtendedPartialEnumerator(
                 computation_logger=computations,
                 parallel_procs=args.cores,
-            )
+            ),
+            computation_logger=computations,
         )
 
     with utils.log('writing tlemmas'):
