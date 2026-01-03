@@ -204,14 +204,25 @@ def plot(
         )
 
         tout_tlemmas: pl.DataFrame = tout.filter(pl.col('stderr_tlemmas').is_not_null())
-        tout_enum: pl.DataFrame = tout.filter(
-            pl.col(f'stderr_{enum_x}').is_not_null() | pl.col(f'stderr_{enum_y}').is_not_null()
+        tout_only_x: pl.DataFrame = tout.filter(
+            pl.col('stderr_tlemmas').is_null(),
+            pl.col(f'stderr_{enum_x}').is_not_null(),
+            pl.col(f'stderr_{enum_y}').is_null(),
+        )
+        tout_only_y: pl.DataFrame = tout.filter(
+            pl.col('stderr_tlemmas').is_null(),
+            pl.col(f'stderr_{enum_x}').is_null(),
+            pl.col(f'stderr_{enum_y}').is_not_null(),
+        )
+        tout_both: pl.DataFrame = tout.filter(
+            pl.col('stderr_tlemmas').is_null(),
+            pl.col(f'stderr_{enum_x}').is_not_null(),
+            pl.col(f'stderr_{enum_y}').is_not_null(),
         )
         tout_comp: pl.DataFrame = tout.filter(
-            ~(
-                    pl.col('stderr_tlemmas').is_not_null() |
-                    pl.col(f'stderr_{enum_x}').is_not_null() | pl.col(f'stderr_{enum_y}').is_not_null()
-            )
+            pl.col('stderr_tlemmas').is_null(),
+            pl.col(f'stderr_{enum_x}').is_null(),
+            pl.col(f'stderr_{enum_y}').is_null(),
         )
 
         ax.scatter(
@@ -231,8 +242,24 @@ def plot(
         )
 
         ax.scatter(
-            x=tout_enum.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_tlemmas_comp_enum)),
-            y=tout_enum.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_comp_enum)),
+            x=tout_only_x.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_tlemmas_comp_enum)),
+            y=tout_only_x.select_seq(pl.col(f'{column}_{enum_y}')),
+            marker='x',
+            color='C3',
+            alpha=.5,
+        )
+
+        ax.scatter(
+            x=tout_only_y.select_seq(pl.col(f'{column}_{enum_x}')),
+            y=tout_only_y.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_comp_enum)),
+            marker='x',
+            color='C3',
+            alpha=.5,
+        )
+
+        ax.scatter(
+            x=tout_both.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_tlemmas_comp_enum)),
+            y=tout_both.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_comp_enum)),
             marker='x',
             color='C3',
             alpha=.5,
