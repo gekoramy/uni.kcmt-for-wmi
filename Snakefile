@@ -353,8 +353,8 @@ rule compile_tddnnf_exists_x_with_sdd:
         mem="60GB"
     input:
         mapping="assets/tddnnf/sdd/{type}/{density}.json",
-        sdd="assets/tddnnf/sdd/{type}/{density}.sdd",
-        vtree="assets/tddnnf/sdd/{type}/{density}.vtree"
+        sdd="assets/tddnnf/sdd/{type}/{density}.min-sdd",
+        vtree="assets/tddnnf/sdd/{type}/{density}.min-vtree"
     output:
         sdd="assets/tddnnf_exists_x/sdd/{type}/{density}.sdd",
         vtree="assets/tddnnf_exists_x/sdd/{type}/{density}.vtree"
@@ -385,10 +385,33 @@ rule compile_tddnnf_exists_x_with_sdd:
         """
 
 
+rule minimize_sdd:
+    threads: 1
+    input:
+        vtree="{sdd}.vtree",
+        sdd="{sdd}.sdd"
+    output:
+        vtree="{sdd}.min-vtree",
+        sdd="{sdd}.min-sdd"
+    params:
+        script="src.minimize_sdd"
+    shell:
+        """
+        if [[ -s {input.sdd:q} ]]; then
+          python -m {params.script} \
+            --vtree {input.vtree} {output.vtree} \
+            --sdd {input.sdd} {output.sdd} \
+            --minutes {config[timeout][minimize]}
+        fi
+        
+        touch {output}
+        """
+
+
 rule sdd_to_nnf:
     threads: 1
     input:
-        "{sdd}.sdd"
+        "{sdd}.min-sdd"
     output:
         "{sdd}.nnf"
     params:
@@ -477,8 +500,8 @@ rule compute_wmi_with_decdnnf_two_steps_sdd:
         density="assets/densities/{type}/{density}.json",
         nnf_exists_x="assets/tddnnf_exists_x/sdd/{type}/{density}.nnf",
         mapping="assets/tddnnf/sdd/{type}/{density}.json",
-        vtree="assets/tddnnf/sdd/{type}/{density}.vtree",
-        sdd="assets/tddnnf/sdd/{type}/{density}.sdd"
+        vtree="assets/tddnnf/sdd/{type}/{density}.min-vtree",
+        sdd="assets/tddnnf/sdd/{type}/{density}.min-sdd"
     output:
         wmi="assets/wmi/decdnnf_two_steps/sdd/{int,noop|latte}/{type}/{density}.out"
     log:

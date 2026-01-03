@@ -2,6 +2,7 @@
 
 timeout:
   enumerator: 20
+  minimize: 20
   compilator: 40
   tlemmas: 40
 

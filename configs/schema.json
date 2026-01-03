@@ -9,6 +9,10 @@
           "type": "integer",
           "minimum": 0
         },
+        "minimize": {
+          "type": "integer",
+          "minimum": 0
+        },
         "compilator": {
           "type": "integer",
           "minimum": 0
@@ -20,6 +24,7 @@
       },
       "required": [
         "enumerator",
+        "minimize",
         "compilator",
         "tlemmas"
       ]
