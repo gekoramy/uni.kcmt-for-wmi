@@ -17,6 +17,31 @@ class Timeout:
     tlemmas: timedelta
 
 
+enumerator2steps: dict[str, list[str]] = {
+    'sae': [
+        'sae'
+    ],
+    **{
+        f'decdnnf_baseline_{compiler}': [
+            'tlemmas',
+            f'tddnnf_{compiler}',
+            f'decdnnf_baseline_{compiler}',
+        ]
+        for compiler in ['d4', 'sdd']
+    },
+    **{
+        f'decdnnf_two_steps_exists_{qo}_{compiler}': [
+            'tlemmas',
+            f'tddnnf_{compiler}',
+            f'tddnnf_exists_{qo}_{compiler}',
+            f'decdnnf_two_steps_exists_{qo}_{compiler}',
+        ]
+        for compiler in ['d4', 'sdd']
+        for qo in 'xA'
+    },
+}
+
+
 def plot(
         df: pl.DataFrame,
         column: str,
@@ -25,12 +50,7 @@ def plot(
     padding: float = 2
 
     enumerators_wout_tlemmas: list[str] = ['sae']
-    enumerators_with_tlemmas: list[str] = [
-        'decdnnf_baseline_d4',
-        'decdnnf_baseline_sdd',
-        'decdnnf_two_steps_d4',
-        'decdnnf_two_steps_sdd',
-    ]
+    enumerators_with_tlemmas: list[str] = list(sorted(enumerator2steps.keys() - {'sae'}))
 
     limit_enum: float
     limit_tlemmas: float
@@ -70,14 +90,15 @@ def plot(
         .first()
     )
 
-    nrows: int = 1
-    ncols: int = sum((
+    tot: int = sum((
         len(enumerators_wout_tlemmas) * len(enumerators_with_tlemmas),
         math.comb(len(enumerators_with_tlemmas), 2),
     ))
+    nrows: int = 3
+    ncols: int = math.ceil(tot / nrows)
     fig, axs = plt.subplots(nrows, ncols, figsize=(6 * ncols, 6 * nrows))
 
-    iter4axs: typing.Iterator[plt.Axes] = iter(axs)
+    iter4axs: typing.Iterator[plt.Axes] = iter(it.chain(*axs))
 
     ax: plt.Axes
     for (enum_x, enum_y), ax in zip(
@@ -293,32 +314,11 @@ def main() -> None:
         args.csv,
         has_header=True,
     ).with_columns(
-        pl.col('s_sae').alias('enumerating full_sae'),
-        *[
-            (
-                pl.col(f's_{enumerator}_{tddnnf}')
-                .add(pl.col(f's_tddnnf_{tddnnf}'))
-                .add(pl.col('s_tlemmas'))
-            ).alias(f'enumerating full_{enumerator}_{tddnnf}')
-            for tddnnf in ['d4', 'sdd']
-            for enumerator in ['decdnnf_baseline']
-        ],
-        *[
-            (
-                pl.col(f's_{enumerator}_{tddnnf}')
-                .add(pl.col(f's_tddnnf_{tddnnf}'))
-                .add(pl.col(f's_tddnnf_exists_x_{tddnnf}'))
-                .add(pl.col('s_tlemmas'))
-            ).alias(f'enumerating full_{enumerator}_{tddnnf}')
-            for tddnnf in ['d4', 'sdd']
-            for enumerator in ['decdnnf_two_steps']
-        ],
-    ).with_columns(
-        stderr_tlemmas=pl.coalesce(pl.col('^stderr_tlemmas$'), pl.lit(None)),
-        stderr_decdnnf_baseline_d4=pl.coalesce(pl.col('^stderr_decdnnf_baseline_d4$'), pl.lit(None)),
-        stderr_decdnnf_baseline_sdd=pl.coalesce(pl.col('^stderr_decdnnf_baseline_sdd$'), pl.lit(None)),
-        stderr_decdnnf_two_steps_d4=pl.coalesce(pl.col('^stderr_decdnnf_two_steps_d4$'), pl.lit(None)),
-        stderr_decdnnf_two_steps_sdd=pl.coalesce(pl.col('^stderr_decdnnf_two_steps_sdd$'), pl.lit(None)),
+        **{
+            f'stderr_{step}': pl.coalesce(pl.col(f'^stderr_{step}$'), pl.lit(None))
+            for steps in enumerator2steps.values()
+            for step in steps
+        },
     )
 
     fig: plt.Figure
