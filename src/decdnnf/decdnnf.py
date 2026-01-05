@@ -1,13 +1,9 @@
-import json
 import re
 import subprocess
 import typing as t
-from io import StringIO
 from pathlib import Path
 
-from pysmt.environment import Environment
 from pysmt.fnode import FNode
-from pysmt.smtlib.parser import SmtLibParser
 
 from src import utils
 
@@ -15,19 +11,6 @@ b2regex: frozenset[tuple[bool, re.Pattern]] = frozenset([
     (False, re.compile(r'-(\d+)')),
     (True, re.compile(r' (\d+)')),
 ])
-
-
-def mapping(
-        env: Environment,
-        mapping: Path
-) -> dict[int, FNode]:
-    with utils.log('parsing abstraction'), open(mapping, 'rt') as f:
-        parser: SmtLibParser = SmtLibParser(environment=env)
-
-        return {
-            k: parser.get_script(StringIO(v)).get_last_formula()
-            for k, v in json.load(f)
-        }
 
 
 def raw(

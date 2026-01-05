@@ -11,6 +11,7 @@ from pysmt.environment import Environment
 from pysmt.fnode import FNode
 
 from src import sdd_to_nnf
+from src import tddnnf
 from src import utils
 from src.condition import condition
 from src.decdnnf import decdnnf
@@ -38,7 +39,7 @@ def enum(
         args: Arguments,
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with utils.log('two steps'):
-        mapping: dict[int, FNode] = decdnnf.mapping(env, args.mapping)
+        mapping: dict[int, FNode] = tddnnf.mapping(env, args.mapping)
         mus_projected: t.Generator[dict[bool, list[int]]] = decdnnf.raw(nnf=args.nnf_projected, cores=args.cores)
 
         with Pool(args.cores) as pool:
@@ -64,7 +65,7 @@ def enum_with_sdd(
         args: ArgumentsWithSDD,
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with utils.log('two steps'):
-        mapping: dict[int, FNode] = decdnnf.mapping(env, args.mapping)
+        mapping: dict[int, FNode] = tddnnf.mapping(env, args.mapping)
         mus_projected: t.Generator[dict[bool, list[int]]] = decdnnf.raw(nnf=args.nnf_projected, cores=args.cores)
 
         with Pool(args.cores) as pool:

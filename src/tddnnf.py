@@ -3,10 +3,13 @@ import json
 import shutil
 import tempfile
 from dataclasses import dataclass
+from io import StringIO
 from pathlib import Path
 
 import pysmt.shortcuts as smt
+from pysmt.environment import Environment
 from pysmt.fnode import FNode
+from pysmt.smtlib.parser import SmtLibParser
 from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
 from theorydd.tdd.theory_sdd import TheorySDD
 from theorydd.tddnnf.theory_ddnnf import TheoryDDNNF
@@ -32,6 +35,19 @@ class ArgumentsWithD4:
     tlemmas: Path
     mapping: Path
     nnf: Path
+
+
+def mapping(
+        env: Environment,
+        mapping: Path
+) -> dict[int, FNode]:
+    with utils.log('parsing abstraction'), open(mapping, 'rt') as f:
+        parser: SmtLibParser = SmtLibParser(environment=env)
+
+        return {
+            k: parser.get_script(StringIO(v)).get_last_formula()
+            for k, v in json.load(f)
+        }
 
 
 def sdd(args: ArgumentsWithSDD) -> None:
