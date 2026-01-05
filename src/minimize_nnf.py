@@ -5,29 +5,28 @@ from collections import deque
 from pathlib import Path
 
 
-def dfs(visited: t.MutableSequence[bool], adjs: t.Sequence[t.Sequence[int]]):
+def dfs(adjs: t.Sequence[t.Sequence[int]]) -> list[int]:
     """
-    >>> visited = [True, False, False]
-    >>> adjs = [[1], [2], []]
-    >>> dfs(visited, adjs)
-    >>> print(visited)
-    [True, True, True]
+    >>> dfs([[1], [2], []])
+    [0, 1, 2]
 
-    >>> visited = [True, False, False]
-    >>> adjs = [[1], [], []]
-    >>> dfs(visited, adjs)
-    >>> print(visited)
-    [True, True, False]
+    >>> dfs([[1], [], []])
+    [0, 1, -1]
     """
 
-    stack: list[int] = [u for u, flag in enumerate(visited) if flag]
+    counter: it.count[int] = it.count()
+    ids: list[int] = [-1] * len(adjs)
+    ids[0] = next(counter)
+    stack: list[int] = [0]
     while stack:
         u: int = stack.pop()
 
         for v in adjs[u]:
-            if visited[v]: continue
-            visited[v] = True
+            if -1 != ids[v]: continue
+            ids[v] = next(counter)
             stack.append(v)
+
+    return ids
 
 
 def reversed_toposort(outdegree: t.MutableSequence[int], parents: t.Sequence[t.Sequence[int]]) -> t.Generator[int]:
@@ -113,31 +112,20 @@ def minimizing(
                 literals_pu = children[p].pop(u)
                 children[p][v] = literals_pu + literals_uv
 
-    # check if it is reachable by the root node
-    rootable: list[bool] = [False] * len(nnfs)
-    rootable[0] = True
+    ids: list[int] = dfs([to.keys() for to in children])
 
-    dfs(rootable, [to.keys() for to in children])
-
-    cnt = it.count(1)
-    ids: list[int] = [
-        next(cnt) if rootable[i] and 0 != i else -1
-        for i in range(len(nnfs))
-    ]
-
-    nodes: list[str] = [
-        f'{nnf} {idu}'
-        for nnf, idu in zip(nnfs, ids)
-        if -1 != idu
-    ]
+    nodes: list[str] = [''] * max(ids)
+    for nnf, idu in zip(nnfs, ids):
+        if idu <= 0: continue
+        nodes[idu - 1] = f'{nnf} {idu}'
 
     edges: list[str] = [
         ' '.join(map(str, (idu, idv, *ls)))
         for u in range(len(nnfs))
         for v, ls in children[u].items()
         if 'f' != nnfs[u]
-        if -1 != (idu := ids[u])
-        if -1 != (idv := ids[v])
+        if (idu := ids[u]) > 0
+        if (idv := ids[v]) > 0
     ]
 
     return nodes + edges
