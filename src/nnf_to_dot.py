@@ -8,6 +8,22 @@ import graphviz
 from src import utils
 
 
+def html(literals: t.Iterable[str]) -> str:
+    return ''.join((
+        '<',
+        '<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">',
+        '<TR>',
+        *(
+            part
+            for l in literals
+            for part in ('<TD>', l, '</TD>')
+        ),
+        '</TR>',
+        '</TABLE>',
+        '>',
+    ))
+
+
 def nnf2dot(file: t.Iterator[str]) -> graphviz.Graph:
     dot = graphviz.Graph('wide')
 
@@ -56,18 +72,17 @@ def nnf2dot(file: t.Iterator[str]) -> graphviz.Graph:
                     case _:
                         id4c = c
 
-                if literals:
-                    id4a = next(ids)
-                    id4ls = [next(ids) for _ in literals]
-
-                    dot.node(id4a, ' ', shape='triangle', style='dashed')
-                    for id4l, l in zip(id4ls, literals):
-                        dot.node(id4l, l, shape='square')
-
-                    for src, trg in [(p, id4a)] + [(id4a, id) for id in [id4c] + id4ls if id]:
-                        dot.edge(src, trg)
-                else:
-                    dot.edge(p, id4c)
+                dot.edge(
+                    p,
+                    id4c,
+                    **(
+                        {
+                            'label': html(literals),
+                            'decorate': 'true',
+                        }
+                        if literals else {}
+                    ),
+                )
 
     return dot
 
