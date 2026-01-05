@@ -10,10 +10,10 @@ from pysdd.sdd import SddManager, Vtree, SddNode
 from pysmt.environment import Environment
 from pysmt.fnode import FNode
 
+from src import sdd_to_nnf
 from src import utils
 from src.condition import condition
 from src.decdnnf import decdnnf
-from src.sdd_to_nnf import main as sdd2nnf
 
 
 @dataclass(frozen=True)
@@ -137,7 +137,7 @@ def conditioning_with_sdd(
         nnf: Path = folder / 'sdd.nnf'
 
         root.save(str.encode(sdd.as_posix()))
-        sdd2nnf(sdd, nnf)
+        sdd_to_nnf.translate(sdd, nnf)
 
         return [
             {

@@ -109,7 +109,7 @@ def sdd2nnf(sdd: t.Iterator[str]) -> list[str]:
     return nodes + edges
 
 
-def main(sdd: Path, nnf: Path) -> None:
+def translate(sdd: Path, nnf: Path) -> None:
     with open(sdd, 'rt') as f:
         output = sdd2nnf(f)
 
@@ -121,10 +121,14 @@ def main(sdd: Path, nnf: Path) -> None:
         )
 
 
-if __name__ == '__main__':
+def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument('--sdd', type=utils.file, required=True)
     parser.add_argument('--nnf', type=Path, required=True)
     args: argparse.Namespace = parser.parse_args()
 
-    main(args.sdd, args.nnf)
+    translate(args.sdd, args.nnf)
+
+
+if __name__ == '__main__':
+    main()

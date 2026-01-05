@@ -72,17 +72,21 @@ def nnf2dot(file: t.Iterator[str]) -> graphviz.Graph:
     return dot
 
 
-def main(nnf: Path, dot: Path) -> None:
+def translate(nnf: Path, dot: Path) -> None:
     with open(nnf, 'rt') as f:
         output = nnf2dot(f)
 
     output.render(dot.as_posix())
 
 
-if __name__ == '__main__':
+def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument('--nnf', type=utils.file, required=True)
     parser.add_argument('--dot', type=Path, required=True)
     args: argparse.Namespace = parser.parse_args()
 
-    main(args.nnf, args.dot)
+    translate(args.nnf, args.dot)
+
+
+if __name__ == '__main__':
+    main()
