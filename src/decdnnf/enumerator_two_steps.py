@@ -10,10 +10,11 @@ from pysdd.sdd import SddManager, Vtree, SddNode
 from pysmt.environment import Environment
 from pysmt.fnode import FNode
 
+from src import condition
+from src import minimize_nnf
 from src import sdd_to_nnf
 from src import tddnnf
 from src import utils
-from src.condition import condition
 from src.decdnnf import decdnnf
 
 
@@ -95,14 +96,21 @@ def conditioning(
         folder: Path = Path(path)
         conditioned: Path = folder / 'conditioned.nnf'
 
-        condition(
-            nnf=nnf,
-            assumptions=frozenset(it.chain(
-                mu_projected[True],
-                (-l for l in mu_projected[False])
-            )),
-            conditioned=conditioned,
-        )
+        with open(nnf, 'rt') as f:
+            unoptimized: list[str] = condition.conditioning(
+                raw=f,
+                assumptions=frozenset(it.chain(
+                    mu_projected[True],
+                    (-l for l in mu_projected[False])
+                )),
+            )
+
+        with open(conditioned, 'wt') as f:
+            f.writelines(
+                part
+                for line in minimize_nnf.minimizing((line + ' 0' for line in unoptimized))
+                for part in (line, ' 0\n')
+            )
 
         return [
             {
@@ -138,7 +146,16 @@ def conditioning_with_sdd(
         nnf: Path = folder / 'sdd.nnf'
 
         root.save(str.encode(sdd.as_posix()))
-        sdd_to_nnf.translate(sdd, nnf)
+
+        with open(sdd, 'rt') as f:
+            unoptimized: list[str] = sdd_to_nnf.sdd2nnf(f)
+
+        with open(nnf, 'wt') as f:
+            f.writelines(
+                part
+                for line in minimize_nnf.minimizing((line + ' 0' for line in unoptimized))
+                for part in (line, ' 0\n')
+            )
 
         return [
             {

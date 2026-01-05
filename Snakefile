@@ -290,7 +290,7 @@ rule compile_tddnnf_projected_with_d4:
         mem="20GB"
     input:
         mapping="assets/tddnnf/d4/{type}/{density}.json",
-        nnf="assets/tddnnf/d4/{type}/{density}.nnf"
+        nnf="assets/tddnnf/d4/{type}/{density}.min-nnf"
     output:
         nnf="assets/tddnnf_exists_{qo,[xA]}/d4/{type}/{density}.nnf"
     log:
@@ -397,6 +397,27 @@ rule compile_tddnnf_projected_with_sdd:
         """
 
 
+rule minimize_nnf:
+    threads: 1
+    input:
+        nnf="assets/{nnf}.nnf",
+    output:
+        nnf="assets/{nnf}.min-nnf",
+    benchmark:
+        "assets/benchmarks/minimize_nnf/{nnf}.jsonl"
+    params:
+        script="src.minimize_nnf"
+    shell:
+        """
+        if [[ -s {input.nnf:q} ]]; then
+          python -m {params.script} \
+            --nnf {input.nnf} {output.nnf}
+        fi
+
+        touch {output}
+        """
+
+
 rule minimize_sdd:
     threads: 1
     input:
@@ -474,7 +495,7 @@ rule compute_wmi_with_decdnnf_baseline:
         mem="20GB"
     input:
         density="assets/densities/{type}/{density}.json",
-        nnf="assets/tddnnf/{compiler}/{type}/{density}.nnf",
+        nnf="assets/tddnnf/{compiler}/{type}/{density}.min-nnf",
         mapping="assets/tddnnf/{compiler}/{type}/{density}.json"
     output:
         wmi="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.out"
@@ -512,7 +533,7 @@ rule compute_wmi_with_decdnnf_two_steps_sdd:
         mem="20GB"
     input:
         density="assets/densities/{type}/{density}.json",
-        nnf_projected="assets/tddnnf_exists_{qo}/sdd/{type}/{density}.nnf",
+        nnf_projected="assets/tddnnf_exists_{qo}/sdd/{type}/{density}.min-nnf",
         mapping="assets/tddnnf/sdd/{type}/{density}.json",
         vtree="assets/tddnnf/sdd/{type}/{density}.min-vtree",
         sdd="assets/tddnnf/sdd/{type}/{density}.min-sdd"
@@ -555,9 +576,9 @@ rule compute_wmi_with_decdnnf_two_steps_d4:
         mem="20GB"
     input:
         density="assets/densities/{type}/{density}.json",
-        nnf_projected="assets/tddnnf_exists_{qo}/d4/{type}/{density}.nnf",
+        nnf_projected="assets/tddnnf_exists_{qo}/d4/{type}/{density}.min-nnf",
         mapping="assets/tddnnf/d4/{type}/{density}.json",
-        nnf="assets/tddnnf/d4/{type}/{density}.nnf",
+        nnf="assets/tddnnf/d4/{type}/{density}.min-nnf",
     output:
         wmi="assets/wmi/decdnnf_two_steps/exists_{qo}/d4/{int,noop|latte}/{type}/{density}.out"
     log:
