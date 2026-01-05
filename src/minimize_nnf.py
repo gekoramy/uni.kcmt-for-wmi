@@ -46,7 +46,7 @@ def minimizing(
 ) -> list[str]:
     nnfs: list[t.Literal['a', 'o', 't', 'f']] = ['t']
 
-    children: list[dict[int, list[int]]] = [{1: []}]
+    children: list[dict[int, list[list[int]]]] = [{1: [[]]}]
     parents: list[list[int]] = [[], [0]]
 
     for line in raw:
@@ -59,44 +59,46 @@ def minimizing(
             parents.append([])
         else:
             u, v, *literals = map(int, words[:-1])
-            children[u][v] = literals
+            children[u].setdefault(v, []).append(literals)
             parents[v].append(u)
 
     parents.pop()
 
-    def apply_and(u: int) -> tuple[str, dict[int, list[int]]]:
-        acc: list[tuple[int, list[int]]] = []
-        for v, literals in children[u].items():
-            if literals:
-                acc.append((v, literals))
-                continue
+    def apply_and(u: int) -> tuple[str, dict[int, list[list[int]]]]:
+        acc: list[tuple[int, list[list[int]]]] = []
+        for v, lls in children[u].items():
+            tmp: list[list[int]] = []
+            for ls in lls:
+                if 't' == nnfs[v] and not ls: continue
+                if 'f' == nnfs[v] and not ls: return 'f', {}
+                tmp.append(ls)
 
-            if 't' == nnfs[v]: continue
-            if 'f' == nnfs[v]: return 'f', {}
-            acc.append((v, literals))
+            if tmp:
+                acc.append((v, tmp))
 
         if acc:
             return 'a', dict(acc)
         else:
             return 't', {}
 
-    def apply_or(u: int) -> tuple[str, dict[int, list[int]]]:
-        acc: list[tuple[int, list[int]]] = []
-        for v, literals in children[u].items():
-            if literals:
-                acc.append((v, literals))
-                continue
+    def apply_or(u: int) -> tuple[str, dict[int, list[list[int]]]]:
+        acc: list[tuple[int, list[list[int]]]] = []
+        for v, lls in children[u].items():
+            tmp: list[list[int]] = []
+            for ls in lls:
+                if 't' == nnfs[v] and not ls: return 't', {}
+                if 'f' == nnfs[v] and not ls: continue
+                tmp.append(ls)
 
-            if 't' == nnfs[v]: return 't', {}
-            if 'f' == nnfs[v]: continue
-            acc.append((v, literals))
+            if tmp:
+                acc.append((v, tmp))
 
         if acc:
             return 'o', dict(acc)
         else:
             return 'f', {}
 
-    for u in reversed_toposort(list(map(len, children)), parents):
+    for u in list(reversed_toposort(list(map(len, children)), parents)):
         if 0 == u: continue
 
         match nnfs[u]:
@@ -106,11 +108,14 @@ def minimizing(
             case 'o':
                 nnfs[u], children[u] = apply_or(u)
 
-        if len(children[u]) == 1:
-            v, literals_uv = children[u].popitem()
-            for p in parents[u]:
-                literals_pu = children[p].pop(u)
-                children[p][v] = literals_pu + literals_uv
+        match list(children[u].items()):
+            case [(v, [ls_uv])]:
+                for p in parents[u]:
+                    lls_pu = children[p].pop(u)
+                    children[p].setdefault(v, []).extend(
+                        ls_pu + ls_uv
+                        for ls_pu in lls_pu
+                    )
 
     ids: list[int] = dfs([to.keys() for to in children])
 
@@ -122,7 +127,8 @@ def minimizing(
     edges: list[str] = [
         ' '.join(map(str, (idu, idv, *ls)))
         for u in range(len(nnfs))
-        for v, ls in children[u].items()
+        for v, lls in children[u].items()
+        for ls in lls
         if 'f' != nnfs[u]
         if (idu := ids[u]) > 0
         if (idv := ids[v]) > 0
