@@ -138,7 +138,7 @@ def main() -> None:
                 subparser.add_argument('--mapping', type=utils.file, required=True)
 
             with utils.use(sub.add_parser('decdnnf_two_steps')) as subparser:
-                subparser.add_argument('--nnf_exists_x', type=utils.file, required=True)
+                subparser.add_argument('--nnf_projected', type=utils.file, required=True)
                 subparser.add_argument('--mapping', type=utils.file, required=True)
 
                 with utils.use(subparser.add_subparsers(dest='using', required=True)) as subsub:
@@ -199,7 +199,7 @@ def main() -> None:
                                 env,
                                 decdnnf_two_steps.Arguments(
                                     cores=args.cores,
-                                    nnf_exists_x=args.nnf_exists_x,
+                                    nnf_projected=args.nnf_projected,
                                     mapping=args.mapping,
                                     nnf=args.nnf,
                                 )
@@ -210,7 +210,7 @@ def main() -> None:
                                 env,
                                 decdnnf_two_steps.ArgumentsWithSDD(
                                     cores=args.cores,
-                                    nnf_exists_x=args.nnf_exists_x,
+                                    nnf_projected=args.nnf_projected,
                                     mapping=args.mapping,
                                     vtree=args.vtree,
                                     sdd=args.sdd,

@@ -19,7 +19,7 @@ from src.sdd2nnf import main as sdd2nnf
 @dataclass(frozen=True)
 class Arguments:
     cores: int
-    nnf_exists_x: Path
+    nnf_projected: Path
     mapping: Path
     nnf: Path
 
@@ -27,7 +27,7 @@ class Arguments:
 @dataclass(frozen=True)
 class ArgumentsWithSDD:
     cores: int
-    nnf_exists_x: Path
+    nnf_projected: Path
     mapping: Path
     vtree: Path
     sdd: Path
@@ -39,14 +39,14 @@ def enum(
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with utils.log('two steps'):
         mapping: dict[int, FNode] = decdnnf.mapping(env, args.mapping)
-        mus_exists_x: t.Generator[dict[bool, list[int]]] = decdnnf.raw(nnf=args.nnf_exists_x, cores=args.cores)
+        mus_projected: t.Generator[dict[bool, list[int]]] = decdnnf.raw(nnf=args.nnf_projected, cores=args.cores)
 
         with Pool(args.cores) as pool:
             models: list[list[dict[bool, list[int]]]] = pool.starmap(
                 conditioning,
                 zip(
                     it.cycle([args.nnf]),
-                    mus_exists_x,
+                    mus_projected,
                 )
             )
 
@@ -65,7 +65,7 @@ def enum_with_sdd(
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with utils.log('two steps'):
         mapping: dict[int, FNode] = decdnnf.mapping(env, args.mapping)
-        mus_exists_x: t.Generator[dict[bool, list[int]]] = decdnnf.raw(nnf=args.nnf_exists_x, cores=args.cores)
+        mus_projected: t.Generator[dict[bool, list[int]]] = decdnnf.raw(nnf=args.nnf_projected, cores=args.cores)
 
         with Pool(args.cores) as pool:
             models: list[list[dict[bool, list[int]]]] = pool.starmap(
@@ -73,7 +73,7 @@ def enum_with_sdd(
                 zip(
                     it.cycle([args.vtree]),
                     it.cycle([args.sdd]),
-                    mus_exists_x,
+                    mus_projected,
                 )
             )
 
@@ -88,7 +88,7 @@ def enum_with_sdd(
 
 def conditioning(
         nnf: Path,
-        mu_exists_x: dict[bool, list[int]],
+        mu_projected: dict[bool, list[int]],
 ) -> list[dict[bool, list[int]]]:
     with tempfile.TemporaryDirectory() as path:
         folder: Path = Path(path)
@@ -97,15 +97,15 @@ def conditioning(
         condition(
             nnf=nnf,
             assumptions=frozenset(it.chain(
-                mu_exists_x[True],
-                (-l for l in mu_exists_x[False])
+                mu_projected[True],
+                (-l for l in mu_projected[False])
             )),
             conditioned=conditioned,
         )
 
         return [
             {
-                boolean: mu_exists_x[boolean] + literals
+                boolean: mu_projected[boolean] + literals
                 for boolean, literals in mu_conditioned.items()
             }
             for mu_conditioned in decdnnf.raw(cores=1, nnf=conditioned)
@@ -115,7 +115,7 @@ def conditioning(
 def conditioning_with_sdd(
         vtree: Path,
         sdd: Path,
-        mu_exists_x: dict[bool, list[int]],
+        mu_projected: dict[bool, list[int]],
 ) -> list[dict[bool, list[int]]]:
     with tempfile.TemporaryDirectory() as path:
         folder: Path = Path(path)
@@ -127,8 +127,8 @@ def conditioning_with_sdd(
         root = ft.reduce(
             lambda acc, l: mgr.condition(l, acc),
             it.chain(
-                mu_exists_x[True],
-                (-l for l in mu_exists_x[False])
+                mu_projected[True],
+                (-l for l in mu_projected[False])
             ),
             root,
         )
@@ -141,7 +141,7 @@ def conditioning_with_sdd(
 
         return [
             {
-                boolean: mu_exists_x[boolean] + literals
+                boolean: mu_projected[boolean] + literals
                 for boolean, literals in mu_conditioned.items()
             }
             for mu_conditioned in decdnnf.raw(cores=1, nnf=nnf)
