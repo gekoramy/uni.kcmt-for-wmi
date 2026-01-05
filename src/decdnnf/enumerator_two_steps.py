@@ -13,7 +13,7 @@ from pysmt.fnode import FNode
 from src import utils
 from src.condition import condition
 from src.decdnnf import decdnnf
-from src.sdd2nnf import main as sdd2nnf
+from src.sdd_to_nnf import main as sdd2nnf
 
 
 @dataclass(frozen=True)

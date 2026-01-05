@@ -14,7 +14,7 @@ from pysdd.sdd import SddManager, Vtree, SddNode
 from pysmt.environment import Environment
 from pysmt.fnode import FNode
 
-from src import nnf2bcs12
+from src import nnf_to_bcs12
 from src import utils
 from src.decdnnf import decdnnf
 
@@ -58,7 +58,7 @@ def d4(args: ArgumentsWithD4):
                 projected_to_fix: Path = folder / 'projected.nnf'
 
                 with utils.log('nnf -> BC-S1.2'):
-                    nnf2bcs12.translate(
+                    nnf_to_bcs12.translate(
                         nnf=args.nnf,
                         project=args.project_onto,
                         bcs12=projected_bc,
@@ -81,7 +81,7 @@ def d4(args: ArgumentsWithD4):
 
                 with utils.log('fix nnf'), open(projected_to_fix, 'rt') as fr, open(args.projected_nnf, 'wt') as fw:
                     fw.writelines(
-                        nnf2bcs12.fix_nnf(line)
+                        nnf_to_bcs12.fix_nnf(line)
                         for line in fr
                     )
 

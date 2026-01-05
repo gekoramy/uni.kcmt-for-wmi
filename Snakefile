@@ -429,7 +429,7 @@ rule sdd_to_nnf:
     output:
         "{sdd}.nnf"
     params:
-        script="src.sdd2nnf"
+        script="src.sdd_to_nnf"
     shell:
         """
         python -m {params.script} \
