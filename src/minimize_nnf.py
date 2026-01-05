@@ -47,8 +47,8 @@ def minimizing(
 ) -> list[str]:
     nnfs: list[t.Literal['a', 'o', 't', 'f']] = ['t']
 
-    children: list[list[tuple[int, list[int]]]] = [[]]
-    parents: list[list[int]] = [[]]
+    children: list[list[tuple[int, list[int]]]] = [[(1, [])]]
+    parents: list[list[int]] = [[], [0]]
 
     for line in raw:
 
@@ -62,6 +62,8 @@ def minimizing(
             u, v, *literals = map(int, words[:-1])
             children[u].append((v, literals))
             parents[v].append(u)
+
+    parents.pop()
 
     def apply_and(u: int) -> tuple[str, list[tuple[int, list[int]]]]:
         acc: list[tuple[int, list[int]]] = []
@@ -96,6 +98,8 @@ def minimizing(
             return 'f', []
 
     for u in reversed_toposort(list(map(len, children)), parents):
+        if 0 == u: continue
+
         match nnfs[u]:
             case 'a':
                 nnfs[u], children[u] = apply_and(u)
@@ -103,15 +107,24 @@ def minimizing(
             case 'o':
                 nnfs[u], children[u] = apply_or(u)
 
+        if len(children[u]) == 1:
+            v, literals_uv = children[u][0]
+            for p in parents[u]:
+                for i, (child, literals_pu) in enumerate(children[p]):
+                    if child == u:
+                        children[p][i] = (v, literals_pu + literals_uv)
+            parents[v] = [p for p in parents[u]] + [p for p in parents[v] if p != u]
+            children[u] = []
+
     # check if it is reachable by the root node
     rootable: list[bool] = [False] * len(nnfs)
-    rootable[1] = True
+    rootable[0] = True
 
     dfs(rootable, [[v for v, _ in edges] for edges in children])
 
     cnt = it.count(1)
     ids: list[int] = [
-        next(cnt) if rootable[i] else -1
+        next(cnt) if rootable[i] and 0 != i else -1
         for i in range(len(nnfs))
     ]
 
