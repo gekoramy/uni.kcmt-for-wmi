@@ -87,7 +87,7 @@ def minimizing(
             tmp: list[list[int]] = []
             for ls in lls:
                 if 't' == nnfs[v] and not ls: return 't', {}
-                if 'f' == nnfs[v] and not ls: continue
+                if 'f' == nnfs[v]: continue
                 tmp.append(ls)
 
             if tmp:
