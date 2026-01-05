@@ -80,10 +80,14 @@ class LogEnumerator():
         self.env = self.enum.env
         self.support = self.enum.support
         self.weights = self.enum.weights
+        self.models: int = 0
 
     def enumerate(self, query: FNode) -> t.Iterable[tuple[dict[FNode, bool], int]]:
         with utils.log('enumerating'):
-            yield from self.enum.enumerate(query)
+            models = list(self.enum.enumerate(query))
+
+        self.models = len(models)
+        yield from models
 
 
 def enum(
@@ -221,12 +225,14 @@ def main() -> None:
             )
 
     with utils.log('total'):
-        result = WMISolver(LogEnumerator(enumerator), LogIntegrator(integrator)).compute(
+        log_enum: LogEnumerator = LogEnumerator(enumerator)
+        log_int: LogIntegrator = LogIntegrator(integrator)
+        result = WMISolver(log_enum, log_int).compute(
             s.Bool(True),
             [v for v in density.domain.keys() if v.symbol_type() == s.REAL]
         )
 
-    json.dump(result, sys.stdout)
+    json.dump(result | {'models': log_enum.models}, sys.stdout)
     sys.stdout.write('\n')
 
 
