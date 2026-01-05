@@ -388,11 +388,13 @@ rule compile_tddnnf_exists_x_with_sdd:
 rule minimize_sdd:
     threads: 1
     input:
-        vtree="{sdd}.vtree",
-        sdd="{sdd}.sdd"
+        vtree="assets/{sdd}.vtree",
+        sdd="assets/{sdd}.sdd"
     output:
-        vtree="{sdd}.min-vtree",
-        sdd="{sdd}.min-sdd"
+        vtree="assets/{sdd}.min-vtree",
+        sdd="assets/{sdd}.min-sdd"
+    benchmark:
+        "assets/benchmarks/minimize_sdd/{sdd}.jsonl"
     params:
         script="src.minimize_sdd"
     shell:
