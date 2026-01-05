@@ -47,7 +47,7 @@ def minimizing(
 ) -> list[str]:
     nnfs: list[t.Literal['a', 'o', 't', 'f']] = ['t']
 
-    children: list[list[tuple[int, list[int]]]] = [[(1, [])]]
+    children: list[dict[int, list[int]]] = [{1: []}]
     parents: list[list[int]] = [[], [0]]
 
     for line in raw:
@@ -56,46 +56,46 @@ def minimizing(
 
         if words[0].isalpha():
             nnfs.append(words[0])
-            children.append([])
+            children.append({})
             parents.append([])
         else:
             u, v, *literals = map(int, words[:-1])
-            children[u].append((v, literals))
+            children[u][v] = literals
             parents[v].append(u)
 
     parents.pop()
 
-    def apply_and(u: int) -> tuple[str, list[tuple[int, list[int]]]]:
+    def apply_and(u: int) -> tuple[str, dict[int, list[int]]]:
         acc: list[tuple[int, list[int]]] = []
-        for v, literals in children[u]:
+        for v, literals in children[u].items():
             if literals:
                 acc.append((v, literals))
                 continue
 
             if 't' == nnfs[v]: continue
-            if 'f' == nnfs[v]: return 'f', []
+            if 'f' == nnfs[v]: return 'f', {}
             acc.append((v, literals))
 
         if acc:
-            return 'a', acc
+            return 'a', dict(acc)
         else:
-            return 't', []
+            return 't', {}
 
-    def apply_or(u: int) -> tuple[str, list[tuple[int, list[int]]]]:
+    def apply_or(u: int) -> tuple[str, dict[int, list[int]]]:
         acc: list[tuple[int, list[int]]] = []
-        for v, literals in children[u]:
+        for v, literals in children[u].items():
             if literals:
                 acc.append((v, literals))
                 continue
 
-            if 't' == nnfs[v]: return 't', []
+            if 't' == nnfs[v]: return 't', {}
             if 'f' == nnfs[v]: continue
             acc.append((v, literals))
 
         if acc:
-            return 'o', acc
+            return 'o', dict(acc)
         else:
-            return 'f', []
+            return 'f', {}
 
     for u in reversed_toposort(list(map(len, children)), parents):
         if 0 == u: continue
@@ -108,19 +108,16 @@ def minimizing(
                 nnfs[u], children[u] = apply_or(u)
 
         if len(children[u]) == 1:
-            v, literals_uv = children[u][0]
+            v, literals_uv = children[u].popitem()
             for p in parents[u]:
-                for i, (child, literals_pu) in enumerate(children[p]):
-                    if child == u:
-                        children[p][i] = (v, literals_pu + literals_uv)
-            parents[v] = [p for p in parents[u]] + [p for p in parents[v] if p != u]
-            children[u] = []
+                literals_pu = children[p].pop(u)
+                children[p][v] = literals_pu + literals_uv
 
     # check if it is reachable by the root node
     rootable: list[bool] = [False] * len(nnfs)
     rootable[0] = True
 
-    dfs(rootable, [[v for v, _ in edges] for edges in children])
+    dfs(rootable, [to.keys() for to in children])
 
     cnt = it.count(1)
     ids: list[int] = [
@@ -137,7 +134,7 @@ def minimizing(
     edges: list[str] = [
         ' '.join(map(str, (idu, idv, *ls)))
         for u in range(len(nnfs))
-        for v, ls in children[u]
+        for v, ls in children[u].items()
         if 'f' != nnfs[u]
         if -1 != (idu := ids[u])
         if -1 != (idv := ids[v])
