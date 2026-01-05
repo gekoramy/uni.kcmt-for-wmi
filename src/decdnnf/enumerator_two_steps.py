@@ -142,6 +142,9 @@ def conditioning_with_sdd(
             root,
         )
 
+        root.ref()
+        mgr.minimize_limited()
+
         sdd: Path = folder / 'sdd.sdd'
         nnf: Path = folder / 'sdd.nnf'
 
