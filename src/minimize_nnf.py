@@ -4,6 +4,8 @@ import typing as t
 from collections import deque
 from pathlib import Path
 
+aotf: type[str] = t.Literal['a', 'o', 't', 'f']
+
 
 def dfs(adjs: t.Sequence[t.Sequence[int]]) -> list[int]:
     """
@@ -30,6 +32,14 @@ def dfs(adjs: t.Sequence[t.Sequence[int]]) -> list[int]:
 
 
 def reversed_toposort(outdegree: t.MutableSequence[int], parents: t.Sequence[t.Sequence[int]]) -> t.Generator[int]:
+    """
+    >>> list(reversed_toposort([2, 1, 0], [[], [0], [0, 1]]))
+    [2, 1, 0]
+
+    >>> list(reversed_toposort([1, 0], [[], [0]]))
+    [1, 0]
+    """
+
     queue: deque[int] = deque((u for u, degree in enumerate(outdegree) if 0 == degree))
     while queue:
         u: int = queue.popleft()
@@ -44,7 +54,7 @@ def reversed_toposort(outdegree: t.MutableSequence[int], parents: t.Sequence[t.S
 def minimizing(
         raw: t.Iterator[str],
 ) -> list[str]:
-    nnfs: list[t.Literal['a', 'o', 't', 'f']] = ['t']
+    nnfs: list[aotf] = ['t']
 
     children: list[dict[int, list[list[int]]]] = [{1: [[]]}]
     parents: list[list[int]] = [[], [0]]
@@ -64,49 +74,15 @@ def minimizing(
 
     parents.pop()
 
-    def apply_and(u: int) -> tuple[str, dict[int, list[list[int]]]]:
-        acc: list[tuple[int, list[list[int]]]] = []
-        for v, lls in children[u].items():
-            tmp: list[list[int]] = []
-            for ls in lls:
-                if 't' == nnfs[v] and not ls: continue
-                if 'f' == nnfs[v] and not ls: return 'f', {}
-                tmp.append(ls)
-
-            if tmp:
-                acc.append((v, tmp))
-
-        if acc:
-            return 'a', dict(acc)
-        else:
-            return 't', {}
-
-    def apply_or(u: int) -> tuple[str, dict[int, list[list[int]]]]:
-        acc: list[tuple[int, list[list[int]]]] = []
-        for v, lls in children[u].items():
-            tmp: list[list[int]] = []
-            for ls in lls:
-                if 't' == nnfs[v] and not ls: return 't', {}
-                if 'f' == nnfs[v]: continue
-                tmp.append(ls)
-
-            if tmp:
-                acc.append((v, tmp))
-
-        if acc:
-            return 'o', dict(acc)
-        else:
-            return 'f', {}
-
     for u in list(reversed_toposort(list(map(len, children)), parents)):
         if 0 == u: continue
 
         match nnfs[u]:
             case 'a':
-                nnfs[u], children[u] = apply_and(u)
+                nnfs[u], children[u] = apply_and(nnfs, children, u)
 
             case 'o':
-                nnfs[u], children[u] = apply_or(u)
+                nnfs[u], children[u] = apply_or(nnfs, children, u)
 
         match list(children[u].items()):
             case [(v, [ls_uv])] if u != 1 or not ls_uv:
@@ -135,6 +111,50 @@ def minimizing(
     ]
 
     return nodes + edges
+
+
+def apply_and(
+        nnfs: t.Sequence[aotf],
+        children: t.Sequence[t.Mapping[int, t.Sequence[t.Sequence[int]]]],
+        u: int,
+) -> tuple[str, dict[int, list[list[int]]]]:
+    acc: list[tuple[int, list[list[int]]]] = []
+    for v, lls in children[u].items():
+        tmp: list[list[int]] = []
+        for ls in lls:
+            if 't' == nnfs[v] and not ls: continue
+            if 'f' == nnfs[v] and not ls: return 'f', {}
+            tmp.append(ls)
+
+        if tmp:
+            acc.append((v, tmp))
+
+    if acc:
+        return 'a', dict(acc)
+    else:
+        return 't', {}
+
+
+def apply_or(
+        nnfs: t.Sequence[aotf],
+        children: t.Sequence[t.Mapping[int, t.Sequence[t.Sequence[int]]]],
+        u: int,
+) -> tuple[str, dict[int, list[list[int]]]]:
+    acc: list[tuple[int, list[list[int]]]] = []
+    for v, lls in children[u].items():
+        tmp: list[list[int]] = []
+        for ls in lls:
+            if 't' == nnfs[v] and not ls: return 't', {}
+            if 'f' == nnfs[v]: continue
+            tmp.append(ls)
+
+        if tmp:
+            acc.append((v, tmp))
+
+    if acc:
+        return 'o', dict(acc)
+    else:
+        return 'f', {}
 
 
 def minimize(nnf: tuple[Path, Path]) -> None:
