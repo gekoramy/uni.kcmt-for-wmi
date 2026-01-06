@@ -109,7 +109,7 @@ def minimizing(
                 nnfs[u], children[u] = apply_or(u)
 
         match list(children[u].items()):
-            case [(v, [ls_uv])]:
+            case [(v, [ls_uv])] if u != 1 or not ls_uv:
                 for p in parents[u]:
                     lls_pu = children[p].pop(u)
                     children[p].setdefault(v, []).extend(
