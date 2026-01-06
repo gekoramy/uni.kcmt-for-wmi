@@ -128,8 +128,7 @@ rule aggregate_density:
             "assets/benchmarks/decdnnf_baseline/sdd/noop/{type}/{density}.jsonl"
         ],
         decdnnf_two_steps_exists_x_d4=[
-            *["assets/wmi/decdnnf_two_steps/exists_x/d4/noop/{type}/{density}." + suffix for suffix in
-              ["out", "err", "steps"]],
+            *["assets/wmi/decdnnf_two_steps/exists_x/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
             "assets/benchmarks/decdnnf_two_steps/exists_x/d4/noop/{type}/{density}.jsonl"
         ],
         decdnnf_two_steps_exists_x_sdd=[
