@@ -31,12 +31,12 @@ def dfs(adjs: t.Sequence[t.Sequence[int]]) -> list[int]:
     return ids
 
 
-def reversed_toposort(outdegree: t.MutableSequence[int], parents: t.Sequence[t.Sequence[int]]) -> t.Generator[int]:
+def reversed_toposort(outdegree: t.MutableSequence[int], parents: t.Sequence[t.AbstractSet[int]]) -> t.Generator[int]:
     """
-    >>> list(reversed_toposort([2, 1, 0], [[], [0], [0, 1]]))
+    >>> list(reversed_toposort([2, 1, 0], [{}, {0}, {0, 1}]))
     [2, 1, 0]
 
-    >>> list(reversed_toposort([1, 0], [[], [0]]))
+    >>> list(reversed_toposort([1, 0], [{}, {0}]))
     [1, 0]
     """
 
@@ -57,7 +57,7 @@ def minimizing(
     nnfs: list[aotf] = ['t']
 
     children: list[dict[int, list[list[int]]]] = [{1: [[]]}]
-    parents: list[list[int]] = [[], [0]]
+    parents: list[set[int]] = [{}, {0}]
 
     for line in raw:
 
@@ -66,11 +66,11 @@ def minimizing(
         if words[0].isalpha():
             nnfs.append(words[0])
             children.append({})
-            parents.append([])
+            parents.append(set())
         else:
             u, v, *literals = map(int, words[:-1])
             children[u].setdefault(v, []).append(literals)
-            parents[v].append(u)
+            parents[v].add(u)
 
     parents.pop()
 
