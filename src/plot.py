@@ -27,6 +27,7 @@ enumerator2steps: dict[str, list[str]] = {
         f'decdnnf_baseline_{compiler}': [
             'tlemmas',
             f'tddnnf_{compiler}',
+            f'decdnnf_{compiler}',
             f'decdnnf_baseline_{compiler}',
         ]
         for compiler in ['d4', 'sdd']
@@ -36,6 +37,7 @@ enumerator2steps: dict[str, list[str]] = {
             'tlemmas',
             f'tddnnf_{compiler}',
             f'tddnnf_exists_{qo}_{compiler}',
+            f'decdnnf_exists_{qo}_{compiler}',
             f'decdnnf_two_steps_exists_{qo}_{compiler}',
         ]
         for compiler in ['d4', 'sdd']
