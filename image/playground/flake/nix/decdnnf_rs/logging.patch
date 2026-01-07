@@ -1,0 +1,13 @@
+diff --git a/src/app/app_helper.rs b/src/app/app_helper.rs
+index 8ef57e2..3607bb0 100644
+--- a/src/app/app_helper.rs
++++ b/src/app/app_helper.rs
+@@ -136,7 +136,7 @@ pub fn init_logger_with_level(level: log::LevelFilter) {
+                 ));
+             })
+             .level(level)
+-            .chain(std::io::stdout())
++            .chain(std::io::stderr())
+             .apply()
+             .unwrap_or(());
+     });
