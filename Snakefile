@@ -66,10 +66,10 @@ rule plot:
         "assets/plots/{column}.{type}.pdf",
         "assets/plots/{column}.{type}.png"
     params:
-        script="src/plot.py"
+        script="src.plot"
     shell:
         """
-        python {params.script} \
+        python -m {params.script} \
           --column {wildcards.column:q} \
           --type {wildcards.type} \
           --timeout_tlemmas {config[timeout][tlemmas]} \

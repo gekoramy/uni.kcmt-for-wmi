@@ -9,6 +9,8 @@ import math
 import polars as pl
 from matplotlib import pyplot as plt
 
+from src import utils
+
 
 @dataclasses.dataclass(frozen=True)
 class Timeout:
@@ -292,16 +294,9 @@ def plot(
     return fig
 
 
-def file(arg: str) -> Path:
-    if not (path := Path(arg)).is_file():
-        raise FileNotFoundError(path)
-
-    return path
-
-
 def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
-    parser.add_argument('--csv', type=file, required=True)
+    parser.add_argument('--csv', type=utils.file, required=True)
     parser.add_argument('--column', type=str, required=True)
     parser.add_argument('--output', type=Path, required=True, nargs='+')
     parser.add_argument('--timeout_enumerator', type=int, required=True)
