@@ -64,7 +64,7 @@ def d4(args: ArgumentsWithD4):
                         bcs12=projected_bc,
                     )
 
-                with utils.log('existentially quantifying out x'):
+                with utils.log('projecting'):
                     process: CompletedProcess[str] = subprocess.run(
                         [
                             'd4',
@@ -109,7 +109,7 @@ def sdd(args: ArgumentsWithSDD):
             with utils.log('load sdd'):
                 phi: SddNode = mgr.read_sdd_file(str.encode(args.sdd.as_posix()))
 
-            with utils.log('existentially quantifying out x'):
+            with utils.log('projecting'):
                 which: list[int] = [1] * (1 + len(args.mapping))
                 for k in args.project_onto:
                     which[k] = 0
