@@ -21,7 +21,7 @@ from src.decdnnf import decdnnf
 @dataclass(frozen=True)
 class Arguments:
     cores: int
-    nnf_projected: Path
+    models_projected: Path
     mapping: Path
     nnf: Path
 
@@ -29,7 +29,7 @@ class Arguments:
 @dataclass(frozen=True)
 class ArgumentsWithSDD:
     cores: int
-    nnf_projected: Path
+    models_projected: Path
     mapping: Path
     vtree: Path
     sdd: Path
@@ -41,7 +41,9 @@ def enum(
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with utils.log('two steps'):
         mapping: dict[int, FNode] = tddnnf.mapping(env, args.mapping)
-        mus_projected: t.Generator[dict[bool, list[int]]] = decdnnf.raw(nnf=args.nnf_projected, cores=args.cores)
+
+        with open(args.models_projected, 'rt') as f:
+            mus_projected: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
 
         with Pool(args.cores) as pool:
             models: list[list[dict[bool, list[int]]]] = pool.starmap(
@@ -53,10 +55,7 @@ def enum(
             )
 
         yield from (
-            {
-                boolean: [mapping[l] for l in literals]
-                for boolean, literals in model.items()
-            }
+            tddnnf.convert(mapping, model)
             for model in it.chain(*models)
         )
 
@@ -67,7 +66,9 @@ def enum_with_sdd(
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with utils.log('two steps'):
         mapping: dict[int, FNode] = tddnnf.mapping(env, args.mapping)
-        mus_projected: t.Generator[dict[bool, list[int]]] = decdnnf.raw(nnf=args.nnf_projected, cores=args.cores)
+
+        with open(args.models_projected, 'rt') as f:
+            mus_projected: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
 
         with Pool(args.cores) as pool:
             models: list[list[dict[bool, list[int]]]] = pool.starmap(
@@ -80,10 +81,7 @@ def enum_with_sdd(
             )
 
         yield from (
-            {
-                boolean: [mapping[l] for l in literals]
-                for boolean, literals in model.items()
-            }
+            tddnnf.convert(mapping, model)
             for model in it.chain(*models)
         )
 

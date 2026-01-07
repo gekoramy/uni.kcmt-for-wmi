@@ -50,6 +50,16 @@ def mapping(
         }
 
 
+def convert(
+        mapping: dict[int, FNode],
+        mu: dict[bool, list[int]],
+) -> dict[bool, list[FNode]]:
+    return {
+        boolean: [mapping[l] for l in literals]
+        for boolean, literals in mu.items()
+    }
+
+
 def sdd(args: ArgumentsWithSDD) -> None:
     with tempfile.TemporaryDirectory() as path:
         folder: Path = Path(path)

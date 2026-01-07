@@ -115,6 +115,38 @@ rule aggregate_density:
             *["assets/tddnnf_exists_x/sdd/{type}/{density}." + suffix for suffix in ["err", "steps"]],
             "assets/benchmarks/tddnnf_exists_x/sdd/{type}/{density}.jsonl"
         ],
+        tddnnf_exists_A_d4=[
+            *["assets/tddnnf_exists_A/d4/{type}/{density}." + suffix for suffix in ["err", "steps"]],
+            "assets/benchmarks/tddnnf_exists_A/d4/{type}/{density}.jsonl"
+        ],
+        tddnnf_exists_A_sdd=[
+            *["assets/tddnnf_exists_A/sdd/{type}/{density}." + suffix for suffix in ["err", "steps"]],
+            "assets/benchmarks/tddnnf_exists_A/sdd/{type}/{density}.jsonl"
+        ],
+        decdnnf_d4=[
+            *["assets/decdnnf/tddnnf/d4/{type}/{density}." + suffix for suffix in ["err", "models"]],
+            "assets/benchmarks/decdnnf/tddnnf/d4/{type}/{density}.jsonl"
+        ],
+        decdnnf_sdd=[
+            *["assets/decdnnf/tddnnf/sdd/{type}/{density}." + suffix for suffix in ["err", "models"]],
+            "assets/benchmarks/decdnnf/tddnnf/sdd/{type}/{density}.jsonl"
+        ],
+        decdnnf_exists_x_d4=[
+            *["assets/decdnnf/tddnnf_exists_x/d4/{type}/{density}." + suffix for suffix in ["err", "models"]],
+            "assets/benchmarks/decdnnf/tddnnf_exists_x/d4/{type}/{density}.jsonl"
+        ],
+        decdnnf_exists_x_sdd=[
+            *["assets/decdnnf/tddnnf_exists_x/sdd/{type}/{density}." + suffix for suffix in ["err", "models"]],
+            "assets/benchmarks/decdnnf/tddnnf_exists_x/sdd/{type}/{density}.jsonl"
+        ],
+        decdnnf_exists_A_d4=[
+            *["assets/decdnnf/tddnnf_exists_A/d4/{type}/{density}." + suffix for suffix in ["err", "models"]],
+            "assets/benchmarks/decdnnf/tddnnf_exists_A/d4/{type}/{density}.jsonl"
+        ],
+        decdnnf_exists_A_sdd=[
+            *["assets/decdnnf/tddnnf_exists_A/sdd/{type}/{density}." + suffix for suffix in ["err", "models"]],
+            "assets/benchmarks/decdnnf/tddnnf_exists_A/sdd/{type}/{density}.jsonl"
+        ],
         sae=[
             *["assets/wmi/sae/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
             "assets/benchmarks/sae/noop/{type}/{density}.jsonl"
@@ -458,6 +490,33 @@ rule sdd_to_nnf:
         """
 
 
+rule decdnnf:
+    threads: 13
+    input:
+        "assets/{nnf}.min-nnf"
+    output:
+        "assets/decdnnf/{nnf}.models"
+    log:
+        "assets/decdnnf/{nnf}.err"
+    benchmark:
+        "assets/benchmarks/decdnnf/{nnf}.jsonl"
+    shell:
+        """
+        if [[ -s {input:q} ]]; then
+          timeout --verbose {config[timeout][enumerator]}m \
+            decdnnf_rs model-enumeration \
+            --compact-free-vars \
+            --input {input} \
+            --threads {threads} \
+            1> {output} \
+            2> {log} \
+            || touch {output}
+        fi
+        
+        touch {output}
+        """
+
+
 rule compute_wmi_with_sae:
     threads: 13
     resources:
@@ -494,7 +553,7 @@ rule compute_wmi_with_decdnnf_baseline:
         mem="20GB"
     input:
         density="assets/densities/{type}/{density}.json",
-        nnf="assets/tddnnf/{compiler}/{type}/{density}.min-nnf",
+        models="assets/decdnnf/tddnnf/{compiler}/{type}/{density}.models",
         mapping="assets/tddnnf/{compiler}/{type}/{density}.json"
     output:
         wmi="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.out"
@@ -507,7 +566,7 @@ rule compute_wmi_with_decdnnf_baseline:
         script="src.wmi"
     shell:
         """
-        if [[ -s {input.nnf:q} ]]; then
+        if [[ -s {input.models:q} ]]; then
           timeout --verbose {config[timeout][enumerator]}m \
             python -m {params.script} \
             --density {input.density} \
@@ -515,7 +574,7 @@ rule compute_wmi_with_decdnnf_baseline:
             --steps {log.steps} \
             --cores {threads} \
             decdnnf_baseline \
-            --nnf {input.nnf} \
+            --models {input.models} \
             --mapping {input.mapping} \
             1> {output.wmi} \
             2> {log.err} \
@@ -532,7 +591,7 @@ rule compute_wmi_with_decdnnf_two_steps_sdd:
         mem="20GB"
     input:
         density="assets/densities/{type}/{density}.json",
-        nnf_projected="assets/tddnnf_exists_{qo}/sdd/{type}/{density}.min-nnf",
+        models_projected="assets/decdnnf/tddnnf_exists_{qo}/sdd/{type}/{density}.models",
         mapping="assets/tddnnf/sdd/{type}/{density}.json",
         vtree="assets/tddnnf/sdd/{type}/{density}.min-vtree",
         sdd="assets/tddnnf/sdd/{type}/{density}.min-sdd"
@@ -547,7 +606,7 @@ rule compute_wmi_with_decdnnf_two_steps_sdd:
         script="src.wmi"
     shell:
         """
-        if [[ -s {input.nnf_projected:q} ]]; then
+        if [[ -s {input.models_projected:q} ]]; then
           timeout --verbose {config[timeout][enumerator]}m \
             python -m {params.script} \
             --density {input.density} \
@@ -555,7 +614,7 @@ rule compute_wmi_with_decdnnf_two_steps_sdd:
             --steps {log.steps} \
             --cores {threads} \
             decdnnf_two_steps \
-            --nnf_projected {input.nnf_projected} \
+            --models_projected {input.models_projected} \
             --mapping {input.mapping} \
             sdd \
             --vtree {input.vtree} \
@@ -575,7 +634,7 @@ rule compute_wmi_with_decdnnf_two_steps_d4:
         mem="20GB"
     input:
         density="assets/densities/{type}/{density}.json",
-        nnf_projected="assets/tddnnf_exists_{qo}/d4/{type}/{density}.min-nnf",
+        models_projected="assets/decdnnf/tddnnf_exists_{qo}/d4/{type}/{density}.models",
         mapping="assets/tddnnf/d4/{type}/{density}.json",
         nnf="assets/tddnnf/d4/{type}/{density}.min-nnf",
     output:
@@ -589,7 +648,7 @@ rule compute_wmi_with_decdnnf_two_steps_d4:
         script="src.wmi"
     shell:
         """
-        if [[ -s {input.nnf_projected:q} ]]; then
+        if [[ -s {input.models_projected:q} ]]; then
           timeout --verbose {config[timeout][enumerator]}m \
             python -m {params.script} \
             --density {input.density} \
@@ -597,7 +656,7 @@ rule compute_wmi_with_decdnnf_two_steps_d4:
             --steps {log.steps} \
             --cores {threads} \
             decdnnf_two_steps \
-            --nnf_projected {input.nnf_projected} \
+            --models_projected {input.models_projected} \
             --mapping {input.mapping} \
             d4 \
             --nnf {input.nnf} \

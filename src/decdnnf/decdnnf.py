@@ -3,8 +3,6 @@ import subprocess
 import typing as t
 from pathlib import Path
 
-from pysmt.fnode import FNode
-
 from src import utils
 
 b2regex: frozenset[tuple[bool, re.Pattern]] = frozenset([
@@ -37,20 +35,16 @@ def raw(
 
     assert 0 == decdnnf.returncode, decdnnf.stdout
 
+    yield from parse(decdnnf.stdout.splitlines())
+
+
+def parse(
+        lines: t.Iterable[str]
+) -> t.Generator[dict[bool, list[int]]]:
     yield from (
         {
             boolean: [int(l) for l in regex.findall(line.strip().removesuffix('0'))]
             for boolean, regex in b2regex
         }
-        for line in decdnnf.stdout.splitlines()
+        for line in lines
     )
-
-
-def convert(
-        mapping: dict[int, FNode],
-        mu: dict[bool, list[int]],
-) -> dict[bool, list[FNode]]:
-    return {
-        boolean: [mapping[l] for l in literals]
-        for boolean, literals in mu
-    }

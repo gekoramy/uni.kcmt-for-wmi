@@ -1,7 +1,7 @@
 import typing as t
 from dataclasses import dataclass
+from pathlib import Path
 
-from matplotlib.path import Path
 from pysmt.environment import Environment
 from pysmt.fnode import FNode
 
@@ -12,7 +12,7 @@ from src.decdnnf import decdnnf
 @dataclass(frozen=True)
 class Arguments:
     cores: int
-    nnf: Path
+    models: Path
     mapping: Path
 
 
@@ -22,10 +22,10 @@ def enum(
 ) -> t.Generator[dict[bool, list[FNode]]]:
     mapping: dict[int, FNode] = tddnnf.mapping(env, args.mapping)
 
+    with open(args.models, 'rt') as f:
+        mus: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
+
     yield from (
-        {
-            boolean: [mapping[l] for l in literals]
-            for boolean, literals in mu.items()
-        }
-        for mu in decdnnf.raw(cores=args.cores, nnf=args.nnf)
+        tddnnf.convert(mapping, mu)
+        for mu in mus
     )

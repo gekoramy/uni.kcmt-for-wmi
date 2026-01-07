@@ -32,6 +32,12 @@ def parse_data(
                 schema={'wmi': pl.Float64, 'npolys': pl.Int64}
             )
 
+        case '.models':
+            with open(path, 'rb') as f:
+                lines: int = sum(not line.isspace() for line in f)
+
+            data: pl.DataFrame = pl.DataFrame({'models': lines}) if lines else pl.DataFrame()
+
         case '.err':
             text: str = path.read_text()
             data: pl.DataFrame = pl.DataFrame({'stderr': text})
@@ -73,7 +79,7 @@ def main(who2paths: dict[str, list[Path]], output: Path) -> None:
                         path
                         for paths in who2paths.values()
                         for path in paths
-                        if path.suffix not in ('.steps', '.out', '.err', '.jsonl')
+                        if path.suffix not in ('.steps', '.out', '.err', '.models', '.jsonl')
                 ),
                 None,
             ))
