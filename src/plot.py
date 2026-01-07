@@ -3,11 +3,15 @@ import dataclasses
 import itertools as it
 import typing
 from datetime import timedelta
+from difflib import SequenceMatcher
 from pathlib import Path
 
 import math
+import numpy as np
 import polars as pl
 from matplotlib import pyplot as plt
+from matplotlib.collections import LineCollection
+from numpy import ndarray
 
 from src import utils
 
@@ -296,6 +300,126 @@ def plot(
     return fig
 
 
+def models_to_npolys(
+        df: pl.DataFrame
+) -> plt.Figure:
+    padding: int = 2
+
+    steps: list[list[str]] = [
+        filtered
+        for steps in enumerator2steps.values()
+        if (filtered := [
+            step
+            for step in steps
+            if 'decdnnf' in step and 'exists' in step
+        ])
+    ]
+
+    columns: list[tuple[str, str]] = [
+        (f'models_{a}', f'npolys_{b}')
+        for a, b in steps
+    ]
+
+    sdf: pl.DataFrame = (
+        df
+        .select(
+            *it.chain(*columns)
+        )
+    )
+
+    minimum: int = (
+        sdf
+        .min_horizontal()
+        .min()
+    )
+
+    maximum: int = (
+        sdf
+        .max_horizontal()
+        .max()
+    )
+
+    limit: int = padding * maximum
+
+    tot: int = math.comb(len(columns), 2)
+    nrows: int = 2
+    ncols: int = math.ceil(tot / nrows)
+    fig, axs = plt.subplots(nrows, ncols, figsize=(6 * ncols, 6 * nrows))
+
+    iter4axs: typing.Iterator[plt.Axes] = iter(it.chain(*axs))
+
+    ax: plt.Axes
+    for (step_x, step_y), ax in zip(
+            it.combinations(columns, 2),
+            iter4axs
+    ):
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+
+        ax.set_xlim(minimum, padding * limit)
+        ax.set_ylim(minimum, padding * limit)
+
+        ax.axvline(x=limit, color='darkgrey', linestyle='--')
+        ax.axhline(y=limit, color='darkgrey', linestyle='--')
+
+        ax.plot(
+            (minimum, padding * limit),
+            (minimum, padding * limit),
+            color='darkgrey',
+            linestyle=':',
+            linewidth=1,
+        )
+
+        src: ndarray[tuple[int, typing.Literal[2]], np.dtype[np.int64]] = np.column_stack((
+            df.get_column(step_x[0]).fill_null(limit).to_numpy(),
+            df.get_column(step_y[0]).fill_null(limit).to_numpy(),
+        ))
+
+        trg: ndarray[tuple[int, typing.Literal[2]], np.dtype[np.int64]] = np.column_stack((
+            df.get_column(step_x[1]).fill_null(limit).to_numpy(),
+            df.get_column(step_y[1]).fill_null(limit).to_numpy(),
+        ))
+
+        lines = LineCollection(
+            segments=(np.stack((src, trg), axis=1)),
+            alpha=0.5,
+        )
+
+        ax.add_collection(
+            lines
+        )
+
+        tout: list[ndarray[tuple[typing.Literal[2]], np.dtype[np.int64]]] = [
+            xy
+            for xy in it.chain(src, trg)
+            if limit in xy
+        ]
+
+        if tout:
+            xys: ndarray[tuple[int, typing.Literal[2]], np.dtype[np.int64]] = np.vstack([
+                xy
+                for xy in it.chain(src, trg)
+                if limit in xy
+            ])
+
+            ax.scatter(
+                x=xys[:, 0],
+                y=xys[:, 1],
+                marker='x',
+                color='C3',
+                alpha=.5,
+            )
+
+        match_x = SequenceMatcher(None, *step_x).find_longest_match()
+        match_y = SequenceMatcher(None, *step_y).find_longest_match()
+        ax.set_xlabel(step_x[0][match_x.a:match_x.a + match_x.size])
+        ax.set_ylabel(step_y[0][match_y.a:match_y.a + match_y.size])
+        ax.set_aspect('equal')
+
+    fig.suptitle('models → npolys')
+    return fig
+
+
 def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument('--csv', type=utils.file, required=True)
@@ -328,7 +452,13 @@ def main() -> None:
             ))
 
         case _:
-            fig = plot(df, args.column)
+
+            match args.column:
+                case 'models to npolys':
+                    fig = models_to_npolys(df)
+
+                case column:
+                    fig = plot(df, column)
 
     for out in args.output:
         fig.savefig(out)
