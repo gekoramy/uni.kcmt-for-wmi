@@ -553,7 +553,7 @@ def foreach_step(
 
     iter4axs: t.Iterable[plt.Axes] = iter(it.chain(*axs))
     ax: plt.Axes
-    height: float = 1 / (2 + max(map(len, enumerator2steps.values())))
+    height: float = 1 / (1 + max(map(len, enumerator2steps.values())))
 
     for ax, (enumerator, steps) in zip(iter4axs, enumerator2steps.items()):
         ax.invert_yaxis()
