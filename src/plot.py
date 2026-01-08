@@ -72,9 +72,8 @@ def plot(
                 pl.col(f'{column}_{enum}')
                 for enum in enumerator2steps.keys()
             )
-            .min()
             .min_horizontal()
-            .first()
+            .min()
             / padding
     )
 
@@ -83,9 +82,8 @@ def plot(
             pl.col(f'{column}_{enum}')
             for enum in enumerator2steps.keys()
         )
-        .max()
         .max_horizontal()
-        .first()
+        .max()
     )
 
     tot: int = math.comb(len(enumerator2steps), 2)
@@ -199,9 +197,8 @@ def plot_time(
                 pl.col(f's_{enum}')
                 for enum in enumerator2steps.keys()
             )
-            .min()
             .min_horizontal()
-            .first()
+            .min()
             / padding
     )
 
