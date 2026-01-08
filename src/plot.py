@@ -1,7 +1,7 @@
 import argparse
 import dataclasses
 import itertools as it
-import typing
+import typing as t
 from datetime import timedelta
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -10,7 +10,6 @@ import math
 import numpy as np
 import polars as pl
 from matplotlib import pyplot as plt, transforms, ticker, collections
-from numpy import ndarray
 
 from src import utils
 
@@ -105,7 +104,7 @@ def plot(
     ncols: int = math.ceil(tot / nrows)
     fig, axs = plt.subplots(nrows, ncols, figsize=(6 * ncols, 6 * nrows))
 
-    iter4axs: typing.Iterator[plt.Axes] = iter(it.chain(*axs))
+    iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
 
     ax: plt.Axes
     for (enum_x, enum_y), ax in zip(
@@ -345,7 +344,7 @@ def models_to_npolys(
     ncols: int = math.ceil(tot / nrows)
     fig, axs = plt.subplots(nrows, ncols, figsize=(6 * ncols, 6 * nrows))
 
-    iter4axs: typing.Iterator[plt.Axes] = iter(it.chain(*axs))
+    iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
 
     ax: plt.Axes
     for (step_x, step_y), ax in zip(
@@ -369,12 +368,12 @@ def models_to_npolys(
             linewidth=1,
         )
 
-        src: ndarray[tuple[int, typing.Literal[2]], np.dtype[np.int64]] = np.column_stack((
+        src: np.ndarray[tuple[int, t.Literal[2]], np.dtype[np.int64]] = np.column_stack((
             df.get_column(step_x[0]).fill_null(limit).to_numpy(),
             df.get_column(step_y[0]).fill_null(limit).to_numpy(),
         ))
 
-        trg: ndarray[tuple[int, typing.Literal[2]], np.dtype[np.int64]] = np.column_stack((
+        trg: np.ndarray[tuple[int, t.Literal[2]], np.dtype[np.int64]] = np.column_stack((
             df.get_column(step_x[1]).fill_null(limit).to_numpy(),
             df.get_column(step_y[1]).fill_null(limit).to_numpy(),
         ))
@@ -388,14 +387,14 @@ def models_to_npolys(
             lines
         )
 
-        tout: list[ndarray[tuple[typing.Literal[2]], np.dtype[np.int64]]] = [
+        tout: list[np.ndarray[tuple[t.Literal[2]], np.dtype[np.int64]]] = [
             xy
             for xy in it.chain(src, trg)
             if limit in xy
         ]
 
         if tout:
-            xys: ndarray[tuple[int, typing.Literal[2]], np.dtype[np.int64]] = np.vstack([
+            xys: np.ndarray[tuple[int, t.Literal[2]], np.dtype[np.int64]] = np.vstack([
                 xy
                 for xy in it.chain(src, trg)
                 if limit in xy
@@ -504,7 +503,7 @@ def foreach_step(
         sharex=True,
     )
 
-    iter4axs: typing.Iterable[plt.Axes] = iter(it.chain(*axs))
+    iter4axs: t.Iterable[plt.Axes] = iter(it.chain(*axs))
     ax: plt.Axes
     height: float = 1 / (2 + max(map(len, enumerator2steps.values())))
 
