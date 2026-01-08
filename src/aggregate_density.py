@@ -11,7 +11,8 @@ def patch(path: Path) -> str:
 
 def parse_data(
         who: str,
-        path: Path
+        path: Path,
+        density: str,
 ) -> pl.DataFrame:
     match path.suffix:
         case '.steps':
@@ -67,7 +68,7 @@ def parse_data(
             )
 
     return data.with_columns(
-        pl.lit(path.stem).alias('density'),
+        pl.lit(density).alias('density'),
         pl.lit(who).alias('who'),
     )
 
@@ -87,7 +88,7 @@ def main(who2paths: dict[str, list[Path]], output: Path) -> None:
         raise RuntimeError(f"unknown scheme: {unknown}")
 
     dataframes: t.Iterable[pl.DataFrame] = [
-        parse_data(who, path)
+        parse_data(who, path, output.stem)
         for who, paths in who2paths.items()
         for path in paths
         if path.stat().st_size > 0
