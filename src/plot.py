@@ -3,7 +3,6 @@ import dataclasses
 import itertools as it
 import typing as t
 from datetime import timedelta
-from difflib import SequenceMatcher
 from pathlib import Path
 
 import math
@@ -312,84 +311,127 @@ def plot_time(
 
 
 def models_to_npolys(
-        df: pl.DataFrame
+        df: pl.DataFrame,
 ) -> plt.Figure:
-    padding: int = 2
+    padding: float = 2
 
-    steps: list[list[str]] = [
-        filtered
-        for steps in enumerator2steps.values()
-        if (filtered := [
-            step
-            for step in steps
-            if 'decdnnf' in step and 'exists' in step
-        ])
-    ]
+    subset: dict[str, list[str]] = {
+        enum: steps
+        for enum, steps in enumerator2steps.items()
+        if 'exists' in enum
+    }
 
     columns: list[tuple[str, str]] = [
-        (f'models_{a}', f'npolys_{b}')
-        for a, b in steps
+        (
+            f'models_{steps[-2]}',
+            f'npolys_{steps[-1]}',
+        )
+        for steps in subset.values()
     ]
 
-    sdf: pl.DataFrame = (
-        df
-        .select(
-            *it.chain(*columns)
-        )
-    )
-
-    minimum: int = (
-        sdf
+    minimum: float = (
+        df.select(set(it.chain(*columns)))
         .min_horizontal()
-        .min()
+        .min() / padding
     )
 
-    maximum: int = (
-        sdf
+    maximum: float = (
+        df.select(set(it.chain(*columns)))
         .max_horizontal()
         .max()
     )
 
-    limit: int = padding * maximum
-
-    tot: int = math.comb(len(columns), 2)
-    nrows: int = 2
+    tot: int = math.comb(len(subset), 2)
+    nrows: int = 3
     ncols: int = math.ceil(tot / nrows)
     fig, axs = plt.subplots(nrows, ncols, figsize=(6 * ncols, 6 * nrows))
 
     iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
 
     ax: plt.Axes
-    for (step_x, step_y), ax in zip(
-            it.combinations(columns, 2),
-            iter4axs
+    for (((enum_x, steps_x), cols_x), ((enum_y, steps_y), cols_y)), ax in zip(
+            it.combinations(zip(subset.items(), columns), 2),
+            iter4axs,
     ):
+        limits_x: list[float] = list(it.accumulate(steps_x, lambda acc, _: acc * padding, initial=maximum * padding))
+        limits_y: list[float] = list(it.accumulate(steps_y, lambda acc, _: acc * padding, initial=maximum * padding))
+
         ax.set_xscale('log')
         ax.set_yscale('log')
 
-        ax.set_xlim(minimum, padding * limit)
-        ax.set_ylim(minimum, padding * limit)
+        ax.set_xlim(minimum, limits_x[-1])
+        ax.set_ylim(minimum, limits_y[-1])
 
-        ax.axvline(x=limit, color='darkgrey', linestyle='--')
-        ax.axhline(y=limit, color='darkgrey', linestyle='--')
+        for step, limit in zip(steps_x, limits_x):
+            ax.axvline(x=limit, color='darkgrey', linestyle='--')
+            ax.text(
+                x=limit,
+                y=minimum,
+                s=step,
+                bbox=dict(boxstyle="square", fc=('white', .6), ls=''),
+                rotation=90,
+                rotation_mode='anchor',
+                transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
+                va='top',
+            )
+
+        for step, limit in zip(steps_y, limits_y):
+            ax.axhline(y=limit, color='darkgrey', linestyle='--')
+            ax.text(
+                x=minimum,
+                y=limit,
+                s=step,
+                bbox=dict(boxstyle="square", fc=('white', .6), ls=''),
+                transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
+                va='bottom',
+            )
 
         ax.plot(
-            (minimum, padding * limit),
-            (minimum, padding * limit),
+            (minimum, max(*limits_x, *limits_y)),
+            (minimum, max(*limits_x, *limits_y)),
             color='darkgrey',
             linestyle=':',
             linewidth=1,
         )
 
-        src: np.ndarray[tuple[int, t.Literal[2]], np.dtype[np.int64]] = np.column_stack((
-            df.get_column(step_x[0]).fill_null(limit).to_numpy(),
-            df.get_column(step_y[0]).fill_null(limit).to_numpy(),
-        ))
+        data: pl.DataFrame = (
+            df.select(
+                *(
+                    pl.col(col)
+                    for col in set(cols_x + cols_y)
+                ),
+                **{
+                    f'tout_{step}': pl.col(f'stderr_{step}').fill_null('').str.contains('timeout')
+                    for step in set(steps_x + steps_y)
+                },
+            )
+        )
 
-        trg: np.ndarray[tuple[int, t.Literal[2]], np.dtype[np.int64]] = np.column_stack((
-            df.get_column(step_x[1]).fill_null(limit).to_numpy(),
-            df.get_column(step_y[1]).fill_null(limit).to_numpy(),
-        ))
+        src_rm = np.zeros(len(df), dtype=np.bool)
+        trg_rm = np.zeros(len(df), dtype=np.bool)
+
+        src_x = data.get_column(f'{cols_x[0]}').to_numpy(writable=True)
+        trg_x = data.get_column(f'{cols_x[1]}').to_numpy(writable=True)
+        for i, step, limit in zip(it.count(), steps_x, limits_x):
+            mask = data.get_column(f'tout_{step}').to_numpy()
+            if i <= len(steps_x) - 2:
+                src_rm |= mask
+                src_x[mask] = limit
+            trg_x[mask] = limit
+            trg_rm |= mask
+
+        src_y = data.get_column(f'{cols_y[0]}').to_numpy(writable=True)
+        trg_y = data.get_column(f'{cols_y[1]}').to_numpy(writable=True)
+        for i, step, limit in zip(it.count(), steps_y, limits_y):
+            mask = data.get_column(f'tout_{step}').to_numpy()
+            if i <= len(steps_y) - 2:
+                src_rm |= mask
+                src_y[mask] = limit
+            trg_y[mask] = limit
+            trg_rm |= mask
+
+        src: np.ndarray[tuple[int, t.Literal[2]], np.dtype[np.int64]] = np.column_stack((src_x, src_y))
+        trg: np.ndarray[tuple[int, t.Literal[2]], np.dtype[np.int64]] = np.column_stack((trg_x, trg_y))
 
         lines = collections.LineCollection(
             segments=(np.stack((src, trg), axis=1)),
@@ -400,31 +442,24 @@ def models_to_npolys(
             lines
         )
 
-        tout: list[np.ndarray[tuple[t.Literal[2]], np.dtype[np.int64]]] = [
-            xy
-            for xy in it.chain(src, trg)
-            if limit in xy
-        ]
+        ax.scatter(
+            x=src_x[src_rm],
+            y=src_y[src_rm],
+            color='C0',
+            alpha=.5,
+            marker='x'
+        )
 
-        if tout:
-            xys: np.ndarray[tuple[int, t.Literal[2]], np.dtype[np.int64]] = np.vstack([
-                xy
-                for xy in it.chain(src, trg)
-                if limit in xy
-            ])
+        ax.scatter(
+            x=trg_x[trg_rm],
+            y=trg_y[trg_rm],
+            color='C0',
+            alpha=.5,
+            marker='x'
+        )
 
-            ax.scatter(
-                x=xys[:, 0],
-                y=xys[:, 1],
-                marker='x',
-                color='C3',
-                alpha=.5,
-            )
-
-        match_x = SequenceMatcher(None, *step_x).find_longest_match()
-        match_y = SequenceMatcher(None, *step_y).find_longest_match()
-        ax.set_xlabel(step_x[0][match_x.a:match_x.a + match_x.size])
-        ax.set_ylabel(step_y[0][match_y.a:match_y.a + match_y.size])
+        ax.set_xlabel(enum_x)
+        ax.set_ylabel(enum_y)
         ax.set_aspect('equal')
 
     fig.suptitle('models → npolys')
