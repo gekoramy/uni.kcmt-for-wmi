@@ -60,6 +60,10 @@ def from_step(timeout: Timeout, step: str):
     raise RuntimeError(f'unable to infer timeout from step name: {step}')
 
 
+def label(step: str) -> str:
+    return step.replace('_', ' ')
+
+
 def plot(
         df: pl.DataFrame,
         column: str,
@@ -111,7 +115,7 @@ def plot(
             ax.text(
                 x=limit,
                 y=minimum,
-                s=step,
+                s=label(step),
                 bbox=dict(boxstyle="square", fc=('white', .6), ls=''),
                 rotation=90,
                 rotation_mode='anchor',
@@ -124,7 +128,7 @@ def plot(
             ax.text(
                 x=minimum,
                 y=limit,
-                s=step,
+                s=label(step),
                 bbox=dict(boxstyle="square", fc=('white', .6), ls=''),
                 transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
                 va='bottom',
@@ -183,6 +187,7 @@ def plot(
         ax.set_aspect('equal')
 
     fig.suptitle(column)
+    fig.tight_layout()
     return fig
 
 
@@ -230,7 +235,7 @@ def plot_time(
             ax.text(
                 x=limit,
                 y=minimum,
-                s=step,
+                s=label(step),
                 bbox=dict(boxstyle="square", fc=('white', .6), ls=''),
                 rotation=90,
                 rotation_mode='anchor',
@@ -243,7 +248,7 @@ def plot_time(
             ax.text(
                 x=minimum,
                 y=limit,
-                s=step,
+                s=label(step),
                 bbox=dict(boxstyle="square", fc=('white', .6), ls=''),
                 transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
                 va='bottom',
@@ -307,6 +312,7 @@ def plot_time(
         ax.set_aspect('equal')
 
     fig.suptitle('time')
+    fig.tight_layout()
     return fig
 
 
@@ -330,9 +336,9 @@ def models_to_npolys(
     ]
 
     minimum: float = (
-        df.select(set(it.chain(*columns)))
-        .min_horizontal()
-        .min() / padding
+            df.select(set(it.chain(*columns)))
+            .min_horizontal()
+            .min() / padding
     )
 
     maximum: float = (
@@ -367,7 +373,7 @@ def models_to_npolys(
             ax.text(
                 x=limit,
                 y=minimum,
-                s=step,
+                s=label(step),
                 bbox=dict(boxstyle="square", fc=('white', .6), ls=''),
                 rotation=90,
                 rotation_mode='anchor',
@@ -380,7 +386,7 @@ def models_to_npolys(
             ax.text(
                 x=minimum,
                 y=limit,
-                s=step,
+                s=label(step),
                 bbox=dict(boxstyle="square", fc=('white', .6), ls=''),
                 transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
                 va='bottom',
@@ -463,6 +469,7 @@ def models_to_npolys(
         ax.set_aspect('equal')
 
     fig.suptitle('models → npolys')
+    fig.tight_layout()
     return fig
 
 
@@ -523,7 +530,7 @@ def survival(
             ax.text(
                 x=x,
                 y=0,
-                s=step,
+                s=label(step),
                 bbox=dict(boxstyle="square", fc=('white', .6), ls=''),
                 rotation=90,
                 rotation_mode='anchor',
@@ -588,7 +595,7 @@ def foreach_step(
             mask: np.ndarray[tuple[int], np.dtype[np.bool]] = data.get_column(f'tout_{step}').to_numpy()
             xs: np.ndarray[tuple[int], np.dtype[np.float64]] = data.get_column(f'{column}_{step}').to_numpy()
 
-            ax.hlines(y=ys[~mask] + offset, xmin=0, xmax=xs[~mask], colors=f'C{i}', linestyles='-', label=step)
+            ax.hlines(y=ys[~mask] + offset, xmin=0, xmax=xs[~mask], colors=f'C{i}', linestyles='-', label=label(step))
             ax.hlines(y=ys[mask] + offset, xmin=0, xmax=xs[mask], colors=f'C{i}', linestyles='--')
 
             ax.scatter(y=ys[~mask] + offset, x=xs[~mask], marker='|', c=f'C{i}')
