@@ -9,8 +9,7 @@ from pathlib import Path
 import math
 import numpy as np
 import polars as pl
-from matplotlib import pyplot as plt
-from matplotlib.collections import LineCollection
+from matplotlib import pyplot as plt, transforms, ticker, collections
 from numpy import ndarray
 
 from src import utils
@@ -380,7 +379,7 @@ def models_to_npolys(
             df.get_column(step_y[1]).fill_null(limit).to_numpy(),
         ))
 
-        lines = LineCollection(
+        lines = collections.LineCollection(
             segments=(np.stack((src, trg), axis=1)),
             alpha=0.5,
         )
@@ -420,6 +419,76 @@ def models_to_npolys(
     return fig
 
 
+def survival(
+        df: pl.DataFrame,
+) -> plt.Figure:
+    tot: int = len(enumerator2steps)
+    nrows: int = 1
+    ncols: int = math.ceil(tot / nrows)
+    fig, axs = plt.subplots(
+        nrows,
+        ncols,
+        width_ratios=[1 + len(steps) for steps in enumerator2steps.values()],
+        figsize=(6 * ncols, 6 * nrows),
+        sharey=True,
+    )
+
+    ax: plt.Axes
+    for ax, (enumerator, steps) in zip(axs, enumerator2steps.items()):
+
+        ax.grid(True, 'major', axis='x')
+        ax.grid(True, 'both', axis='y')
+        ax.yaxis.set_minor_locator(ticker.AutoMinorLocator())
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+        ax.set_axisbelow(True)
+        ax.tick_params(
+            axis='x',
+            which='major',
+            bottom=False,
+            top=False,
+            labelbottom=False,
+        )
+
+        cols: list[str] = [f'stderr_{step}' for step in steps]
+
+        timeouts: pl.DataFrame = df.select(
+            pl.col(step)
+            .filter(pl.col(step).cast(pl.Utf8).str.contains('timeout'))
+            .count()
+            .alias(step)
+            for step in cols
+        )
+
+        timed_out: list[int] = [
+            timeouts[step].first()
+            for step in cols
+        ]
+
+        xs = np.arange(1 + len(steps), dtype=np.int64)
+        ys = list(it.accumulate(timed_out, lambda acc, x: acc - x, initial=len(df)))
+        ax.plot(xs, ys, 'o--')
+        ax.fill_between(xs, 0, ys, alpha=.5)
+
+        ax.set_xlim(xs[0] - .5, xs[-1] + .5)
+        ax.set_ylim(0, len(df) + 1)
+
+        for x, step in zip(xs[1:], steps):
+            ax.text(
+                x=x,
+                y=0,
+                s=step,
+                bbox=dict(boxstyle="square", fc=('white', .6), ls=''),
+                rotation=90,
+                rotation_mode='anchor',
+                transform=transforms.offset_copy(ax.transData, units='dots', x=-10, y=+10),
+                va='bottom',
+            )
+
+    fig.suptitle('survival')
+    fig.tight_layout()
+    return fig
+
+
 def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument('--csv', type=utils.file, required=True)
@@ -456,6 +525,9 @@ def main() -> None:
             match args.column:
                 case 'models to npolys':
                     fig = models_to_npolys(df)
+
+                case 'survival':
+                    fig = survival(df)
 
                 case column:
                     fig = plot(df, column)

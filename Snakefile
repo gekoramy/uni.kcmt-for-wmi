@@ -53,7 +53,7 @@ rule all:
             suffix=["pdf", "png"]
         ),
         expand("assets/plots/{column}.int.{suffix}",
-            column=["npolys", "models to npolys"],
+            column=["npolys", "models to npolys", "survival"],
             suffix=["pdf", "png"]
         )
 
