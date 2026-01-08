@@ -269,7 +269,7 @@ def plot_time(
                 ],
             ).with_columns(**{
                 enum_x: pl.sum_horizontal(pl.col(f's_{step}') for step in steps_x),
-                enum_y: pl.sum_horizontal(pl.col(f's_{step}') for step in steps_x),
+                enum_y: pl.sum_horizontal(pl.col(f's_{step}') for step in steps_y),
             })
         )
 
