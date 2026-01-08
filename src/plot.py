@@ -48,58 +48,47 @@ enumerator2steps: dict[str, list[str]] = {
 }
 
 
+def from_step(timeout: Timeout, step: str):
+    if 'tlemmas' in step:
+        return timeout.tlemmas
+
+    if 'tddnnf' in step:
+        return timeout.compilator
+
+    if 'decdnnf' in step or 'sae' in step:
+        return timeout.enumerator
+
+    raise RuntimeError(f'unable to infer timeout from step name: {step}')
+
+
 def plot(
         df: pl.DataFrame,
         column: str,
-        timeout: Timeout | None = None,
 ) -> plt.Figure:
     padding: float = 2
 
-    enumerators_wout_tlemmas: list[str] = ['sae']
-    enumerators_with_tlemmas: list[str] = list(sorted(enumerator2steps.keys() - {'sae'}))
-
-    limit_enum: float
-    limit_tlemmas: float
-    limit_tlemmas_comp: float
-    limit_tlemmas_comp_enum: float
-
-    match timeout:
-        case None:
-            maximum: float = (
-                df.select(
-                    pl.col(f'{column}_{enum}')
-                    for enum in enumerators_wout_tlemmas + enumerators_with_tlemmas
-                )
-                .max()
-                .max_horizontal()
-                .first()
-            )
-
-            limit_enum = padding * maximum
-            limit_tlemmas = padding * maximum
-            limit_tlemmas_comp = padding * padding * maximum
-            limit_tlemmas_comp_enum = padding * padding * padding * maximum
-
-        case Timeout(tlemmas=tout_tlemmas, compilator=tout_compilator, enumerator=tout_enumerator):
-            limit_enum = tout_enumerator.seconds
-            limit_tlemmas = tout_tlemmas.seconds
-            limit_tlemmas_comp = (tout_tlemmas + tout_compilator).seconds
-            limit_tlemmas_comp_enum = (tout_tlemmas + tout_compilator + tout_enumerator).seconds
-
     minimum: float = (
+            df.select(
+                pl.col(f'{column}_{enum}')
+                for enum in enumerator2steps.keys()
+            )
+            .min()
+            .min_horizontal()
+            .first()
+            / padding
+    )
+
+    maximum: float = (
         df.select(
             pl.col(f'{column}_{enum}')
-            for enum in enumerators_wout_tlemmas + enumerators_with_tlemmas
+            for enum in enumerator2steps.keys()
         )
-        .min()
-        .min_horizontal()
+        .max()
+        .max_horizontal()
         .first()
     )
 
-    tot: int = sum((
-        len(enumerators_wout_tlemmas) * len(enumerators_with_tlemmas),
-        math.comb(len(enumerators_with_tlemmas), 2),
-    ))
+    tot: int = math.comb(len(enumerator2steps), 2)
     nrows: int = 3
     ncols: int = math.ceil(tot / nrows)
     fig, axs = plt.subplots(nrows, ncols, figsize=(6 * ncols, 6 * nrows))
@@ -107,187 +96,89 @@ def plot(
     iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
 
     ax: plt.Axes
-    for (enum_x, enum_y), ax in zip(
-            it.product(enumerators_wout_tlemmas, enumerators_with_tlemmas),
+    for ((enum_x, steps_x), (enum_y, steps_y)), ax in zip(
+            it.combinations(enumerator2steps.items(), 2),
             iter4axs,
     ):
-        both: pl.DataFrame = (
-            df.filter(
-                pl.col(f'{column}_{enum_x}').is_not_null() & pl.col(f'{column}_{enum_y}').is_not_null()
-            )
-        )
-
-        tout: pl.DataFrame = (
-            df.filter(
-                pl.col(f'{column}_{enum_x}').is_null() | pl.col(f'{column}_{enum_y}').is_null()
-            )
-        )
+        limits_x: list[float] = list(it.accumulate(steps_x, lambda acc, _: acc * padding, initial=maximum * padding))
+        limits_y: list[float] = list(it.accumulate(steps_y, lambda acc, _: acc * padding, initial=maximum * padding))
 
         ax.set_xscale('log')
         ax.set_yscale('log')
 
-        ax.set_xlim(minimum, padding * limit_enum)
-        ax.set_ylim(minimum, padding * limit_tlemmas_comp_enum)
+        ax.set_xlim(minimum, limits_x[-1])
+        ax.set_ylim(minimum, limits_y[-1])
 
-        ax.axvline(x=limit_enum, color='darkgrey', linestyle='--')
-        ax.axhline(y=limit_tlemmas, color='darkgrey', linestyle='--')
-        ax.axhline(y=limit_tlemmas_comp, color='darkgrey', linestyle='--')
-        ax.axhline(y=limit_tlemmas_comp_enum, color='darkgrey', linestyle='--')
+        for step, limit in zip(steps_x, limits_x):
+            ax.axvline(x=limit, color='darkgrey', linestyle='--')
+            ax.text(
+                x=limit,
+                y=minimum,
+                s=step,
+                bbox=dict(boxstyle="square", fc=('white', .6), ls=''),
+                rotation=90,
+                rotation_mode='anchor',
+                transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
+                va='top',
+            )
+
+        for step, limit in zip(steps_y, limits_y):
+            ax.axhline(y=limit, color='darkgrey', linestyle='--')
+            ax.text(
+                x=minimum,
+                y=limit,
+                s=step,
+                bbox=dict(boxstyle="square", fc=('white', .6), ls=''),
+                transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
+                va='bottom',
+            )
 
         ax.plot(
-            (minimum, padding * limit_tlemmas_comp_enum),
-            (minimum, padding * limit_tlemmas_comp_enum),
+            (minimum, max(*limits_x, *limits_y)),
+            (minimum, max(*limits_x, *limits_y)),
             color='darkgrey',
             linestyle=':',
             linewidth=1,
         )
 
+        data: pl.DataFrame = (
+            df.select(
+                pl.col(f'{column}_{enum_x}'),
+                pl.col(f'{column}_{enum_y}'),
+                *[
+                    pl.col(f'stderr_{step}').fill_null('').str.contains('timeout').alias(f'tout_{step}')
+                    for step in set(steps_x + steps_y)
+                ],
+            )
+        )
+
+        rm = np.zeros(len(df), dtype=np.bool)
+
+        xs = data.get_column(f'{column}_{enum_x}').to_numpy(writable=True)
+        for step, limit in zip(steps_x, limits_x):
+            mask = data.get_column(f'tout_{step}').to_numpy()
+            rm |= mask
+            xs[mask] = limit
+
+        ys = data.get_column(f'{column}_{enum_y}').to_numpy(writable=True)
+        for step, limit in zip(steps_y, limits_y):
+            mask = data.get_column(f'tout_{step}').to_numpy()
+            rm |= mask
+            ys[mask] = limit
+
         ax.scatter(
-            x=both.select_seq(pl.col(f'{column}_{enum_x}')),
-            y=both.select_seq(pl.col(f'{column}_{enum_y}')),
+            x=xs[~rm],
+            y=ys[~rm],
             color='C0',
             alpha=.5,
         )
 
-        tout_tlemmas: pl.DataFrame = tout.filter(pl.col('stderr_tlemmas').is_not_null())
-        tout_enum: pl.DataFrame = tout.filter(pl.col(f'stderr_{enum_y}').is_not_null())
-        tout_comp: pl.DataFrame = tout.filter(
-            pl.col('stderr_tlemmas').is_null(),
-            pl.col(f'stderr_{enum_y}').is_null(),
-        )
-
         ax.scatter(
-            x=tout_tlemmas.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_enum)),
-            y=tout_tlemmas.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas)),
-            marker='x',
-            color='C1',
-            alpha=.5,
-        )
-
-        ax.scatter(
-            x=tout_comp.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_enum)),
-            y=tout_comp.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_comp)),
-            marker='x',
-            color='C2',
-            alpha=.5,
-        )
-
-        ax.scatter(
-            x=tout_enum.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_enum)),
-            y=tout_enum.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_comp_enum)),
-            marker='x',
-            color='C3',
-            alpha=.5,
-        )
-
-        ax.set_xlabel(enum_x)
-        ax.set_ylabel(enum_y)
-        ax.set_aspect('equal')
-
-    for (enum_x, enum_y), ax in zip(
-            it.combinations(enumerators_with_tlemmas, 2),
-            iter4axs
-    ):
-        both: pl.DataFrame = (
-            df.filter(
-                pl.col(f'{column}_{enum_x}').is_not_null() & pl.col(f'{column}_{enum_y}').is_not_null()
-            )
-        )
-
-        tout: pl.DataFrame = (
-            df.filter(
-                pl.col(f'{column}_{enum_x}').is_null() | pl.col(f'{column}_{enum_y}').is_null()
-            )
-        )
-
-        ax.set_xscale('log')
-        ax.set_yscale('log')
-
-        ax.set_xlim(minimum, padding * limit_tlemmas_comp_enum)
-        ax.set_ylim(minimum, padding * limit_tlemmas_comp_enum)
-
-        ax.axvline(x=limit_tlemmas, color='darkgrey', linestyle='--')
-        ax.axvline(x=limit_tlemmas_comp, color='darkgrey', linestyle='--')
-        ax.axvline(x=limit_tlemmas_comp_enum, color='darkgrey', linestyle='--')
-        ax.axhline(y=limit_tlemmas, color='darkgrey', linestyle='--')
-        ax.axhline(y=limit_tlemmas_comp, color='darkgrey', linestyle='--')
-        ax.axhline(y=limit_tlemmas_comp_enum, color='darkgrey', linestyle='--')
-
-        ax.plot(
-            (minimum, padding * limit_tlemmas_comp_enum),
-            (minimum, padding * limit_tlemmas_comp_enum),
-            color='darkgrey',
-            linestyle=':',
-            linewidth=1,
-        )
-
-        ax.scatter(
-            x=both.select_seq(pl.col(f'{column}_{enum_x}')),
-            y=both.select_seq(pl.col(f'{column}_{enum_y}')),
+            x=xs[rm],
+            y=ys[rm],
             color='C0',
             alpha=.5,
-        )
-
-        tout_tlemmas: pl.DataFrame = tout.filter(pl.col('stderr_tlemmas').is_not_null())
-        tout_only_x: pl.DataFrame = tout.filter(
-            pl.col('stderr_tlemmas').is_null(),
-            pl.col(f'stderr_{enum_x}').is_not_null(),
-            pl.col(f'stderr_{enum_y}').is_null(),
-        )
-        tout_only_y: pl.DataFrame = tout.filter(
-            pl.col('stderr_tlemmas').is_null(),
-            pl.col(f'stderr_{enum_x}').is_null(),
-            pl.col(f'stderr_{enum_y}').is_not_null(),
-        )
-        tout_both: pl.DataFrame = tout.filter(
-            pl.col('stderr_tlemmas').is_null(),
-            pl.col(f'stderr_{enum_x}').is_not_null(),
-            pl.col(f'stderr_{enum_y}').is_not_null(),
-        )
-        tout_comp: pl.DataFrame = tout.filter(
-            pl.col('stderr_tlemmas').is_null(),
-            pl.col(f'stderr_{enum_x}').is_null(),
-            pl.col(f'stderr_{enum_y}').is_null(),
-        )
-
-        ax.scatter(
-            x=tout_tlemmas.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_tlemmas)),
-            y=tout_tlemmas.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas)),
-            marker='x',
-            color='C1',
-            alpha=.5,
-        )
-
-        ax.scatter(
-            x=tout_comp.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_tlemmas_comp)),
-            y=tout_comp.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_comp)),
-            marker='x',
-            color='C2',
-            alpha=.5,
-        )
-
-        ax.scatter(
-            x=tout_only_x.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_tlemmas_comp_enum)),
-            y=tout_only_x.select_seq(pl.col(f'{column}_{enum_y}')),
-            marker='x',
-            color='C3',
-            alpha=.5,
-        )
-
-        ax.scatter(
-            x=tout_only_y.select_seq(pl.col(f'{column}_{enum_x}')),
-            y=tout_only_y.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_comp_enum)),
-            marker='x',
-            color='C3',
-            alpha=.5,
-        )
-
-        ax.scatter(
-            x=tout_both.select_seq(pl.col(f'{column}_{enum_x}').fill_null(limit_tlemmas_comp_enum)),
-            y=tout_both.select_seq(pl.col(f'{column}_{enum_y}').fill_null(limit_tlemmas_comp_enum)),
-            marker='x',
-            color='C3',
-            alpha=.5,
+            marker='x'
         )
 
         ax.set_xlabel(enum_x)
@@ -295,6 +186,131 @@ def plot(
         ax.set_aspect('equal')
 
     fig.suptitle(column)
+    return fig
+
+
+def plot_time(
+        df: pl.DataFrame,
+        timeout: Timeout,
+) -> plt.Figure:
+    padding: float = 2
+    minimum: float = (
+            df.select(
+                pl.col(f's_{enum}')
+                for enum in enumerator2steps.keys()
+            )
+            .min()
+            .min_horizontal()
+            .first()
+            / padding
+    )
+
+    tot: int = math.comb(len(enumerator2steps), 2)
+    nrows: int = 3
+    ncols: int = math.ceil(tot / nrows)
+    fig, axs = plt.subplots(nrows, ncols, figsize=(6 * ncols, 6 * nrows))
+
+    iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
+
+    ax: plt.Axes
+    for ((enum_x, steps_x), (enum_y, steps_y)), ax in zip(
+            it.combinations(enumerator2steps.items(), 2),
+            iter4axs,
+    ):
+
+        limits_x: list[float] = list(it.accumulate([from_step(timeout, step).total_seconds() for step in steps_x]))
+        limits_x.append(padding * limits_x[-1])
+        limits_y: list[float] = list(it.accumulate([from_step(timeout, step).total_seconds() for step in steps_y]))
+        limits_y.append(padding * limits_y[-1])
+
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+
+        ax.set_xlim(minimum, limits_x[-1])
+        ax.set_ylim(minimum, limits_y[-1])
+
+        for step, limit in zip(steps_x, limits_x):
+            ax.axvline(x=limit, color='darkgrey', linestyle='--')
+            ax.text(
+                x=limit,
+                y=minimum,
+                s=step,
+                bbox=dict(boxstyle="square", fc=('white', .6), ls=''),
+                rotation=90,
+                rotation_mode='anchor',
+                transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
+                va='top',
+            )
+
+        for step, limit in zip(steps_y, limits_y):
+            ax.axhline(y=limit, color='darkgrey', linestyle='--')
+            ax.text(
+                x=minimum,
+                y=limit,
+                s=step,
+                bbox=dict(boxstyle="square", fc=('white', .6), ls=''),
+                transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
+                va='bottom',
+            )
+
+        ax.plot(
+            (minimum, max(*limits_x, *limits_y)),
+            (minimum, max(*limits_x, *limits_y)),
+            color='darkgrey',
+            linestyle=':',
+            linewidth=1,
+        )
+
+        data: pl.DataFrame = (
+            df.select(
+                *[
+                    pl.col(f's_{step}')
+                    for step in set(steps_x + steps_y)
+                ],
+                *[
+                    pl.col(f'stderr_{step}').fill_null('').str.contains('timeout').alias(f'tout_{step}')
+                    for step in set(steps_x + steps_y)
+                ],
+            ).with_columns(**{
+                enum_x: pl.sum_horizontal(pl.col(f's_{step}') for step in steps_x),
+                enum_y: pl.sum_horizontal(pl.col(f's_{step}') for step in steps_x),
+            })
+        )
+
+        rm = np.zeros(len(df), dtype=np.bool)
+
+        xs = data.get_column(enum_x).to_numpy(writable=True)
+        for step, limit in zip(steps_x, limits_x):
+            mask = data.get_column(f'tout_{step}').to_numpy()
+            rm |= mask
+            xs[mask] = limit
+
+        ys = data.get_column(enum_y).to_numpy(writable=True)
+        for step, limit in zip(steps_y, limits_y):
+            mask = data.get_column(f'tout_{step}').to_numpy()
+            rm |= mask
+            ys[mask] = limit
+
+        ax.scatter(
+            x=xs[~rm],
+            y=ys[~rm],
+            color='C0',
+            alpha=.5,
+        )
+
+        ax.scatter(
+            x=xs[rm],
+            y=ys[rm],
+            color='C0',
+            alpha=.5,
+            marker='x'
+        )
+
+        ax.set_xlabel(enum_x)
+        ax.set_ylabel(enum_y)
+        ax.set_aspect('equal')
+
+    fig.suptitle('time')
     return fig
 
 
@@ -578,19 +594,18 @@ def main() -> None:
 
     fig: plt.Figure
     match args.type:
-        case 'time':
-            fig = plot(df, args.column, Timeout(
-                enumerator=timedelta(minutes=args.timeout_enumerator),
-                compilator=timedelta(minutes=args.timeout_compilator),
-                tlemmas=timedelta(minutes=args.timeout_tlemmas),
-            ))
-
         case 'steps':
             fig = foreach_step(df, args.column)
 
         case _:
-
             match args.column:
+                case 'time':
+                    fig = plot_time(df, Timeout(
+                        enumerator=timedelta(minutes=args.timeout_enumerator),
+                        compilator=timedelta(minutes=args.timeout_compilator),
+                        tlemmas=timedelta(minutes=args.timeout_tlemmas),
+                    ))
+
                 case 'models to npolys':
                     fig = models_to_npolys(df)
 
