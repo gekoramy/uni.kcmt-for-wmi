@@ -489,6 +489,72 @@ def survival(
     return fig
 
 
+def foreach_step(
+        df: pl.DataFrame,
+        column: str,
+) -> plt.Figure:
+    tot: int = len(enumerator2steps)
+    nrows: int = 2
+    ncols: int = math.ceil(tot / nrows)
+    fig, axs = plt.subplots(
+        nrows,
+        ncols,
+        figsize=(6 * ncols, 12 * nrows),
+        sharey=True,
+        sharex=True,
+    )
+
+    iter4axs: typing.Iterable[plt.Axes] = iter(it.chain(*axs))
+    ax: plt.Axes
+    height: float = 1 / (2 + max(map(len, enumerator2steps.values())))
+
+    for ax, (enumerator, steps) in zip(iter4axs, enumerator2steps.items()):
+        ax.invert_yaxis()
+        ax.grid(True, 'both', axis='x')
+        ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
+        ax.set_axisbelow(True)
+        ax.tick_params(
+            axis='x',
+            which='both',
+            bottom=True,
+            top=True,
+            labelbottom=True,
+            labeltop=True,
+        )
+
+        data: pl.DataFrame = df.select(
+            *[
+                pl.col(f'{column}_{step}')
+                for step in steps
+            ],
+            *[
+                pl.col(f'stderr_{step}').fill_null('').str.contains('timeout').alias(f'tout_{step}')
+                for step in steps
+            ],
+        )
+
+        ys: np.ndarray[tuple[int], np.dtype[np.int32]] = np.arange(len(data), dtype=np.int32) + 1
+        for i, step in enumerate(steps):
+            offset = height * i
+
+            mask: np.ndarray[tuple[int], np.dtype[np.bool]] = data.get_column(f'tout_{step}').to_numpy()
+            xs: np.ndarray[tuple[int], np.dtype[np.float64]] = data.get_column(f'{column}_{step}').to_numpy()
+
+            ax.hlines(y=ys[~mask] + offset, xmin=0, xmax=xs[~mask], colors=f'C{i}', linestyles='-', label=step)
+            ax.hlines(y=ys[mask] + offset, xmin=0, xmax=xs[mask], colors=f'C{i}', linestyles='--')
+
+            ax.scatter(y=ys[~mask] + offset, x=xs[~mask], marker='|', c=f'C{i}')
+            ax.scatter(y=ys[mask] + offset, x=xs[mask], marker='x', c=f'C{i}')
+
+        ax.legend(loc='upper right', ncols=1)
+        ax.set_xscale('log')
+
+    fig.suptitle(column)
+    fig.tight_layout()
+    return fig
+
+
 def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument('--csv', type=utils.file, required=True)
@@ -509,7 +575,7 @@ def main() -> None:
             for steps in enumerator2steps.values()
             for step in steps
         },
-    )
+    ).sort(by=pl.col('density'))
 
     fig: plt.Figure
     match args.type:
@@ -519,6 +585,9 @@ def main() -> None:
                 compilator=timedelta(minutes=args.timeout_compilator),
                 tlemmas=timedelta(minutes=args.timeout_tlemmas),
             ))
+
+        case 'steps':
+            fig = foreach_step(df, args.column)
 
         case _:
 

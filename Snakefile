@@ -55,6 +55,10 @@ rule all:
         expand("assets/plots/{column}.int.{suffix}",
             column=["npolys", "models to npolys", "survival"],
             suffix=["pdf", "png"]
+        ),
+        expand("assets/plots/{column}.steps.{suffix}",
+           column=["s", "max_rss"],
+           suffix=["pdf", "png"]
         )
 
 
