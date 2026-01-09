@@ -92,7 +92,7 @@ def plot(
     tot: int = math.comb(len(enumerator2steps), 2)
     nrows: int = 3
     ncols: int = math.ceil(tot / nrows)
-    fig, axs = plt.subplots(nrows, ncols, figsize=(6 * ncols, 6 * nrows))
+    fig, axs = plt.subplots(nrows, ncols, figsize=(8 * ncols, 8 * nrows))
 
     iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
 
@@ -209,7 +209,7 @@ def plot_time(
     tot: int = math.comb(len(enumerator2steps), 2)
     nrows: int = 3
     ncols: int = math.ceil(tot / nrows)
-    fig, axs = plt.subplots(nrows, ncols, figsize=(6 * ncols, 6 * nrows))
+    fig, axs = plt.subplots(nrows, ncols, figsize=(8 * ncols, 8 * nrows))
 
     iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
 
@@ -350,7 +350,7 @@ def models_to_npolys(
     tot: int = math.comb(len(subset), 2)
     nrows: int = 3
     ncols: int = math.ceil(tot / nrows)
-    fig, axs = plt.subplots(nrows, ncols, figsize=(6 * ncols, 6 * nrows))
+    fig, axs = plt.subplots(nrows, ncols, figsize=(8 * ncols, 8 * nrows))
 
     iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
 
@@ -483,7 +483,7 @@ def survival(
         nrows,
         ncols,
         width_ratios=[1 + len(steps) for steps in enumerator2steps.values()],
-        figsize=(6 * ncols, 6 * nrows),
+        figsize=(8 * ncols, 8 * nrows),
         sharey=True,
     )
 
@@ -553,7 +553,7 @@ def foreach_step(
     fig, axs = plt.subplots(
         nrows,
         ncols,
-        figsize=(6 * ncols, 12 * nrows),
+        figsize=(8 * ncols, 16 * nrows),
         sharey=True,
         sharex=True,
     )
