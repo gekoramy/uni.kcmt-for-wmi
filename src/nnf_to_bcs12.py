@@ -52,10 +52,10 @@ def nnf2bcs12(file: t.Iterator[str], project: list[int] | None) -> list[str]:
                 gates.append(gate(('A', [])))
 
             case 't':
-                gates.append(gate(('O', [1, -1])))
+                gates.append(gate(('O', [])))
 
             case 'f':
-                gates.append(gate(('A', [1, -1])))
+                gates.append(gate(('A', [])))
 
             case _:
                 ls: list[int]
@@ -81,7 +81,10 @@ def nnf2bcs12(file: t.Iterator[str], project: list[int] | None) -> list[str]:
     )
 
     for i, (op, ts) in enumerate(gates[1:], 1):
-        lines.append(f'G g{i} := {op} {' '.join(f't{tm}' for tm in ts)}')
+        if ts:
+            lines.append(f'G g{i} := {op} {' '.join(f't{tm}' for tm in ts)}')
+        else:
+            lines.append(f'G g{i} := {op} 1 -1')
 
     for i, (op, (head, *tail)) in enumerate(subs):
         lines.append(f'G t{i} := {op} g{head} {' '.join(map(str, tail))}')
