@@ -312,7 +312,7 @@ rule bcs12_projected:
     output:
         bcs12="assets/tddnnf_exists_{qo,[xA]}/d4/{type}/{density}.bc"
     params:
-        script="src.exists"
+        script="src.tddnnf.exists"
     shell:
         """
         if [[ -s {input.bcs12:q} ]]; then
@@ -422,7 +422,7 @@ rule compile_tddnnf_projected_with_sdd:
     benchmark:
         "assets/benchmarks/tddnnf_exists_{qo,[xA]}/sdd/{type}/{density}.jsonl"
     params:
-        script="src.exists"
+        script="src.tddnnf.exists"
     shell:
         """
         if [[ -s {input.sdd:q} ]]; then
