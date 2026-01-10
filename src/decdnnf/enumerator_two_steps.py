@@ -13,9 +13,9 @@ from pysmt.fnode import FNode
 from src import condition
 from src import minimize_nnf
 from src import sdd_to_nnf
-from src import tddnnf
 from src import utils
 from src.decdnnf import decdnnf
+from src.tddnnf import tlemmas
 
 
 @dataclass(frozen=True)
@@ -40,7 +40,7 @@ def enum(
         args: Arguments,
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with utils.log('two steps'):
-        mapping: dict[int, FNode] = tddnnf.mapping(env, args.mapping)
+        mapping: dict[int, FNode] = tlemmas.read_mapping(env, args.mapping)
 
         with open(args.models_projected, 'rt') as f:
             mus_projected: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
@@ -55,7 +55,7 @@ def enum(
             )
 
         yield from (
-            tddnnf.convert(mapping, model)
+            tlemmas.convert(mapping, model)
             for model in it.chain(*models)
         )
 
@@ -65,7 +65,7 @@ def enum_with_sdd(
         args: ArgumentsWithSDD,
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with utils.log('two steps'):
-        mapping: dict[int, FNode] = tddnnf.mapping(env, args.mapping)
+        mapping: dict[int, FNode] = tlemmas.read_mapping(env, args.mapping)
 
         with open(args.models_projected, 'rt') as f:
             mus_projected: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
@@ -81,7 +81,7 @@ def enum_with_sdd(
             )
 
         yield from (
-            tddnnf.convert(mapping, model)
+            tlemmas.convert(mapping, model)
             for model in it.chain(*models)
         )
 

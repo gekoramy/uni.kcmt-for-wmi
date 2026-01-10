@@ -100,11 +100,11 @@ rule aggregate_density:
             "assets/benchmarks/tlemmas/{type}/{density}.jsonl"
         ],
         tddnnf_d4=[
-            *["assets/tddnnf/d4/{type}/{density}." + suffix for suffix in ["err", "steps"]],
+            *["assets/tddnnf/d4/{type}/{density}." + suffix for suffix in ["err"]],
             "assets/benchmarks/tddnnf/d4/{type}/{density}.jsonl"
         ],
         tddnnf_sdd=[
-            *["assets/tddnnf/sdd/{type}/{density}." + suffix for suffix in ["err", "steps"]],
+            *["assets/tddnnf/sdd/{type}/{density}." + suffix for suffix in ["err"]],
             "assets/benchmarks/tddnnf/sdd/{type}/{density}.jsonl"
         ],
         tddnnf_exists_x_d4=[
@@ -257,12 +257,14 @@ rule compute_tlemmas:
     input:
         "assets/densities/{type}/{density}.json"
     output:
-        tlemmas="assets/tlemmas/{type}/{density}.smt2"
+        tlemmas="assets/tlemmas/{type}/{density}.smt2",
+        mapping="assets/tlemmas/{type}/{density}.mapping",
+        phi_n_tlemmas="assets/tlemmas/{type}/{density}.phi_n_tlemmas.smt2"
     log:
         steps="assets/tlemmas/{type}/{density}.steps",
         err="assets/tlemmas/{type}/{density}.err"
     params:
-        script="src.tlemmas"
+        script="src.tddnnf.tlemmas"
     benchmark:
         "assets/benchmarks/tlemmas/{type}/{density}.jsonl"
     shell:
@@ -271,10 +273,34 @@ rule compute_tlemmas:
           python -m {params.script} \
           --density {input} \
           --tlemmas {output.tlemmas} \
+          --mapping {output.mapping} \
+          --phi_n_tlemmas {output.phi_n_tlemmas} \
           --steps {log.steps} \
           --cores {threads} \
           2> {log.err} \
           || touch {output}
+        """
+
+
+rule smtlib_to_bcs12:
+    threads: 1
+    input:
+        phi_n_tlemmas="assets/tlemmas/{type}/{density}.phi_n_tlemmas.smt2",
+        mapping="assets/tlemmas/{type}/{density}.mapping",
+    output:
+        bcs12="assets/tddnnf/d4/{type}/{density}.bc"
+    params:
+        script="src.tddnnf.smtlib_to_bcs12"
+    shell:
+        """
+        if [[ -s {input.phi_n_tlemmas:q} ]]; then
+          python -m {params.script} \
+            --smtlib {input.phi_n_tlemmas} \
+            --mapping {input.mapping} \
+            --bcs12 {output.bcs12}
+        fi
+
+        touch {output}
         """
 
 
@@ -283,30 +309,22 @@ rule compile_tddnnf_with_d4:
     resources:
         mem="20GB"
     input:
-        density="assets/densities/{type}/{density}.json",
-        tlemmas="assets/tlemmas/{type}/{density}.smt2"
+        bcs12="assets/tddnnf/d4/{type}/{density}.bc"
     output:
-        mapping="assets/tddnnf/d4/{type}/{density}.json",
-        nnf="assets/tddnnf/d4/{type}/{density}.nnf"
+        nnf="assets/tddnnf/d4/{type}/{density}.to-fix-nnf"
     log:
-        steps="assets/tddnnf/d4/{type}/{density}.steps",
         err="assets/tddnnf/d4/{type}/{density}.err"
     benchmark:
         "assets/benchmarks/tddnnf/d4/{type}/{density}.jsonl"
-    params:
-        script="src.tddnnf"
     shell:
         """
-        if [[ -s {input.tlemmas:q} ]]; then
+        if [[ -s {input.bcs12:q} ]]; then
           timeout --verbose {config[timeout][compilator]}m \
-            python -m {params.script} \
-            --cores {threads} \
-            --density {input.density} \
-            --tlemmas {input.tlemmas} \
-            --steps {log.steps} \
-            --mapping {output.mapping} \
             d4 \
-            --nnf {output.nnf} \
+            --input {input.bcs12} \
+            --input-type circuit \
+            --remove-gates 1 \
+            --dump-file {output.nnf} \
             2> {log.err} \
             || touch {output}
         fi
@@ -315,12 +333,26 @@ rule compile_tddnnf_with_d4:
         """
 
 
+rule fix_nnf:
+    threads: 1
+    input:
+        "assets/{nnf}.to-fix-nnf"
+    output:
+        "assets/{nnf}.nnf"
+    params:
+        "src.tddnnf.fix_nnf"
+    shell:
+        """
+        python -m {params} --nnf {input} {output}
+        """
+
+
 rule compile_tddnnf_projected_with_d4:
     threads: 1
     resources:
         mem="20GB"
     input:
-        mapping="assets/tddnnf/d4/{type}/{density}.json",
+        mapping="assets/tlemmas/{type}/{density}.mapping",
         nnf="assets/tddnnf/d4/{type}/{density}.min-nnf"
     output:
         nnf="assets/tddnnf_exists_{qo,[xA]}/d4/{type}/{density}.nnf"
@@ -355,30 +387,24 @@ rule compile_tddnnf_with_sdd:
     resources:
         mem="60GB"
     input:
-        density="assets/densities/{type}/{density}.json",
-        tlemmas="assets/tlemmas/{type}/{density}.smt2"
+        phi_n_tlemmas="assets/tlemmas/{type}/{density}.phi_n_tlemmas.smt2",
+        mapping="assets/tlemmas/{type}/{density}.mapping",
     output:
-        mapping="assets/tddnnf/sdd/{type}/{density}.json",
         sdd="assets/tddnnf/sdd/{type}/{density}.sdd",
         vtree="assets/tddnnf/sdd/{type}/{density}.vtree"
     log:
-        steps="assets/tddnnf/sdd/{type}/{density}.steps",
         err="assets/tddnnf/sdd/{type}/{density}.err"
     benchmark:
         "assets/benchmarks/tddnnf/sdd/{type}/{density}.jsonl"
     params:
-        script="src.tddnnf"
+        script="src.tddnnf.smtlib_to_sdd"
     shell:
         """
-        if [[ -s {input.tlemmas:q} ]]; then
+        if [[ -s {input.phi_n_tlemmas:q} ]]; then
           timeout --verbose {config[timeout][compilator]}m \
             python -m {params.script} \
-            --cores {threads} \
-            --density {input.density} \
-            --tlemmas {input.tlemmas} \
-            --steps {log.steps} \
-            --mapping {output.mapping} \
-            sdd \
+            --smtlib {input.phi_n_tlemmas} \
+            --mapping {input.mapping} \
             --sdd {output.sdd} \
             --vtree {output.vtree} \
             2> {log.err} \
@@ -394,7 +420,7 @@ rule compile_tddnnf_projected_with_sdd:
     resources:
         mem="60GB"
     input:
-        mapping="assets/tddnnf/sdd/{type}/{density}.json",
+        mapping="assets/tlemmas/{type}/{density}.mapping",
         sdd="assets/tddnnf/sdd/{type}/{density}.min-sdd",
         vtree="assets/tddnnf/sdd/{type}/{density}.min-vtree"
     output:
@@ -554,7 +580,7 @@ rule compute_wmi_with_decdnnf_baseline:
     input:
         density="assets/densities/{type}/{density}.json",
         models="assets/decdnnf/tddnnf/{compiler}/{type}/{density}.models",
-        mapping="assets/tddnnf/{compiler}/{type}/{density}.json"
+        mapping="assets/tlemmas/{type}/{density}.mapping"
     output:
         wmi="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.out"
     log:
@@ -592,7 +618,7 @@ rule compute_wmi_with_decdnnf_two_steps_sdd:
     input:
         density="assets/densities/{type}/{density}.json",
         models_projected="assets/decdnnf/tddnnf_exists_{qo}/sdd/{type}/{density}.models",
-        mapping="assets/tddnnf/sdd/{type}/{density}.json",
+        mapping="assets/tlemmas/{type}/{density}.mapping",
         vtree="assets/tddnnf/sdd/{type}/{density}.min-vtree",
         sdd="assets/tddnnf/sdd/{type}/{density}.min-sdd"
     output:
@@ -635,7 +661,7 @@ rule compute_wmi_with_decdnnf_two_steps_d4:
     input:
         density="assets/densities/{type}/{density}.json",
         models_projected="assets/decdnnf/tddnnf_exists_{qo}/d4/{type}/{density}.models",
-        mapping="assets/tddnnf/d4/{type}/{density}.json",
+        mapping="assets/tlemmas/{type}/{density}.mapping",
         nnf="assets/tddnnf/d4/{type}/{density}.min-nnf",
     output:
         wmi="assets/wmi/decdnnf_two_steps/exists_{qo}/d4/{int,noop|latte}/{type}/{density}.out"

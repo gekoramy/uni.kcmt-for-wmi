@@ -15,8 +15,8 @@ from pysmt.environment import Environment
 from pysmt.fnode import FNode
 
 from src import nnf_to_bcs12
-from src import tddnnf
 from src import utils
+from src.tddnnf import tlemmas
 
 
 @dataclass(frozen=True)
@@ -145,7 +145,7 @@ def main() -> None:
     with utils.log('total'):
 
         env: Environment = pysmt.environment.get_env()
-        mapping: dict[int, FNode] = tddnnf.mapping(env=env, mapping=args.mapping)
+        mapping: dict[int, FNode] = tlemmas.read_mapping(env=env, mapping=args.mapping)
 
         to_project_onto: typing.Callable[[FNode], bool]
         match args.quantify_out:

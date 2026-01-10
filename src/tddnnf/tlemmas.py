@@ -1,0 +1,129 @@
+import argparse
+import json
+import typing as t
+from abc import abstractmethod
+from io import StringIO
+from pathlib import Path
+
+import pysmt.operators as op
+import pysmt.shortcuts as smt
+from pysmt.environment import Environment, get_env
+from pysmt.fnode import FNode
+from pysmt.shortcuts import write_smtlib
+from pysmt.smtlib.parser import SmtLibParser
+from pysmt.smtlib.script import smtlibscript_from_formula
+from pysmt.walkers import IdentityDagWalker, handles
+from theorydd.solvers.mathsat_partial_extended import MathSATExtendedPartialEnumerator
+from wmpy.cli.density import Density
+
+from src import utils
+
+
+def read_mapping(
+        env: Environment,
+        mapping: Path
+) -> dict[int, FNode]:
+    with utils.log('parsing abstraction'), open(mapping, 'rt') as f:
+        parser: SmtLibParser = SmtLibParser(environment=env)
+
+        return {
+            k: parser.get_script(StringIO(json.loads(line))).get_last_formula()
+            for k, line in enumerate(f, 1)
+        }
+
+
+def convert(
+        mapping: dict[int, FNode],
+        mu: dict[bool, list[int]],
+) -> dict[bool, list[FNode]]:
+    return {
+        boolean: [mapping[l] for l in literals]
+        for boolean, literals in mu.items()
+    }
+
+
+class Converter[A, B](t.Protocol):
+
+    @abstractmethod
+    def convert(self, a: A) -> B:
+        raise NotImplementedError
+
+    @abstractmethod
+    def back(self, b: B) -> A:
+        raise NotImplementedError
+
+
+class NormalizeWalker[T](IdentityDagWalker):
+
+    def __init__(self, converter: Converter[T, FNode], env: Environment, invalidate_memoization=None):
+        super().__init__(env, invalidate_memoization)
+        self.converter: Converter[T, FNode] = converter
+
+    @handles(
+        *op.THEORY_OPERATORS,
+        *op.BV_RELATIONS,
+        *op.IRA_RELATIONS,
+        *op.STR_RELATIONS,
+        op.REAL_CONSTANT,
+        op.BV_CONSTANT,
+        op.INT_CONSTANT,
+        op.FUNCTION,
+        op.EQUALS,
+        op.SYMBOL,
+    )
+    def normalize(self, formula: FNode, args, **kwargs) -> FNode:
+        term: T = self.converter.convert(formula)
+        return self.converter.back(term)
+
+
+def main() -> None:
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
+    parser.add_argument('--steps', type=Path, required=True)
+    parser.add_argument('--density', type=utils.file, required=True)
+    parser.add_argument('--tlemmas', type=Path, required=True)
+    parser.add_argument('--mapping', type=Path, required=True)
+    parser.add_argument('--phi_n_tlemmas', type=Path, required=True)
+    parser.add_argument('--cores', type=int, required=True)
+    args: argparse.Namespace = parser.parse_args()
+
+    utils.setup(args.steps)
+
+    environment: Environment = get_env()
+    density: Density = utils.read_density(args.density)
+    phi: FNode = smt.And(density.support, smt.Bool(True))
+
+    with utils.log('extract tlemmas'), utils.computations() as computations:
+        smt_solver: MathSATExtendedPartialEnumerator = MathSATExtendedPartialEnumerator(
+            computation_logger=computations,
+            parallel_procs=args.cores,
+        )
+
+        sat: bool = smt_solver.check_all_sat(phi=phi)
+        tlemmas: list[FNode] = smt_solver.get_theory_lemmas()
+
+    with utils.log('writing tlemmas'):
+        write_smtlib(
+            smt.And(tlemmas),
+            args.tlemmas
+        )
+
+    with utils.log('normalizing'):
+        walker: IdentityDagWalker = NormalizeWalker(
+            converter=smt_solver.get_converter(),
+            env=environment,
+        )
+        phi_and_tlemmas: FNode = walker.walk(smt.And(phi, *tlemmas)) if sat else smt.FALSE()
+
+    with utils.log('writing phi and tlemmas'), open(args.phi_n_tlemmas, 'wt') as f:
+        smtlibscript_from_formula(phi_and_tlemmas).serialize(f)
+
+    with utils.log('writing mapping'), open(args.mapping, 'wt') as f:
+        for atom in phi_and_tlemmas.get_atoms():
+            tmp: StringIO = StringIO()
+            smtlibscript_from_formula(atom).serialize(tmp)
+            json.dump(tmp.getvalue(), f)
+            f.write('\n')
+
+
+if __name__ == '__main__':
+    main()
