@@ -1,11 +1,8 @@
 import argparse
 import shutil
-import subprocess
-import tempfile
 import typing
 from dataclasses import dataclass
 from pathlib import Path
-from subprocess import CompletedProcess
 
 import pysmt.environment
 import pysmt.shortcuts as smt
@@ -14,7 +11,6 @@ from pysdd.sdd import SddManager, Vtree, SddNode
 from pysmt.environment import Environment
 from pysmt.fnode import FNode
 
-from src import nnf_to_bcs12
 from src import utils
 from src.tddnnf import tlemmas
 
@@ -30,72 +26,35 @@ class ArgumentsWithSDD:
 
 
 @dataclass(frozen=True)
-class ArgumentsWithD4:
+class ArgumentsWithBCS12:
     mapping: dict[int, FNode]
     project_onto: list[int]
-    nnf: Path
-    projected_nnf: Path
+    bcs12: Path
+    projected_bcs12: Path
 
 
-def d4(args: ArgumentsWithD4):
+def bcs12(args: ArgumentsWithBCS12):
     match len(args.project_onto):
         case 0:
-            with open(args.projected_nnf, 'wt') as fw:
-                fw.writelines(
-                    part
-                    for line in ['t 1 0']
-                    for part in [line, '\n']
-                )
-
-        case n if n == len(args.mapping):
-            shutil.copyfile(args.nnf, args.projected_nnf)
+            raise NotImplementedError
 
         case _:
-            with tempfile.TemporaryDirectory() as path:
-                folder: Path = Path(path)
+            with utils.log('reading'), open(args.bcs12, 'rt') as f:
+                lines: list[str] = f.readlines()
 
-                projected_bc: Path = folder / 'projected.bc'
-                projected_to_fix: Path = folder / 'projected.nnf'
+            assert 1 == sum(line.startswith('P') for line in lines)
 
-                with utils.log('nnf -> BC-S1.2'):
-                    nnf_to_bcs12.translate(
-                        nnf=args.nnf,
-                        project=args.project_onto,
-                        bcs12=projected_bc,
-                    )
-
-                with utils.log('projecting'):
-                    process: CompletedProcess[str] = subprocess.run(
-                        [
-                            'd4',
-                            '--input', projected_bc,
-                            '--input-type', 'circuit',
-                            '--remove-gates', '1',
-                            '--dump-file', projected_to_fix,
-                        ],
-                        capture_output=True,
-                        text=True,
-                    )
-
-                    assert 0 == process.returncode, '\n'.join((process.stdout, process.stderr))
-
-                with utils.log('fix nnf'), open(projected_to_fix, 'rt') as fr, open(args.projected_nnf, 'wt') as fw:
-                    fw.writelines(
-                        nnf_to_bcs12.fix_nnf(line)
-                        for line in fr
-                    )
+            with utils.log('writing'), open(args.projected_bcs12, 'wt') as f:
+                f.writelines(
+                    f'P {' '.join(map(str, args.project_onto))}\n' if line.startswith('P') else line
+                    for line in lines
+                )
 
 
 def sdd(args: ArgumentsWithSDD):
     match len(args.project_onto):
         case 0:
-            shutil.copyfile(args.vtree, args.projected_vtree)
-            with open(args.projected_sdd, 'wt') as fw:
-                fw.writelines(
-                    part
-                    for line in ['sdd 1', 'T 0']
-                    for part in [line, '\n']
-                )
+            raise NotImplementedError
 
         case n if n == len(args.mapping):
             shutil.copyfile(args.vtree, args.projected_vtree)
@@ -128,9 +87,9 @@ def main() -> None:
         parser.add_argument('--quantify_out', type=str, choices=['x', 'A'], required=True)
 
         with utils.use(parser.add_subparsers(dest='compiler', required=True)) as sub:
-            with utils.use(sub.add_parser('d4')) as subparser:
-                subparser.add_argument('--nnf', type=utils.file, required=True)
-                subparser.add_argument('--projected_nnf', type=Path, required=True)
+            with utils.use(sub.add_parser('bcs12')) as subparser:
+                subparser.add_argument('--bcs12', type=utils.file, required=True)
+                subparser.add_argument('--projected_bcs12', type=Path, required=True)
 
             with utils.use(sub.add_parser('sdd')) as subparser:
                 subparser.add_argument('--vtree', type=utils.file, required=True)
@@ -158,13 +117,13 @@ def main() -> None:
         project_onto: list[int] = [k for k, v in mapping.items() if to_project_onto(v)]
 
         match args.compiler:
-            case 'd4':
-                d4(
-                    ArgumentsWithD4(
+            case 'bcs12':
+                bcs12(
+                    ArgumentsWithBCS12(
                         mapping=mapping,
                         project_onto=project_onto,
-                        nnf=args.nnf,
-                        projected_nnf=args.projected_nnf,
+                        bcs12=args.bcs12,
+                        projected_bcs12=args.projected_bcs12,
                     )
                 )
 

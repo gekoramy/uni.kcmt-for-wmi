@@ -108,7 +108,7 @@ rule aggregate_density:
             "assets/benchmarks/tddnnf/sdd/{type}/{density}.jsonl"
         ],
         tddnnf_exists_x_d4=[
-            *["assets/tddnnf_exists_x/d4/{type}/{density}." + suffix for suffix in ["err", "steps"]],
+            *["assets/tddnnf_exists_x/d4/{type}/{density}." + suffix for suffix in ["err"]],
             "assets/benchmarks/tddnnf_exists_x/d4/{type}/{density}.jsonl"
         ],
         tddnnf_exists_x_sdd=[
@@ -116,7 +116,7 @@ rule aggregate_density:
             "assets/benchmarks/tddnnf_exists_x/sdd/{type}/{density}.jsonl"
         ],
         tddnnf_exists_A_d4=[
-            *["assets/tddnnf_exists_A/d4/{type}/{density}." + suffix for suffix in ["err", "steps"]],
+            *["assets/tddnnf_exists_A/d4/{type}/{density}." + suffix for suffix in ["err"]],
             "assets/benchmarks/tddnnf_exists_A/d4/{type}/{density}.jsonl"
         ],
         tddnnf_exists_A_sdd=[
@@ -304,18 +304,43 @@ rule smtlib_to_bcs12:
         """
 
 
+rule bcs12_projected:
+    threads: 1
+    input:
+        bcs12="assets/tddnnf/d4/{type}/{density}.bc",
+        mapping="assets/tlemmas/{type}/{density}.mapping"
+    output:
+        bcs12="assets/tddnnf_exists_{qo,[xA]}/d4/{type}/{density}.bc"
+    params:
+        script="src.exists"
+    shell:
+        """
+        if [[ -s {input.bcs12:q} ]]; then
+          python -m {params.script} \
+            --steps /dev/null \
+            --mapping {input.mapping} \
+            --quantify_out {wildcards.qo} \
+            bcs12 \
+            --bcs12 {input.bcs12} \
+            --projected_bcs12 {output.bcs12}
+        fi
+
+        touch {output}
+        """
+
+
 rule compile_tddnnf_with_d4:
     threads: 1
     resources:
         mem="20GB"
     input:
-        bcs12="assets/tddnnf/d4/{type}/{density}.bc"
+        bcs12="assets/{tddnnf}/d4/{type}/{density}.bc"
     output:
-        nnf="assets/tddnnf/d4/{type}/{density}.to-fix-nnf"
+        nnf="assets/{tddnnf}/d4/{type}/{density}.to-fix-nnf"
     log:
-        err="assets/tddnnf/d4/{type}/{density}.err"
+        err="assets/{tddnnf}/d4/{type}/{density}.err"
     benchmark:
-        "assets/benchmarks/tddnnf/d4/{type}/{density}.jsonl"
+        "assets/benchmarks/{tddnnf}/d4/{type}/{density}.jsonl"
     shell:
         """
         if [[ -s {input.bcs12:q} ]]; then
@@ -344,41 +369,6 @@ rule fix_nnf:
     shell:
         """
         python -m {params} --nnf {input} {output}
-        """
-
-
-rule compile_tddnnf_projected_with_d4:
-    threads: 1
-    resources:
-        mem="20GB"
-    input:
-        mapping="assets/tlemmas/{type}/{density}.mapping",
-        nnf="assets/tddnnf/d4/{type}/{density}.min-nnf"
-    output:
-        nnf="assets/tddnnf_exists_{qo,[xA]}/d4/{type}/{density}.nnf"
-    log:
-        steps="assets/tddnnf_exists_{qo,[xA]}/d4/{type}/{density}.steps",
-        err="assets/tddnnf_exists_{qo,[xA]}/d4/{type}/{density}.err"
-    benchmark:
-        "assets/benchmarks/tddnnf_exists_{qo,[xA]}/d4/{type}/{density}.jsonl"
-    params:
-        script="src.exists"
-    shell:
-        """
-        if [[ -s {input.nnf:q} ]]; then
-          timeout --verbose {config[timeout][compilator]}m \
-            python -m {params.script} \
-            --steps {log.steps} \
-            --mapping {input.mapping} \
-            --quantify_out {wildcards.qo} \
-            d4 \
-            --nnf {input.nnf} \
-            --projected_nnf {output.nnf} \
-            2> {log.err} \
-            || touch {output}
-        fi
-
-        touch {output}
         """
 
 
