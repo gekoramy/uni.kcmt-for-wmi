@@ -25,13 +25,9 @@ wmpy_synthetic:
 
 wmibench_synthetic_structured:
   name:
-    - and_overlap
-    - dual_paths
-    - dual_paths_distinct
     - tpg_3ary_tree
     - tpg_path
     - tpg_star
-    - uni
   size: [ 73, 109 ]
   seed: [ 17 ]
 
