@@ -20,7 +20,7 @@ class BCS12Walker(DagWalker):
 
     def __init__(
             self,
-            atom2id: dict[FNode, int],
+            atom2id: dict[FNode, str],
             env: Environment,
             invalidate_memoization=False,
     ):
@@ -36,21 +36,21 @@ class BCS12Walker(DagWalker):
         self.gates.append(' '.join(('G', gate, ':=', kind, *definition)))
         return gate
 
-    def walk_and(self, formula: FNode, args, **kwargs) -> str:
+    def walk_and(self, formula: FNode, args: t.Sequence[str], **kwargs) -> str:
         return self._new_gate('A', *args)
 
-    def walk_or(self, formula: FNode, args, **kwargs) -> str:
+    def walk_or(self, formula: FNode, args: t.Sequence[str], **kwargs) -> str:
         return self._new_gate('O', *args)
 
-    def walk_not(self, formula: FNode, args, **kwargs) -> str:
+    def walk_not(self, formula: FNode, args: t.Sequence[str], **kwargs) -> str:
         assert 1 == len(args) and args[0]
         return negate(args[0])
 
-    def walk_bool_constant(self, formula: FNode, args, **kwargs) -> str:
+    def walk_bool_constant(self, formula: FNode, args: t.Sequence[str], **kwargs) -> str:
         value: bool = formula.constant_value()
         return 'gT' if value else 'gF'
 
-    def walk_iff(self, formula, args, **kwargs) -> str:
+    def walk_iff(self, formula: FNode, args: t.Sequence[str], **kwargs) -> str:
         # IFF: a <-> b === (a & b) | (~a & ~b)
         assert 2 == len(args) and args[0] and args[1]
 
@@ -63,12 +63,12 @@ class BCS12Walker(DagWalker):
         # (a & b) | (~a & ~b)
         return self._new_gate('O', fst, snd)
 
-    def walk_implies(self, formula, args, **kwargs) -> str:
+    def walk_implies(self, formula: FNode, args: t.Sequence[str], **kwargs) -> str:
         # IMPLIES: a -> b === (~a | b)
         assert 2 == len(args) and args[0] and args[1]
         return self._new_gate('O', negate(args[0]), args[1])
 
-    def walk_ite(self, formula, args, **kwargs) -> str:
+    def walk_ite(self, formula: FNode, args: t.Sequence[str], **kwargs) -> str:
         # ITE: if a then b else c === ((~a) | b) & (a | c)
         assert 3 == len(args) and args[0] and args[1] and args[2]
 
@@ -81,12 +81,6 @@ class BCS12Walker(DagWalker):
         # ((~a) | b) & (a | c)
         return self._new_gate('A', fst, snd)
 
-    def walk_forall(self, formula: FNode, args, **kwargs) -> str:
-        raise NotImplementedError
-
-    def walk_exists(self, formula: FNode, args, **kwargs) -> str:
-        raise NotImplementedError
-
     @handles(
         *op.THEORY_OPERATORS,
         *op.BV_RELATIONS,
@@ -96,24 +90,25 @@ class BCS12Walker(DagWalker):
         op.FUNCTION,
         op.SYMBOL,
     )
-    def apply_mapping(self, formula: FNode, args, **kwargs) -> str | None:
-        i: int | None = self.atom2id.get(formula)
-        return None if i is None else str(i)
+    def apply_mapping(self, formula: FNode, args: t.Sequence[t.Any], **kwargs) -> str | None:
+        return self.atom2id.get(formula)
 
     @handles(
         op.REAL_CONSTANT,
         op.INT_CONSTANT,
-        op.BV_CONSTANT,
     )
-    def ignore(self, formula: FNode, args, **kwargs) -> str | None:
+    def ignore(self, formula: FNode, args: t.Sequence[t.Any], **kwargs) -> None:
         return None
 
 
-def to_bcs12(env: Environment, phi: FNode, atom2id: dict[FNode, int], project_onto: list[int] | None) -> list[str]:
-    walker: BCS12Walker = BCS12Walker(atom2id=atom2id, env=env)
+def to_bcs12(env: Environment, phi: FNode, id2atom: dict[int, FNode], project_onto: list[int] | None) -> list[str]:
+    walker: BCS12Walker = BCS12Walker(
+        atom2id={v: str(k) for k, v in id2atom.items()},
+        env=env
+    )
     root: str = walker.walk(phi)
 
-    atoms: int = max(atom2id.values())
+    atoms: int = max(id2atom.keys())
     lines: list[str] = ['c BC-S1.2']
 
     for i in range(1, atoms + 1):
@@ -147,7 +142,7 @@ def translate(smtlib: Path, mapping: Path, project_onto: list[int] | None, bcs12
     with open(bcs12, 'wt') as f:
         f.writelines(
             part
-            for line in to_bcs12(env, phi, {v: k for k, v in id2atom.items()}, project_onto)
+            for line in to_bcs12(env, phi, id2atom, project_onto)
             for part in (line, '\n')
         )
 
