@@ -350,7 +350,7 @@ rule compile_tddnnf_with_d4:
             --input-type circuit \
             --remove-gates 1 \
             --dump-file {output.nnf} \
-            2> {log.err} \
+            &> {log.err} \
             || touch {output}
         fi
 
