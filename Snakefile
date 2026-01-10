@@ -41,7 +41,7 @@ def wmibench_synthetic_pa() -> list[str]:
 
     return expand(
         "wmibench_synthetic_pa/r{reals}_b{bools}_d{depth}_s{seed}_{m}",
-        m=[f"{n:02}" for n in range(1,21)],
+        m=[f"{n}" for n in range(1,6)],
         **config["wmibench_synthetic_pa"],
     )
 
@@ -228,8 +228,8 @@ rule generate_wmibench_synthetic_pa:
     threads: 1
     output:
         *[
-            r"assets/densities/wmibench_synthetic_pa/r{reals,\d+}_b{bools,\d+}_d{depth,\d+}_s{seed,\d+}_" f"{n:02}" ".json"
-            for n in range(1,21)
+            r"assets/densities/wmibench_synthetic_pa/r{reals,\d+}_b{bools,\d+}_d{depth,\d+}_s{seed,\d+}_" f"{n}" ".json"
+            for n in range(1,6)
         ]
     shell:
         """
@@ -242,6 +242,7 @@ rule generate_wmibench_synthetic_pa:
           --booleans {wildcards.bools} \
           --depth {wildcards.depth} \
           --seed {wildcards.seed} \
+          --models 5 \
           --output $tmp_dir
 
         mv $tmp_dir/*/* assets/densities/wmibench_synthetic_pa
