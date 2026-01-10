@@ -1,5 +1,6 @@
 import argparse
 import functools as ft
+import typing as t
 from operator import iand, ior
 from pathlib import Path
 
@@ -15,6 +16,11 @@ from src import utils
 from src.tddnnf import tlemmas
 
 
+def ref_sdd(sdd: SddNode) -> SddNode:
+    sdd.ref()
+    return sdd
+
+
 class SDDWalker(DagWalker):
 
     def __init__(
@@ -28,40 +34,34 @@ class SDDWalker(DagWalker):
         self.atom2literal: dict[FNode, SddNode] = {atom: manager.literal(i) for atom, i in atom2id.items()}
         self.manager: SddManager = manager
 
-    def walk_and(self, formula: FNode, args, **kwargs) -> SddNode:
-        return ft.reduce(iand, args)
+    def walk_and(self, formula: FNode, args: t.Sequence[SddNode], **kwargs) -> SddNode:
+        return ref_sdd(ft.reduce(iand, args))
 
-    def walk_or(self, formula: FNode, args, **kwargs) -> SddNode:
-        return ft.reduce(ior, args)
+    def walk_or(self, formula: FNode, args: t.Sequence[SddNode], **kwargs) -> SddNode:
+        return ref_sdd(ft.reduce(ior, args))
 
-    def walk_not(self, formula: FNode, args, **kwargs) -> SddNode:
+    def walk_not(self, formula: FNode, args: t.Sequence[SddNode], **kwargs) -> SddNode:
         assert 1 == len(args) and args[0]
-        return ~args[0]
+        return ref_sdd(~args[0])
 
-    def walk_bool_constant(self, formula: FNode, args, **kwargs) -> SddNode:
+    def walk_bool_constant(self, formula: FNode, args: t.Sequence[SddNode], **kwargs) -> SddNode:
         value: bool = formula.constant_value()
         return self.manager.true() if value else self.manager.false()
 
-    def walk_iff(self, formula: FNode, args, **kwargs) -> SddNode:
+    def walk_iff(self, formula: FNode, args: t.Sequence[SddNode], **kwargs) -> SddNode:
         # IFF: a <-> b === (a & b) | (~a & ~b)
         assert 2 == len(args) and args[0] and args[1]
-        return (args[0] & args[1]) | ((~args[0]) & (~args[1]))
+        return ref_sdd((args[0] & args[1]) | ((~args[0]) & (~args[1])))
 
-    def walk_implies(self, formula: FNode, args, **kwargs) -> SddNode:
+    def walk_implies(self, formula: FNode, args: t.Sequence[SddNode], **kwargs) -> SddNode:
         # IMPLIES: a -> b === (~a | b)
         assert 2 == len(args) and args[0] and args[1]
-        return (~args[0]) | args[1]
+        return ref_sdd((~args[0]) | args[1])
 
-    def walk_ite(self, formula: FNode, args, **kwargs) -> SddNode:
+    def walk_ite(self, formula: FNode, args: t.Sequence[SddNode], **kwargs) -> SddNode:
         # ITE: if a then b else c === ((~a) | b) & (a | c)
         assert 3 == len(args) and args[0] and args[1] and args[2]
-        return ((~args[0]) | args[1]) & (args[0] | args[2])
-
-    def walk_forall(self, formula: FNode, args, **kwargs) -> SddNode:
-        raise NotImplementedError
-
-    def walk_exists(self, formula: FNode, args, **kwargs) -> SddNode:
-        raise NotImplementedError
+        return ref_sdd(((~args[0]) | args[1]) & (args[0] | args[2]))
 
     @handles(
         *op.THEORY_OPERATORS,
@@ -72,16 +72,14 @@ class SDDWalker(DagWalker):
         op.FUNCTION,
         op.SYMBOL,
     )
-    def apply_mapping(self, formula: FNode, args, **kwargs) -> SddNode | None:
-        i: SddNode | None = self.atom2literal.get(formula)
-        return None if i is None else i
+    def apply_mapping(self, formula: FNode, args: t.Sequence[t.Any], **kwargs) -> SddNode | None:
+        return self.atom2literal.get(formula)
 
     @handles(
         op.REAL_CONSTANT,
         op.INT_CONSTANT,
-        op.BV_CONSTANT,
     )
-    def ignore(self, formula: FNode, args, **kwargs) -> SddNode | None:
+    def ignore(self, formula: FNode, args: t.Sequence[t.Any], **kwargs) -> None:
         return None
 
 
@@ -89,6 +87,7 @@ def to_sdd(env: Environment, phi: FNode, atom2id: dict[FNode, int], project_onto
     Vtree, SddNode]:
     vt: Vtree = Vtree(len(atom2id), list(range(1, len(atom2id) + 1)), 'balanced')
     mgr: SddManager = SddManager.from_vtree(vt)
+    mgr.auto_gc_and_minimize_on()
 
     walker: SDDWalker = SDDWalker(atom2id=atom2id, manager=mgr, env=env)
     root: SddNode = walker.walk(phi)
