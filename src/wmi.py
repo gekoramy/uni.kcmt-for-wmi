@@ -42,9 +42,7 @@ class LogIntegrator(Integrator):
         with utils.log("integrate"):
             return self.integrator.integrate(polytope, polynomial)
 
-    def integrate_batch(
-            self, convex_integrals: t.Collection[tuple[Polytope, Polynomial]]
-    ) -> np.ndarray:
+    def integrate_batch(self, convex_integrals: t.Collection[tuple[Polytope, Polynomial]]) -> np.ndarray:
         with utils.log("integrate batch"):
             return self.integrator.integrate_batch(convex_integrals)
 
@@ -55,7 +53,7 @@ class Domain:
     weights: Weights
 
 
-class FnEnumerator():
+class FnEnumerator:
 
     def __init__(
             self,
@@ -73,7 +71,7 @@ class FnEnumerator():
         yield from self.fun(self.env, Domain(self.support, self.weights), phi)
 
 
-class LogEnumerator():
+class LogEnumerator:
 
     def __init__(self, enumerator: Enumerator):
         self.enum = enumerator
