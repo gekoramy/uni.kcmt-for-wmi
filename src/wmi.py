@@ -157,17 +157,17 @@ def main() -> None:
         case 'latte':
             integrator = LattEIntegrator()
 
+            if args.parallel and args.cores > 1:
+                integrator = ParallelWrapper(integrator, args.cores)
+
+            if args.cached:
+                integrator = CacheWrapper(integrator)
+
         case 'noop':
             integrator = NoOpIntegrator()
 
         case _:
             raise RuntimeError()
-
-    if args.parallel:
-        integrator = ParallelWrapper(integrator, args.cores)
-
-    if args.cached:
-        integrator = CacheWrapper(integrator)
 
     enumerator: Enumerator
     match args.enumerator:

@@ -555,6 +555,8 @@ rule compute_wmi_with_sae:
           python -m {params.script} \
           --density {input} \
           --integrator {wildcards.int} \
+          --parallel \
+          --cached \
           --steps {log.steps} \
           --cores {threads} \
           sae \
@@ -565,9 +567,10 @@ rule compute_wmi_with_sae:
 
 
 rule compute_wmi_with_decdnnf_baseline:
-    threads: 13
+    threads:
+        lambda wildcards: 1 if wildcards.int == "noop" else 13
     resources:
-        mem="20GB"
+        mem=lambda wildcards: None if wildcards.int == "noop" else "20GB"
     input:
         density="assets/densities/{type}/{density}.json",
         models="assets/decdnnf/tddnnf/{compiler}/{type}/{density}.models",
@@ -588,6 +591,8 @@ rule compute_wmi_with_decdnnf_baseline:
             python -m {params.script} \
             --density {input.density} \
             --integrator {wildcards.int} \
+            --parallel \
+            --cached \
             --steps {log.steps} \
             --cores {threads} \
             decdnnf_baseline \
@@ -628,6 +633,8 @@ rule compute_wmi_with_decdnnf_two_steps_sdd:
             python -m {params.script} \
             --density {input.density} \
             --integrator {wildcards.int} \
+            --parallel \
+            --cached \
             --steps {log.steps} \
             --cores {threads} \
             decdnnf_two_steps \
@@ -670,6 +677,8 @@ rule compute_wmi_with_decdnnf_two_steps_d4:
             python -m {params.script} \
             --density {input.density} \
             --integrator {wildcards.int} \
+            --parallel \
+            --cached \
             --steps {log.steps} \
             --cores {threads} \
             decdnnf_two_steps \
