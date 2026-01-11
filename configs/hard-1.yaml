@@ -1,0 +1,32 @@
+# $schema ./schema.json
+
+wmpy_synthetic:
+  n_reals: [ 5, 6 ]
+  n_bools: [ 5, 6 ]
+  n_clauses: [ 9, 13 ]
+  len_clauses: [ 4 ]
+  n_queries: [ 0 ]
+  p_bool: [ 0.8, 0.9 ]
+  depth: [ 3 ]
+  v_lbound: [ 0 ]
+  v_ubound: [ 1 ]
+  d_lbound: [ 0 ]
+  d_ubound: [ 3 ]
+  c_lbound: [ -10 ]
+  c_ubound: [ 10 ]
+  max_mono: [ 3 ]
+  seed: [ 1 ]
+
+wmibench_synthetic_structured:
+  name:
+    - tpg_3ary_tree
+    - tpg_path
+    - tpg_star
+  size: [ 73, 109 ]
+  seed: [ 1 ]
+
+wmibench_synthetic_pa:
+  reals: [ 3, 7 ]
+  bools: [ 3, 7 ]
+  depth: [ 5, 6, 7 ]
+  seed: [ 1 ]
