@@ -4,7 +4,7 @@ configfile: "configs/easy.yaml"
 
 validate(config,schema="configs/schema.json")
 
-container: "docker://ghcr.io/gekoramy/playground:latest"
+container: "docker://ghcr.io/gekoramy/playground:1d9222ef3470906f13c9d1e6ee760647d9876068"
 
 
 def densities() -> list[str]:
@@ -207,7 +207,7 @@ rule generate_wmpy_synthetic:
 
 
 rule generate_wmibench_synthetic_structured:
-    container: "docker://ghcr.io/gekoramy/wmibench:latest"
+    container: "docker://ghcr.io/gekoramy/wmibench:438e69f7d4b7192034617b9aedf9c774e6e606d2"
     threads: 1
     output:
         r"assets/densities/wmibench_synthetic_structured/{name,and_overlap|dual_paths|dual_paths_distinct|tpg_3ary_tree|tpg_path|tpg_star|uni}_{size,\d+}_{seed,\d+}.json"
