@@ -158,10 +158,10 @@ def apply_or(
 
 
 def minimize(nnf: tuple[Path, Path]) -> None:
-    with open(nnf[0], 'rt') as f:
+    with open(nnf[0], 'r', encoding='utf-8') as f:
         output = minimizing(f)
 
-    with open(nnf[1], 'wt') as f:
+    with open(nnf[1], 'w', encoding='utf-8') as f:
         f.writelines(
             part
             for line in output

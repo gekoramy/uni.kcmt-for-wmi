@@ -110,10 +110,10 @@ def sdd2nnf(sdd: t.Iterator[str]) -> list[str]:
 
 
 def translate(sdd: Path, nnf: Path) -> None:
-    with open(sdd, 'rt') as f:
+    with open(sdd, 'r', encoding='utf-8') as f:
         output = sdd2nnf(f)
 
-    with open(nnf, 'wt') as f:
+    with open(nnf, 'w', encoding='utf-8') as f:
         f.writelines(
             part
             for line in output

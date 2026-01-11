@@ -135,11 +135,11 @@ def translate(smtlib: Path, mapping: Path, project_onto: list[int] | None, bcs12
     env: Environment = get_env()
     id2atom: dict[int, FNode] = tlemmas.read_mapping(env, mapping)
 
-    with open(smtlib, 'rt') as f:
+    with open(smtlib, 'r', encoding='utf-8') as f:
         parser: SmtLibParser = SmtLibParser(environment=env)
         phi: FNode = parser.get_script(f).get_last_formula()
 
-    with open(bcs12, 'wt') as f:
+    with open(bcs12, 'w', encoding='utf-8') as f:
         f.writelines(
             part
             for line in to_bcs12(env, phi, id2atom, project_onto)

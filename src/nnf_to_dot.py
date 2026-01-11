@@ -88,7 +88,7 @@ def nnf2dot(file: t.Iterator[str]) -> graphviz.Graph:
 
 
 def translate(nnf: Path, dot: Path) -> None:
-    with open(nnf, 'rt') as f:
+    with open(nnf, 'r', encoding='utf-8') as f:
         output = nnf2dot(f)
 
     output.render(dot.as_posix())

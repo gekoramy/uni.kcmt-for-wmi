@@ -22,7 +22,7 @@ def enum(
 ) -> t.Generator[dict[bool, list[FNode]]]:
     mapping: dict[int, FNode] = tlemmas.read_mapping(env, args.mapping)
 
-    with open(args.models, 'rt') as f:
+    with open(args.models, 'r', encoding='utf-8') as f:
         mus: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
 
     yield from (

@@ -32,7 +32,7 @@ def fixing(line: str) -> str:
 
 
 def fix(nnf: tuple[Path, Path]) -> None:
-    with open(nnf[0], 'rt') as fr, open(nnf[1], 'wt') as fw:
+    with open(nnf[0], 'r', encoding='utf-8') as fr, open(nnf[1], 'w', encoding='utf-8') as fw:
         fw.writelines(
             fixing(line)
             for line in fr

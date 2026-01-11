@@ -39,12 +39,12 @@ def bcs12(args: ArgumentsWithBCS12):
             raise NotImplementedError
 
         case _:
-            with utils.log('reading'), open(args.bcs12, 'rt') as f:
+            with utils.log('reading'), open(args.bcs12, 'r', encoding='utf-8') as f:
                 lines: list[str] = f.readlines()
 
             assert 1 == sum(line.startswith('P') for line in lines)
 
-            with utils.log('writing'), open(args.projected_bcs12, 'wt') as f:
+            with utils.log('writing'), open(args.projected_bcs12, 'w', encoding='utf-8') as f:
                 f.writelines(
                     f'P {' '.join(map(str, args.project_onto))}\n' if line.startswith('P') else line
                     for line in lines

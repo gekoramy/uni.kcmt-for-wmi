@@ -42,7 +42,7 @@ def enum(
     with utils.log('two steps'):
         mapping: dict[int, FNode] = tlemmas.read_mapping(env, args.mapping)
 
-        with open(args.models_projected, 'rt') as f:
+        with open(args.models_projected, 'r', encoding='utf-8') as f:
             mus_projected: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
 
         with Pool(args.cores) as pool:
@@ -67,7 +67,7 @@ def enum_with_sdd(
     with utils.log('two steps'):
         mapping: dict[int, FNode] = tlemmas.read_mapping(env, args.mapping)
 
-        with open(args.models_projected, 'rt') as f:
+        with open(args.models_projected, 'r', encoding='utf-8') as f:
             mus_projected: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
 
         with Pool(args.cores) as pool:
@@ -94,7 +94,7 @@ def conditioning(
         folder: Path = Path(path)
         conditioned: Path = folder / 'conditioned.nnf'
 
-        with open(nnf, 'rt') as f:
+        with open(nnf, 'r', encoding='utf-8') as f:
             unoptimized: list[str] = condition.conditioning(
                 raw=f,
                 assumptions=frozenset(it.chain(
@@ -103,7 +103,7 @@ def conditioning(
                 )),
             )
 
-        with open(conditioned, 'wt') as f:
+        with open(conditioned, 'w', encoding='utf-8') as f:
             f.writelines(
                 part
                 for line in minimize_nnf.minimizing((line + ' 0' for line in unoptimized))
@@ -148,10 +148,10 @@ def conditioning_with_sdd(
 
         root.save(str.encode(sdd.as_posix()))
 
-        with open(sdd, 'rt') as f:
+        with open(sdd, 'r', encoding='utf-8') as f:
             unoptimized: list[str] = sdd_to_nnf.sdd2nnf(f)
 
-        with open(nnf, 'wt') as f:
+        with open(nnf, 'w', encoding='utf-8') as f:
             f.writelines(
                 part
                 for line in minimize_nnf.minimizing((line + ' 0' for line in unoptimized))

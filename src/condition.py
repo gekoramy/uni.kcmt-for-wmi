@@ -162,10 +162,10 @@ def condition(
         assumptions: frozenset[int],
         conditioned: Path,
 ) -> None:
-    with open(nnf, 'rt') as f:
+    with open(nnf, 'r', encoding='utf-8') as f:
         output = conditioning(f, assumptions)
 
-    with open(conditioned, 'wt') as f:
+    with open(conditioned, 'w', encoding='utf-8') as f:
         f.writelines(
             part
             for line in output

@@ -23,7 +23,7 @@ def read_mapping(
         env: Environment,
         mapping: Path
 ) -> dict[int, FNode]:
-    with utils.log('parsing abstraction'), open(mapping, 'rt') as f:
+    with utils.log('parsing abstraction'), open(mapping, 'r', encoding='utf-8') as f:
         parser: SmtLibParser = SmtLibParser(environment=env)
 
         return {
@@ -114,10 +114,10 @@ def main() -> None:
         )
         phi_and_tlemmas: FNode = walker.walk(smt.And(phi, *tlemmas)) if sat else smt.FALSE()
 
-    with utils.log('writing phi and tlemmas'), open(args.phi_n_tlemmas, 'wt') as f:
+    with utils.log('writing phi and tlemmas'), open(args.phi_n_tlemmas, 'w', encoding='utf-8') as f:
         smtlibscript_from_formula(phi_and_tlemmas).serialize(f)
 
-    with utils.log('writing mapping'), open(args.mapping, 'wt') as f:
+    with utils.log('writing mapping'), open(args.mapping, 'w', encoding='utf-8') as f:
         for atom in phi_and_tlemmas.get_atoms():
             tmp: StringIO = StringIO()
             smtlibscript_from_formula(atom).serialize(tmp)

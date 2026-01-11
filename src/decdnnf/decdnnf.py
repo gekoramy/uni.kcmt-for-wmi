@@ -29,8 +29,8 @@ def raw(
                     else []
                 )
             ],
-            text=True,
             capture_output=True,
+            encoding='utf-8',
         )
 
     assert 0 == decdnnf.returncode, decdnnf.stdout

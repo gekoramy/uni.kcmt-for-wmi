@@ -107,7 +107,7 @@ def translate(smtlib: Path, mapping: Path, project_onto: list[int] | None, vtree
     env: Environment = get_env()
     id2atom: dict[int, FNode] = tlemmas.read_mapping(env, mapping)
 
-    with open(smtlib, 'rt') as f:
+    with open(smtlib, 'r', encoding='utf-8') as f:
         parser: SmtLibParser = SmtLibParser(environment=env)
         phi: FNode = parser.get_script(f).get_last_formula()
 
