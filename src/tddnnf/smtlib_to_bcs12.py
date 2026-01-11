@@ -33,7 +33,7 @@ class BCS12Walker(DagWalker):
 
     def _new_gate(self, kind: t.Literal['A', 'O'], *definition: str) -> str:
         gate: str = f'g{len(self.gates)}'
-        self.gates.append(' '.join(('G', gate, ':=', kind, *definition)))
+        self.gates.append(' '.join(('G', gate, ':=', kind, *set(definition))))
         return gate
 
     def walk_and(self, formula: FNode, args: t.Sequence[str], **kwargs) -> str:
