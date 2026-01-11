@@ -38,6 +38,9 @@ def bcs12(args: ArgumentsWithBCS12):
         case 0:
             raise NotImplementedError
 
+        case n if n == len(args.mapping):
+            shutil.copyfile(args.bcs12, args.projected_bcs12)
+
         case _:
             with utils.log('reading'), open(args.bcs12, 'r', encoding='utf-8') as f:
                 lines: list[str] = f.readlines()
