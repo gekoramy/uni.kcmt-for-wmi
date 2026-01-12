@@ -1,5 +1,7 @@
 # $schema ./schema.json
 
+seed: [ 1, 2 ]
+
 timeout:
   enumerator: 20
   minimize: 20
@@ -21,7 +23,6 @@ wmpy_synthetic:
   c_lbound: [ -10 ]
   c_ubound: [ 10 ]
   max_mono: [ 3 ]
-  seed: [ 1, 2 ]
 
 wmibench_synthetic_structured:
   name:
@@ -29,10 +30,8 @@ wmibench_synthetic_structured:
     - tpg_path
     - tpg_star
   size: [ 73, 109 ]
-  seed: [ 1, 2 ]
 
 wmibench_synthetic_pa:
   reals: [ 3, 7 ]
   bools: [ 3, 7 ]
   depth: [ 5, 6, 7 ]
-  seed: [ 1, 2 ]

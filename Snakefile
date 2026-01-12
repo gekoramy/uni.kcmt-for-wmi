@@ -21,6 +21,7 @@ def wmpy_synthetic() -> list[str]:
 
     return expand(
         "wmpy_synthetic/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}",
+        seed=config["seed"],
         **config["wmpy_synthetic"],
     )
 
@@ -31,6 +32,7 @@ def wmibench_synthetic_structured() -> list[str]:
 
     return expand(
         "wmibench_synthetic_structured/{name}_{size}_{seed}",
+        seed=config["seed"],
         **config["wmibench_synthetic_structured"],
     )
 
@@ -42,6 +44,7 @@ def wmibench_synthetic_pa() -> list[str]:
     return expand(
         "wmibench_synthetic_pa/r{reals}_b{bools}_d{depth}_s{seed}_{m}",
         m=[f"{n}" for n in range(1,6)],
+        seed=config["seed"],
         **config["wmibench_synthetic_pa"],
     )
 

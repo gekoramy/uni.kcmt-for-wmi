@@ -1,5 +1,7 @@
 # $schema ./schema.json
 
+seed: [ 1, 2, 3 ]
+
 timeout:
   enumerator: 20
   minimize: 20
@@ -12,7 +14,6 @@ wmpy_synthetic:
   n_clauses: [ 3 ]
   len_clauses: [ 3 ]
   p_bool: [ 0.5 ]
-  seed: [ 1, 2, 3 ]
   n_queries: [ 0 ]
   depth: [ 3 ]
   max_mono: [ 3 ]

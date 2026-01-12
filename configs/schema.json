@@ -2,6 +2,14 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "seed": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
     "timeout": {
       "type": "object",
       "properties": {
@@ -67,14 +75,6 @@
           "type": "array",
           "items": {
             "type": "number"
-          },
-          "minItems": 1,
-          "uniqueItems": true
-        },
-        "seed": {
-          "type": "array",
-          "items": {
-            "type": "integer"
           },
           "minItems": 1,
           "uniqueItems": true
@@ -165,7 +165,6 @@
         "n_queries",
         "n_reals",
         "p_bool",
-        "seed",
         "v_lbound",
         "v_ubound"
       ],
@@ -188,20 +187,11 @@
           },
           "minItems": 1,
           "uniqueItems": true
-        },
-        "seed": {
-          "type": "array",
-          "items": {
-            "type": "integer"
-          },
-          "minItems": 1,
-          "uniqueItems": true
         }
       },
       "required": [
         "name",
-        "size",
-        "seed"
+        "size"
       ],
       "type": "object"
     },
@@ -230,26 +220,18 @@
           },
           "minItems": 1,
           "uniqueItems": true
-        },
-        "seed": {
-          "type": "array",
-          "items": {
-            "type": "integer"
-          },
-          "minItems": 1,
-          "uniqueItems": true
         }
       },
       "required": [
         "reals",
         "bools",
-        "depth",
-        "seed"
+        "depth"
       ],
       "type": "object"
     }
   },
   "required": [
+    "seed",
     "timeout"
   ],
   "additionalProperties": false
