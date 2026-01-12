@@ -30,7 +30,11 @@ def parse_data(
         case '.out':
             data: pl.DataFrame = pl.read_json(
                 path,
-                schema={'wmi': pl.Float64, 'npolys': pl.Int64}
+                schema={
+                    'wmi': pl.Float64,
+                    'npolys': pl.Int64,
+                    'nuniquepolys': pl.Int64,
+                }
             )
 
         case '.models':

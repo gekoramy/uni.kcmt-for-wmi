@@ -25,14 +25,6 @@ import src.decdnnf.enumerator_two_steps as decdnnf_two_steps
 from src import utils
 
 
-class NoOpIntegrator(Integrator):
-    def integrate(self, *_) -> float:
-        return 1
-
-    def integrate_batch(self, convex_integrals) -> np.ndarray:
-        return np.ones(len(convex_integrals))
-
-
 class LogIntegrator(Integrator):
 
     def __init__(self, integrator: Integrator):
@@ -150,23 +142,6 @@ def main() -> None:
     env: Environment = pysmt.environment.get_env()
     density: Density = utils.read_density(args.density)
 
-    integrator: Integrator
-    match args.integrator:
-        case 'latte':
-            integrator = LattEIntegrator()
-
-            if args.parallel and args.cores > 1:
-                integrator = ParallelWrapper(integrator, args.cores)
-
-            if args.cached:
-                integrator = CacheWrapper(integrator)
-
-        case 'noop':
-            integrator = NoOpIntegrator()
-
-        case _:
-            raise RuntimeError()
-
     enumerator: Enumerator
     match args.enumerator:
         case 'sae':
@@ -218,11 +193,44 @@ def main() -> None:
                 fn.partial(enum, lambda _1, _2: ta())
             )
 
-    with utils.log('total'):
-        result = WMISolver(LogEnumerator(enumerator), LogIntegrator(integrator)).compute(
-            s.Bool(True),
-            [v for v in density.domain.keys() if v.symbol_type() == s.REAL]
-        )
+    query: FNode = s.TRUE()
+    domain: t.Collection[FNode] = [v for v in density.domain.keys() if s.REAL == v.symbol_type()]
+
+    match args.integrator:
+        case 'latte':
+            integrator: Integrator = LattEIntegrator()
+
+            if args.parallel and args.cores > 1:
+                integrator = ParallelWrapper(integrator, args.cores)
+
+            if args.cached:
+                integrator = CacheWrapper(integrator)
+
+            result = WMISolver(
+                enumerator=LogEnumerator(enumerator),
+                integrator=LogIntegrator(integrator),
+            ).compute(
+                query,
+                domain
+            )
+
+        case 'noop':
+            solver = WMISolver(
+                enumerator=LogEnumerator(enumerator),
+                integrator=None,
+            )
+
+            convex_integrals: list[tuple[Polytope, Polynomial]] = []
+            for truth_assignment, _ in solver.enumerator.enumerate(query=query):
+                convex_integrals.append(solver.converter.convert(truth_assignment, domain))
+
+            result = {
+                "npolys": len(convex_integrals),
+                "nuniquepolys": len(set(it.starmap(CacheWrapper._compute_key, convex_integrals))),
+            }
+
+        case _:
+            raise RuntimeError()
 
     json.dump(result, sys.stdout)
     sys.stdout.write('\n')
