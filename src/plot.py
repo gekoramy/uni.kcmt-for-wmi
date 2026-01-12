@@ -174,20 +174,41 @@ def plot(
             rm |= mask
             ys[mask] = limit
 
-        ax.scatter(
-            x=xs[~rm],
-            y=ys[~rm],
-            color='C0',
-            alpha=.5,
-        )
+        xy = np.column_stack((xs, ys))
 
-        ax.scatter(
-            x=xs[rm],
-            y=ys[rm],
-            color='C0',
-            alpha=.5,
-            marker='x'
-        )
+        # count points at each location for non-timeout points
+        unique_regular, counts_regular = np.unique(xy[~rm], axis=0, return_counts=True)
+
+        # count points at each location for timeout points
+        unique_timeout, counts_timeout = np.unique(xy[rm], axis=0, return_counts=True)
+
+        vmax: int = 10
+        assert max(*counts_regular, *counts_timeout) <= vmax
+
+        scatters: list[plt.PathCollection] = [
+            ax.scatter(
+                x=unique_regular[:, 0],
+                y=unique_regular[:, 1],
+                c=counts_regular,
+                cmap='tab10',
+                vmin=1,
+                vmax=vmax,
+                marker='o',
+            ),
+            ax.scatter(
+                x=unique_timeout[:, 0],
+                y=unique_timeout[:, 1],
+                c=counts_timeout,
+                cmap='tab10',
+                vmin=1,
+                vmax=vmax,
+                marker='x',
+            ),
+        ]
+
+        # add colorbar to show the meaning of colors
+        cbar = fig.colorbar(next(filter(lambda x: x, scatters)), ax=ax, label='count')
+        cbar.ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
 
         ax.set_xlabel(enum_x)
         ax.set_ylabel(enum_y)
