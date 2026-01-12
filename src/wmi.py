@@ -9,32 +9,18 @@ from pathlib import Path
 
 import numpy as np
 import pysmt.shortcuts as smt
+from numpy.typing import ArrayLike
 from pysmt.environment import Environment, get_env
 from pysmt.fnode import FNode
 from wmpy.cli.density import Density
-from wmpy.core import Polytope, Polynomial
+from wmpy.core import Polytope, Polynomial, AssignmentConverter
 from wmpy.core.weights import Weights
 from wmpy.enumeration import SAEnumerator, Enumerator
 from wmpy.integration import Integrator, LattEIntegrator, ParallelWrapper, CacheWrapper
-from wmpy.solvers import WMISolver
 
 import src.decdnnf.enumerator_baseline as decdnnf_baseline
 import src.decdnnf.enumerator_two_steps as decdnnf_two_steps
 from src import utils
-
-
-class LogIntegrator(Integrator):
-
-    def __init__(self, integrator: Integrator):
-        self.integrator = integrator
-
-    def integrate(self, polytope: Polytope, polynomial: Polynomial) -> float:
-        with utils.log("integrate"):
-            return self.integrator.integrate(polytope, polynomial)
-
-    def integrate_batch(self, convex_integrals: t.Collection[tuple[Polytope, Polynomial]]) -> np.ndarray:
-        with utils.log("integrate batch"):
-            return self.integrator.integrate_batch(convex_integrals)
 
 
 @dataclass
@@ -103,6 +89,41 @@ def enum(
         )
         for b2atoms in ta(env, formula)
     )
+
+
+def wmi(
+        enumerator: Enumerator,
+        integrator: Integrator | None,
+        query: FNode,
+        domain: t.Collection[FNode],
+) -> dict[str, ArrayLike]:
+    enumerator = LogEnumerator(enumerator)
+    converter = AssignmentConverter(enumerator)
+
+    convex_integrals: list[tuple[Polytope, Polynomial]] = []
+    n_unassigned_bools: list[int] = []
+    for truth_assignment, nub in enumerator.enumerate(query):
+        convex_integrals.append(converter.convert(truth_assignment, domain))
+        n_unassigned_bools.append(nub)
+
+    result: dict[str, ArrayLike] = {
+        'npolys': len(convex_integrals),
+        'nuniquepolys': len(set(it.starmap(CacheWrapper._compute_key, convex_integrals))),
+    }
+
+    if integrator is None:
+        return result
+
+    with utils.log('integrate batch'):
+        volume: np.ndarray[tuple[t.Literal[1]], np.dtype[np.float64]] = np.dot(
+            integrator.integrate_batch(convex_integrals),
+            2 ** np.array(n_unassigned_bools, dtype=np.float64),
+        )
+
+    return {
+        **result,
+        'wmi': volume,
+    }
 
 
 def main() -> None:
@@ -191,9 +212,7 @@ def main() -> None:
                 ft.partial(enum, lambda _1, _2: ta())
             )
 
-    query: FNode = smt.TRUE()
-    domain: t.Collection[FNode] = [a for a in density.domain.keys() if a.is_symbol(smt.REAL)]
-
+    integrator: Integrator | None
     match args.integrator:
         case 'latte':
             integrator: Integrator = LattEIntegrator()
@@ -204,33 +223,21 @@ def main() -> None:
             if args.cached:
                 integrator = CacheWrapper(integrator)
 
-            result = WMISolver(
-                enumerator=LogEnumerator(enumerator),
-                integrator=LogIntegrator(integrator),
-            ).compute(
-                query,
-                domain
-            )
-
         case 'noop':
-            solver = WMISolver(
-                enumerator=LogEnumerator(enumerator),
-                integrator=None,
-            )
-
-            convex_integrals: list[tuple[Polytope, Polynomial]] = []
-            for truth_assignment, _ in solver.enumerator.enumerate(query=query):
-                convex_integrals.append(solver.converter.convert(truth_assignment, domain))
-
-            result = {
-                "npolys": len(convex_integrals),
-                "nuniquepolys": len(set(it.starmap(CacheWrapper._compute_key, convex_integrals))),
-            }
+            integrator = None
 
         case _:
             raise RuntimeError()
 
-    json.dump(result, sys.stdout)
+    json.dump(
+        wmi(
+            enumerator=enumerator,
+            integrator=integrator,
+            query=smt.TRUE(),
+            domain=[a for a in density.domain.keys() if a.is_symbol(smt.REAL)],
+        ),
+        sys.stdout,
+    )
     sys.stdout.write('\n')
 
 
