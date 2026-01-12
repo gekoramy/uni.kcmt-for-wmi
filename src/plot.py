@@ -2,6 +2,7 @@ import argparse
 import dataclasses
 import itertools as it
 import typing as t
+from collections import OrderedDict
 from datetime import timedelta
 from pathlib import Path
 
@@ -20,10 +21,12 @@ class Timeout:
     tlemmas: timedelta
 
 
-enumerator2steps: dict[str, list[str]] = {
-    'sae': [
-        'sae'
-    ],
+enumerator2steps: dict[str, list[str]] = OrderedDict(
+    **{
+        'sae': [
+            'sae'
+        ]
+    },
     **{
         f'decdnnf_baseline_{compiler}': [
             'tlemmas',
@@ -44,7 +47,7 @@ enumerator2steps: dict[str, list[str]] = {
         for compiler in ['d4', 'sdd']
         for qo in 'xA'
     },
-}
+)
 
 
 def from_step(timeout: Timeout, step: str):
@@ -66,14 +69,15 @@ def label(step: str) -> str:
 
 def plot(
         df: pl.DataFrame,
-        column: str,
+        title: str,
+        columns_n_enumerators: list[tuple[str, str]] | None = None,
 ) -> plt.Figure:
     padding: float = 2
 
     minimum: float = (
             df.select(
-                pl.col(f'{column}_{enum}')
-                for enum in enumerator2steps.keys()
+                pl.col(column)
+                for column, _ in columns_n_enumerators
             )
             .min_horizontal()
             .min()
@@ -82,14 +86,14 @@ def plot(
 
     maximum: float = (
         df.select(
-            pl.col(f'{column}_{enum}')
-            for enum in enumerator2steps.keys()
+            pl.col(column)
+            for column, _ in columns_n_enumerators
         )
         .max_horizontal()
         .max()
     )
 
-    tot: int = math.comb(len(enumerator2steps), 2)
+    tot: int = math.comb(len(columns_n_enumerators), 2)
     nrows: int = 3
     ncols: int = math.ceil(tot / nrows)
     fig, axs = plt.subplots(nrows, ncols, figsize=(8 * ncols, 8 * nrows))
@@ -97,10 +101,13 @@ def plot(
     iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
 
     ax: plt.Axes
-    for ((enum_x, steps_x), (enum_y, steps_y)), ax in zip(
-            it.combinations(enumerator2steps.items(), 2),
+    for ((col_x, enum_x), (col_y, enum_y)), ax in zip(
+            it.combinations(columns_n_enumerators, 2),
             iter4axs,
     ):
+        steps_x: list[str] = enumerator2steps[enum_x]
+        steps_y: list[str] = enumerator2steps[enum_y]
+
         limits_x: list[float] = list(it.accumulate(steps_x, lambda acc, _: acc * padding, initial=maximum * padding))
         limits_y: list[float] = list(it.accumulate(steps_y, lambda acc, _: acc * padding, initial=maximum * padding))
 
@@ -144,8 +151,8 @@ def plot(
 
         data: pl.DataFrame = (
             df.select(
-                pl.col(f'{column}_{enum_x}'),
-                pl.col(f'{column}_{enum_y}'),
+                pl.col(f'{col_x}'),
+                pl.col(f'{col_y}'),
                 *[
                     pl.col(f'stderr_{step}').fill_null('').str.contains('timeout').alias(f'tout_{step}')
                     for step in set(steps_x + steps_y)
@@ -155,13 +162,13 @@ def plot(
 
         rm = np.zeros(len(df), dtype=np.bool)
 
-        xs = data.get_column(f'{column}_{enum_x}').to_numpy(writable=True)
+        xs = data.get_column(f'{col_x}').to_numpy(writable=True)
         for step, limit in zip(steps_x, limits_x):
             mask = data.get_column(f'tout_{step}').to_numpy()
             rm |= mask
             xs[mask] = limit
 
-        ys = data.get_column(f'{column}_{enum_y}').to_numpy(writable=True)
+        ys = data.get_column(f'{col_y}').to_numpy(writable=True)
         for step, limit in zip(steps_y, limits_y):
             mask = data.get_column(f'tout_{step}').to_numpy()
             rm |= mask
@@ -186,7 +193,7 @@ def plot(
         ax.set_ylabel(enum_y)
         ax.set_aspect('equal')
 
-    fig.suptitle(column)
+    fig.suptitle(title)
     fig.tight_layout()
     return fig
 
@@ -636,6 +643,17 @@ def main() -> None:
         case 'steps':
             fig = foreach_step(df, args.column)
 
+        case 'only-exists':
+            fig = plot(
+                df,
+                args.column,
+                [
+                    (f'{args.column}_{steps[-2]}', enum)
+                    for enum, steps in enumerator2steps.items()
+                    if 'exists' in enum
+                ],
+            )
+
         case _:
             match args.column:
                 case 'time':
@@ -652,7 +670,14 @@ def main() -> None:
                     fig = survival(df)
 
                 case column:
-                    fig = plot(df, column)
+                    fig = plot(
+                        df,
+                        column,
+                        [
+                            (f'{column}_{enum}', enum)
+                            for enum, steps in enumerator2steps.items()
+                        ],
+                    )
 
     for out in args.output:
         fig.savefig(out)
