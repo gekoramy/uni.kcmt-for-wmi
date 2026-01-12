@@ -101,18 +101,22 @@ def main() -> None:
         sat: bool = smt_solver.check_all_sat(phi=phi)
         tlemmas: list[FNode] = smt_solver.get_theory_lemmas()
 
+    walker: IdentityDagWalker = NormalizeWalker(
+        converter=smt_solver.get_converter(),
+        env=environment,
+    )
+
+    with utils.log('normalizing tlemmas'):
+        tlemmas: list[FNode] = [walker.walk(tlemma) for tlemma in tlemmas]
+
+    with utils.log('normalizing phi'):
+        phi_and_tlemmas: FNode = smt.And(walker.walk(phi), *tlemmas) if sat else smt.FALSE()
+
     with utils.log('writing tlemmas'):
         write_smtlib(
             smt.And(tlemmas),
             args.tlemmas
         )
-
-    with utils.log('normalizing'):
-        walker: IdentityDagWalker = NormalizeWalker(
-            converter=smt_solver.get_converter(),
-            env=environment,
-        )
-        phi_and_tlemmas: FNode = walker.walk(smt.And(phi, *tlemmas)) if sat else smt.FALSE()
 
     with utils.log('writing phi and tlemmas'), open(args.phi_n_tlemmas, 'w', encoding='utf-8') as f:
         smtlibscript_from_formula(phi_and_tlemmas).serialize(f)
