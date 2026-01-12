@@ -1,5 +1,5 @@
 import argparse
-import functools as fn
+import functools as ft
 import itertools as it
 import json
 import sys
@@ -8,11 +8,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-import pysmt.environment
-import pysmt.shortcuts as s
-from pysmt.environment import Environment
+import pysmt.shortcuts as smt
+from pysmt.environment import Environment, get_env
 from pysmt.fnode import FNode
-from pysmt.typing import BOOL
 from wmpy.cli.density import Density
 from wmpy.core import Polytope, Polynomial
 from wmpy.core.weights import Weights
@@ -84,10 +82,10 @@ def enum(
 ) -> t.Generator[tuple[dict[FNode, bool], int]]:
     formula: FNode = env.formula_manager.And(domain.chi, phi)
 
-    bools: t.FrozenSet[FNode] = frozenset(
+    A: t.FrozenSet[FNode] = frozenset(
         a
         for a in it.chain(domain.weights.get_atoms(), env.ao.get_atoms(formula))
-        if a.is_symbol(BOOL)
+        if a.is_symbol(smt.BOOL)
     )
 
     yield from (
@@ -98,7 +96,7 @@ def enum(
                 for atom in atoms
             },
             len(
-                bools
+                A
                 .difference(b2atoms[False])
                 .difference(b2atoms[True])
             )
@@ -139,13 +137,13 @@ def main() -> None:
 
     utils.setup(args.steps)
 
-    env: Environment = pysmt.environment.get_env()
+    env: Environment = get_env()
     density: Density = utils.read_density(args.density)
 
     enumerator: Enumerator
     match args.enumerator:
         case 'sae':
-            enumerator = SAEnumerator(density.support, s.Real(1), env)
+            enumerator = SAEnumerator(density.support, smt.Real(1), env)
 
         case 'decdnnf_baseline' | 'decdnnf_two_steps':
 
@@ -189,12 +187,12 @@ def main() -> None:
             enumerator = FnEnumerator(
                 env,
                 density.support,
-                s.Real(1),
-                fn.partial(enum, lambda _1, _2: ta())
+                smt.Real(1),
+                ft.partial(enum, lambda _1, _2: ta())
             )
 
-    query: FNode = s.TRUE()
-    domain: t.Collection[FNode] = [v for v in density.domain.keys() if s.REAL == v.symbol_type()]
+    query: FNode = smt.TRUE()
+    domain: t.Collection[FNode] = [a for a in density.domain.keys() if a.is_symbol(smt.REAL)]
 
     match args.integrator:
         case 'latte':
