@@ -9,7 +9,6 @@ import pysmt.operators as op
 import pysmt.shortcuts as smt
 from pysmt.environment import Environment, get_env
 from pysmt.fnode import FNode
-from pysmt.shortcuts import write_smtlib
 from pysmt.smtlib.parser import SmtLibParser
 from pysmt.smtlib.script import smtlibscript_from_formula
 from pysmt.walkers import IdentityDagWalker, handles
@@ -112,11 +111,8 @@ def main() -> None:
     with utils.log('normalizing phi'):
         phi_and_tlemmas: FNode = smt.And(walker.walk(phi), *tlemmas) if sat else smt.FALSE()
 
-    with utils.log('writing tlemmas'):
-        write_smtlib(
-            smt.And(tlemmas),
-            args.tlemmas
-        )
+    with utils.log('writing tlemmas'), open(args.tlemmas, 'w', encoding='utf-8') as f:
+        smtlibscript_from_formula(smt.And(tlemmas)).serialize(f)
 
     with utils.log('writing phi and tlemmas'), open(args.phi_n_tlemmas, 'w', encoding='utf-8') as f:
         smtlibscript_from_formula(phi_and_tlemmas).serialize(f)
