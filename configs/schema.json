@@ -5,7 +5,15 @@
     "seed": {
       "type": "array",
       "items": {
-        "type": "integer"
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$"
+          }
+        ]
       },
       "minItems": 1,
       "uniqueItems": true
