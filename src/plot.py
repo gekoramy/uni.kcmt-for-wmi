@@ -323,38 +323,32 @@ def plot_time(
     return fig
 
 
-def models_to_npolys(
+def plot_lines(
         df: pl.DataFrame,
+        title: str,
+        columns_n_enumerators: list[tuple[tuple[str, str], str]],
 ) -> plt.Figure:
     padding: float = 2
 
-    subset: dict[str, list[str]] = {
-        enum: steps
-        for enum, steps in enumerator2steps.items()
-        if 'exists' in enum
+    columns: set[str] = {
+        col
+        for cols, _ in columns_n_enumerators
+        for col in cols
     }
 
-    columns: list[tuple[str, str]] = [
-        (
-            f'models_{steps[-2]}',
-            f'npolys_{steps[-1]}',
-        )
-        for steps in subset.values()
-    ]
-
     minimum: float = (
-            df.select(set(it.chain(*columns)))
+            df.select(columns)
             .min_horizontal()
             .min() / padding
     )
 
     maximum: float = (
-        df.select(set(it.chain(*columns)))
+        df.select(columns)
         .max_horizontal()
         .max()
     )
 
-    tot: int = math.comb(len(subset), 2)
+    tot: int = math.comb(len(columns_n_enumerators), 2)
     nrows: int = 3
     ncols: int = math.ceil(tot / nrows)
     fig, axs = plt.subplots(nrows, ncols, figsize=(8 * ncols, 8 * nrows))
@@ -362,10 +356,13 @@ def models_to_npolys(
     iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
 
     ax: plt.Axes
-    for (((enum_x, steps_x), cols_x), ((enum_y, steps_y), cols_y)), ax in zip(
-            it.combinations(zip(subset.items(), columns), 2),
+    for ((cols_x, enum_x), (cols_y, enum_y)), ax in zip(
+            it.combinations(columns_n_enumerators, 2),
             iter4axs,
     ):
+        steps_x: list[str] = enumerator2steps[enum_x]
+        steps_y: list[str] = enumerator2steps[enum_y]
+
         limits_x: list[float] = list(it.accumulate(steps_x, lambda acc, _: acc * padding, initial=maximum * padding))
         limits_y: list[float] = list(it.accumulate(steps_y, lambda acc, _: acc * padding, initial=maximum * padding))
 
@@ -475,7 +472,7 @@ def models_to_npolys(
         ax.set_ylabel(enum_y)
         ax.set_aspect('equal')
 
-    fig.suptitle('models → npolys')
+    fig.suptitle(title)
     fig.tight_layout()
     return fig
 
@@ -644,15 +641,28 @@ def main() -> None:
             fig = foreach_step(df, args.column)
 
         case 'only-exists':
-            fig = plot(
-                df,
-                args.column,
-                [
-                    (f'{args.column}_{steps[-2]}', enum)
-                    for enum, steps in enumerator2steps.items()
-                    if 'exists' in enum
-                ],
-            )
+            match args.column:
+                case 'models to npolys':
+                    fig = plot_lines(
+                        df,
+                        'models → npolys',
+                        [
+                            ((f'models_{steps[-2]}', f'npolys_{enum}'), enum)
+                            for enum, steps in enumerator2steps.items()
+                            if 'exists' in enum
+                        ],
+                    )
+
+                case 'models':
+                    fig = plot(
+                        df,
+                        'models',
+                        [
+                            (f'{args.column}_{steps[-2]}', enum)
+                            for enum, steps in enumerator2steps.items()
+                            if 'exists' in enum
+                        ],
+                    )
 
         case _:
             match args.column:
@@ -663,8 +673,15 @@ def main() -> None:
                         tlemmas=timedelta(minutes=args.timeout_tlemmas),
                     ))
 
-                case 'models to npolys':
-                    fig = models_to_npolys(df)
+                case 'nuniquepolys to npolys':
+                    fig = plot_lines(
+                        df,
+                        'nuniquepolys → npolys',
+                        [
+                            ((f'nuniquepolys_{enum}', f'npolys_{enum}'), enum)
+                            for enum in enumerator2steps.keys()
+                        ],
+                    )
 
                 case 'survival':
                     fig = survival(df)
