@@ -255,7 +255,7 @@ rule generate_wmibench_synthetic_pa:
 
 
 rule compute_tlemmas:
-    threads: 13
+    threads: 26
     resources:
         mem="20GB"
     input:
@@ -611,7 +611,7 @@ rule compute_wmi_with_decdnnf_baseline:
 
 
 rule compute_wmi_with_decdnnf_two_steps_sdd:
-    threads: 13
+    threads: 26
     resources:
         mem="20GB"
     input:
@@ -656,7 +656,7 @@ rule compute_wmi_with_decdnnf_two_steps_sdd:
 
 
 rule compute_wmi_with_decdnnf_two_steps_d4:
-    threads: 13
+    threads: 26
     resources:
         mem="20GB"
     input:
