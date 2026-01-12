@@ -29,9 +29,9 @@ wmibench_synthetic_structured:
     - tpg_3ary_tree
     - tpg_path
     - tpg_star
-  size: [ 73, 109 ]
+  size: [ 37 ]
 
 wmibench_synthetic_pa:
   reals: [ 3, 7 ]
   bools: [ 3, 7 ]
-  depth: [ 5, 6, 7 ]
+  depth: [ 4, 5, 6 ]
