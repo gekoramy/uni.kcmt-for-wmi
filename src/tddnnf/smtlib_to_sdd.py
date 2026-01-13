@@ -17,7 +17,6 @@ from src.tddnnf import tlemmas
 
 
 def ref_sdd(sdd: SddNode) -> SddNode:
-    sdd.ref()
     return sdd
 
 
@@ -87,7 +86,6 @@ def to_sdd(env: Environment, phi: FNode, atom2id: dict[FNode, int], project_onto
     Vtree, SddNode]:
     vt: Vtree = Vtree(len(atom2id), list(range(1, len(atom2id) + 1)), 'balanced')
     mgr: SddManager = SddManager.from_vtree(vt)
-    mgr.auto_gc_and_minimize_on()
 
     walker: SDDWalker = SDDWalker(atom2id=atom2id, manager=mgr, env=env)
     root: SddNode = walker.walk(phi)
