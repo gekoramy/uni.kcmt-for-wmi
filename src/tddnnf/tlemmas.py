@@ -1,4 +1,5 @@
 import argparse
+import itertools as it
 import json
 import typing as t
 from abc import abstractmethod
@@ -17,22 +18,35 @@ from wmpy.cli.density import Density
 
 from src import utils
 
+i2atom: type['i2atom'] = t.NewType('i2atom', list[FNode])
+
+
+def atoms(mapping: i2atom) -> int:
+    return len(mapping) - 1
+
+
+def entries(mapping: i2atom) -> t.Iterable[tuple[int, FNode]]:
+    return it.islice(enumerate(mapping), 1, None)
+
 
 def read_mapping(
         env: Environment,
         mapping: Path
-) -> dict[int, FNode]:
+) -> i2atom:
     with utils.log('parsing abstraction'), open(mapping, 'r', encoding='utf-8') as f:
         parser: SmtLibParser = SmtLibParser(environment=env)
 
-        return {
-            k: parser.get_script(StringIO(json.loads(line))).get_last_formula()
-            for k, line in enumerate(f, 1)
-        }
+        return i2atom(
+            [smt.TRUE()] +
+            [
+                parser.get_script(StringIO(json.loads(line))).get_last_formula()
+                for line in f
+            ]
+        )
 
 
 def convert(
-        mapping: dict[int, FNode],
+        mapping: i2atom,
         mu: dict[bool, list[int]],
 ) -> dict[bool, list[FNode]]:
     return {

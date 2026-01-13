@@ -20,12 +20,12 @@ class BCS12Walker(DagWalker):
 
     def __init__(
             self,
-            atom2id: dict[FNode, str],
+            atom2i: dict[FNode, str],
             env: Environment,
             invalidate_memoization=False,
     ):
         DagWalker.__init__(self, env, invalidate_memoization)
-        self.atom2id = atom2id
+        self.atom2id = atom2i
         self.gates = [
             'G gF := A 1 -1',
             'G gT := O 1 -1',
@@ -101,17 +101,17 @@ class BCS12Walker(DagWalker):
         return None
 
 
-def to_bcs12(env: Environment, phi: FNode, id2atom: dict[int, FNode], project_onto: list[int] | None) -> list[str]:
+def to_bcs12(env: Environment, phi: FNode, i2atom: tlemmas.i2atom, project_onto: list[int] | None) -> list[str]:
     walker: BCS12Walker = BCS12Walker(
-        atom2id={v: str(k) for k, v in id2atom.items()},
+        atom2i={v: str(k) for k, v in tlemmas.entries(i2atom)},
         env=env
     )
     root: str = walker.walk(phi)
 
-    atoms: int = max(id2atom.keys())
+    atoms: int = tlemmas.atoms(i2atom)
     lines: list[str] = ['c BC-S1.2']
 
-    for i in range(1, atoms + 1):
+    for i in tlemmas.entries(i2atom):
         lines.append(f'I {i}')
 
     # this gate references all atoms to ensure deterministic id assignment
@@ -133,7 +133,7 @@ def to_bcs12(env: Environment, phi: FNode, id2atom: dict[int, FNode], project_on
 
 def translate(smtlib: Path, mapping: Path, project_onto: list[int] | None, bcs12: Path) -> None:
     env: Environment = get_env()
-    id2atom: dict[int, FNode] = tlemmas.read_mapping(env, mapping)
+    i2atom: tlemmas.i2atom = tlemmas.read_mapping(env, mapping)
 
     with open(smtlib, 'r', encoding='utf-8') as f:
         parser: SmtLibParser = SmtLibParser(environment=env)
@@ -142,7 +142,7 @@ def translate(smtlib: Path, mapping: Path, project_onto: list[int] | None, bcs12
     with open(bcs12, 'w', encoding='utf-8') as f:
         f.writelines(
             part
-            for line in to_bcs12(env, phi, id2atom, project_onto)
+            for line in to_bcs12(env, phi, i2atom, project_onto)
             for part in (line, '\n')
         )
 

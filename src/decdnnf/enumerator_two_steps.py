@@ -40,7 +40,7 @@ def enum(
         args: Arguments,
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with utils.log('two steps'):
-        mapping: dict[int, FNode] = tlemmas.read_mapping(env, args.mapping)
+        mapping: tlemmas.i2atom = tlemmas.read_mapping(env, args.mapping)
 
         with open(args.models_projected, 'r', encoding='utf-8') as f:
             mus_projected: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
@@ -65,7 +65,7 @@ def enum_with_sdd(
         args: ArgumentsWithSDD,
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with utils.log('two steps'):
-        mapping: dict[int, FNode] = tlemmas.read_mapping(env, args.mapping)
+        mapping: tlemmas.i2atom = tlemmas.read_mapping(env, args.mapping)
 
         with open(args.models_projected, 'r', encoding='utf-8') as f:
             mus_projected: list[dict[bool, list[int]]] = list(decdnnf.parse(f))

@@ -105,7 +105,7 @@ def to_sdd(env: Environment, phi: FNode, atom2id: dict[FNode, int], project_onto
 
 def translate(smtlib: Path, mapping: Path, project_onto: list[int] | None, vtree: Path, sdd: Path) -> None:
     env: Environment = get_env()
-    id2atom: dict[int, FNode] = tlemmas.read_mapping(env, mapping)
+    i2atom: tlemmas.i2atom = tlemmas.read_mapping(env, mapping)
 
     with open(smtlib, 'r', encoding='utf-8') as f:
         parser: SmtLibParser = SmtLibParser(environment=env)
@@ -114,7 +114,7 @@ def translate(smtlib: Path, mapping: Path, project_onto: list[int] | None, vtree
     vt, root = to_sdd(
         env=env,
         phi=phi,
-        atom2id={v: k for k, v in id2atom.items()},
+        atom2id={v: k for k, v in tlemmas.entries(i2atom)},
         project_onto=project_onto,
     )
 
