@@ -182,15 +182,17 @@ def plot(
         # count points at each location for timeout points
         unique_timeout, counts_timeout = np.unique(xy[rm], axis=0, return_counts=True)
 
-        vmax: int = 10
-        assert max(*counts_regular, *counts_timeout) <= vmax
+        vmax: int = max(
+            np.max(counts_regular, initial=10),
+            np.max(counts_timeout, initial=10),
+        )
 
         scatters: list[plt.PathCollection] = [
             ax.scatter(
                 x=unique_regular[:, 0],
                 y=unique_regular[:, 1],
                 c=counts_regular,
-                cmap='tab10',
+                cmap='plasma',
                 vmin=1,
                 vmax=vmax,
                 marker='o',
@@ -199,7 +201,7 @@ def plot(
                 x=unique_timeout[:, 0],
                 y=unique_timeout[:, 1],
                 c=counts_timeout,
-                cmap='tab10',
+                cmap='plasma',
                 vmin=1,
                 vmax=vmax,
                 marker='x',
