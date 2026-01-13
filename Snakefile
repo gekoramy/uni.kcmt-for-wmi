@@ -52,7 +52,7 @@ def wmibench_synthetic_pa() -> list[str]:
 rule all:
     input:
         expand("assets/plots/{column}.vs.{suffix}",
-            column=["time", "npolys", "nuniquepolys", "nuniquepolys to npolys", "survival"],
+            column=["time", "enumerating", "npolys", "nuniquepolys", "nuniquepolys to npolys", "survival"],
             suffix=["pdf", "png"]
         ),
         expand("assets/plots/{column}.only-exists.{suffix}",

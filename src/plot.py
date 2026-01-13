@@ -224,6 +224,7 @@ def plot(
 def plot_time(
         df: pl.DataFrame,
         timeout: Timeout,
+        expression_n_enumerator: list[tuple[pl.Expr, str]],
 ) -> plt.Figure:
     padding: float = 2
     minimum: float = (
@@ -244,10 +245,12 @@ def plot_time(
     iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
 
     ax: plt.Axes
-    for ((enum_x, steps_x), (enum_y, steps_y)), ax in zip(
-            it.combinations(enumerator2steps.items(), 2),
+    for ((expression_x, enum_x), (expression_y, enum_y)), ax in zip(
+            it.combinations(expression_n_enumerator, 2),
             iter4axs,
     ):
+        steps_x = enumerator2steps[enum_x]
+        steps_y = enumerator2steps[enum_y]
 
         limits_x: list[float] = list(it.accumulate([from_step(timeout, step).total_seconds() for step in steps_x]))
         limits_x.append(padding * limits_x[-1])
@@ -302,10 +305,12 @@ def plot_time(
                     pl.col(f'stderr_{step}').fill_null('').str.contains('timeout').alias(f'tout_{step}')
                     for step in set(steps_x + steps_y)
                 ],
-            ).with_columns(**{
-                enum_x: pl.sum_horizontal(pl.col(f's_{step}') for step in steps_x),
-                enum_y: pl.sum_horizontal(pl.col(f's_{step}') for step in steps_y),
-            })
+            ).with_columns(
+                **{
+                    enum_x: expression_x,
+                    enum_y: expression_y,
+                }
+            )
         )
 
         rm = np.zeros(len(df), dtype=np.bool)
@@ -658,6 +663,12 @@ def main() -> None:
         },
     ).sort(by=pl.col('density'))
 
+    timeout: Timeout = Timeout(
+        enumerator=timedelta(minutes=args.timeout_enumerator),
+        compilator=timedelta(minutes=args.timeout_compilator),
+        tlemmas=timedelta(minutes=args.timeout_tlemmas),
+    )
+
     fig: plt.Figure
     match args.type:
         case 'steps':
@@ -701,11 +712,31 @@ def main() -> None:
         case _:
             match args.column:
                 case 'time':
-                    fig = plot_time(df, Timeout(
-                        enumerator=timedelta(minutes=args.timeout_enumerator),
-                        compilator=timedelta(minutes=args.timeout_compilator),
-                        tlemmas=timedelta(minutes=args.timeout_tlemmas),
-                    ))
+                    fig = plot_time(
+                        df,
+                        timeout,
+                        [
+                            (pl.sum_horizontal(pl.col(f's_{step}') for step in steps), enum)
+                            for enum, steps in enumerator2steps.items()
+                        ]
+                    )
+
+                case 'enumerating':
+                    fig = plot_time(
+                        df,
+                        timeout,
+                        [
+                            *[
+                                (pl.sum_horizontal(pl.col(f's_{step}') for step in enumerator2steps[enum]), enum)
+                                for enum in ['sae']
+                            ],
+                            *[
+                                (pl.sum_horizontal(pl.col(f's_{step}') for step in steps if 'decdnnf' in step), enum)
+                                for enum, steps in enumerator2steps.items()
+                                if 'decdnnf' in enum
+                            ],
+                        ]
+                    )
 
                 case 'nuniquepolys to npolys':
                     fig = plot_lines(
