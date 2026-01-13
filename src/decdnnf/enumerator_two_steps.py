@@ -103,20 +103,9 @@ def conditioning(
                 )),
             )
 
-        with open(conditioned, 'w', encoding='utf-8') as f:
-            f.writelines(
-                part
-                for line in minimize_nnf.minimizing((line + ' 0' for line in unoptimized))
-                for part in (line, ' 0\n')
-            )
+        minimize(unoptimized, conditioned)
 
-        return [
-            {
-                boolean: mu_projected[boolean] + literals
-                for boolean, literals in mu_conditioned.items()
-            }
-            for mu_conditioned in decdnnf.raw(cores=1, nnf=conditioned)
-        ]
+        return mu(mu_projected, conditioned)
 
 
 def conditioning_with_sdd(
@@ -151,17 +140,25 @@ def conditioning_with_sdd(
         with open(sdd, 'r', encoding='utf-8') as f:
             unoptimized: list[str] = sdd_to_nnf.sdd2nnf(f)
 
-        with open(nnf, 'w', encoding='utf-8') as f:
-            f.writelines(
-                part
-                for line in minimize_nnf.minimizing((line + ' 0' for line in unoptimized))
-                for part in (line, ' 0\n')
-            )
+        minimize(unoptimized, nnf)
 
-        return [
-            {
-                boolean: mu_projected[boolean] + literals
-                for boolean, literals in mu_conditioned.items()
-            }
-            for mu_conditioned in decdnnf.raw(cores=1, nnf=nnf)
-        ]
+        return mu(mu_projected, nnf)
+
+
+def minimize(definition: list[str], nnf: Path) -> None:
+    with open(nnf, 'w', encoding='utf-8') as f:
+        f.writelines(
+            part
+            for line in minimize_nnf.minimizing((line + ' 0' for line in definition))
+            for part in (line, ' 0\n')
+        )
+
+
+def mu(mu_projected: dict[bool, list[int]], nnf: Path) -> list[dict[bool, list[int]]]:
+    return [
+        {
+            boolean: mu_projected[boolean] + literals
+            for boolean, literals in mu_conditioned.items()
+        }
+        for mu_conditioned in decdnnf.raw(cores=1, nnf=nnf)
+    ]
