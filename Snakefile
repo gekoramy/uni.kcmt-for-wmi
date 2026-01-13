@@ -379,7 +379,7 @@ rule fix_nnf:
 rule compile_tddnnf_with_sdd:
     threads: 1
     resources:
-        mem="20GB"
+        mem="60GB"
     input:
         phi_n_tlemmas="assets/tlemmas/{type}/{density}.phi_n_tlemmas.smt2",
         mapping="assets/tlemmas/{type}/{density}.mapping",
