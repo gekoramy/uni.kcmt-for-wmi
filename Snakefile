@@ -56,7 +56,7 @@ rule all:
             suffix=["pdf", "png"]
         ),
         expand("assets/plots/{column}.only-exists.{suffix}",
-            column=["models", "models to npolys"],
+            column=["models", "models to npolys", "models to nuniquepolys"],
             suffix=["pdf", "png"]
         ),
         expand("assets/plots/{column}.steps.{suffix}",

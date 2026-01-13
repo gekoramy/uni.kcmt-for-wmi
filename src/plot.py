@@ -676,6 +676,17 @@ def main() -> None:
                         ],
                     )
 
+                case 'models to nuniquepolys':
+                    fig = plot_lines(
+                        df,
+                        'models → nuniquepolys',
+                        [
+                            ((f'models_{steps[-2]}', f'nuniquepolys_{enum}'), enum)
+                            for enum, steps in enumerator2steps.items()
+                            if 'exists' in enum
+                        ],
+                    )
+
                 case 'models':
                     fig = plot(
                         df,
