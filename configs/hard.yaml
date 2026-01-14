@@ -6,7 +6,7 @@ timeout:
   enumerator: 20
   minimize: 20
   compilator: 40
-  tlemmas: 40
+  tlemmas: 80
 
 wmpy_synthetic:
   n_reals: [ 5, 6 ]
