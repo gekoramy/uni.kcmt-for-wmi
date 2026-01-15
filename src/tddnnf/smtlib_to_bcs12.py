@@ -101,7 +101,7 @@ class BCS12Walker(DagWalker):
         return None
 
 
-def to_bcs12(env: Environment, phi: FNode, i2atom: tlemmas.i2atom, project_onto: list[int] | None) -> list[str]:
+def to_bcs12(env: Environment, phi: FNode, i2atom: tlemmas.i2atom) -> list[str]:
     walker: BCS12Walker = BCS12Walker(
         atom2i={v: str(k) for k, v in tlemmas.entries(i2atom)},
         env=env
@@ -125,13 +125,13 @@ def to_bcs12(env: Environment, phi: FNode, i2atom: tlemmas.i2atom, project_onto:
         }'
     )
     lines.extend(walker.gates)
-    lines.append(' '.join(('P', *(map(str, project_onto if project_onto else range(1, atoms + 1))))))
+    lines.append(' '.join(('P', *(map(str, range(1, atoms + 1))))))
     lines.append(f'T {root}')
 
     return lines
 
 
-def translate(smtlib: Path, mapping: Path, project_onto: list[int] | None, bcs12: Path) -> None:
+def translate(smtlib: Path, mapping: Path, bcs12: Path) -> None:
     env: Environment = get_env()
     i2atom: tlemmas.i2atom = tlemmas.read_mapping(env, mapping)
 
@@ -142,7 +142,7 @@ def translate(smtlib: Path, mapping: Path, project_onto: list[int] | None, bcs12
     with open(bcs12, 'w', encoding='utf-8') as f:
         f.writelines(
             part
-            for line in to_bcs12(env, phi, i2atom, project_onto)
+            for line in to_bcs12(env, phi, i2atom)
             for part in (line, '\n')
         )
 
@@ -152,10 +152,9 @@ def main() -> None:
     parser.add_argument('--smtlib', type=utils.file, required=True)
     parser.add_argument('--mapping', type=utils.file, required=True)
     parser.add_argument('--bcs12', type=Path, required=True)
-    parser.add_argument('--project_onto', type=int, nargs='*')
     args: argparse.Namespace = parser.parse_args()
 
-    translate(smtlib=args.smtlib, mapping=args.mapping, project_onto=args.project_onto, bcs12=args.bcs12)
+    translate(smtlib=args.smtlib, mapping=args.mapping, bcs12=args.bcs12)
 
 
 if __name__ == '__main__':

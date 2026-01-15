@@ -5,7 +5,6 @@ from operator import iand, ior
 from pathlib import Path
 
 import pysmt.operators as op
-from array import array
 from pysdd.sdd import SddManager, SddNode, Vtree
 from pysmt.environment import Environment, get_env
 from pysmt.fnode import FNode
@@ -83,7 +82,7 @@ class SDDWalker(DagWalker):
         return None
 
 
-def to_sdd(env: Environment, phi: FNode, atom2id: dict[FNode, int], project_onto: list[int] | None) -> tuple[
+def to_sdd(env: Environment, phi: FNode, atom2id: dict[FNode, int]) -> tuple[
     Vtree, SddNode]:
     vt: Vtree = Vtree(len(atom2id), list(range(1, len(atom2id) + 1)), 'balanced')
     mgr: SddManager = SddManager.from_vtree(vt)
@@ -92,18 +91,10 @@ def to_sdd(env: Environment, phi: FNode, atom2id: dict[FNode, int], project_onto
     walker: SDDWalker = SDDWalker(atom2id=atom2id, manager=mgr, env=env)
     root: SddNode = walker.walk(phi)
 
-    if not project_onto:
-        return vt, root
-
-    which: list[int] = [1] * (1 + len(atom2id))
-    for k in project_onto:
-        which[k] = 0
-
-    projected_root: SddNode = mgr.exists_multiple(array('i', which), root)
-    return vt, projected_root
+    return vt, root
 
 
-def translate(smtlib: Path, mapping: Path, project_onto: list[int] | None, vtree: Path, sdd: Path) -> None:
+def translate(smtlib: Path, mapping: Path, vtree: Path, sdd: Path) -> None:
     env: Environment = get_env()
     i2atom: tlemmas.i2atom = tlemmas.read_mapping(env, mapping)
 
@@ -115,7 +106,6 @@ def translate(smtlib: Path, mapping: Path, project_onto: list[int] | None, vtree
         env=env,
         phi=phi,
         atom2id={v: k for k, v in tlemmas.entries(i2atom)},
-        project_onto=project_onto,
     )
 
     with utils.log('store'):
@@ -129,10 +119,9 @@ def main() -> None:
     parser.add_argument('--mapping', type=utils.file, required=True)
     parser.add_argument('--vtree', type=Path, required=True)
     parser.add_argument('--sdd', type=Path, required=True)
-    parser.add_argument('--project_onto', type=int, nargs='*')
     args: argparse.Namespace = parser.parse_args()
 
-    translate(smtlib=args.smtlib, mapping=args.mapping, project_onto=args.project_onto, vtree=args.vtree, sdd=args.sdd)
+    translate(smtlib=args.smtlib, mapping=args.mapping, vtree=args.vtree, sdd=args.sdd)
 
 
 if __name__ == '__main__':
