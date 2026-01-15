@@ -5,6 +5,8 @@ from operator import iand, ior
 from pathlib import Path
 
 import pysmt.operators as op
+import pysmt.shortcuts as smt
+from array import array
 from pysdd.sdd import SddManager, SddNode, Vtree
 from pysmt.environment import Environment, get_env
 from pysmt.fnode import FNode
@@ -24,13 +26,13 @@ class SDDWalker(DagWalker):
 
     def __init__(
             self,
-            atom2id: dict[FNode, int],
+            i2atom: tlemmas.i2atom,
             manager: SddManager,
             env: Environment,
             invalidate_memoization=False,
     ):
         DagWalker.__init__(self, env, invalidate_memoization)
-        self.atom2literal: dict[FNode, SddNode] = {atom: manager.literal(i) for atom, i in atom2id.items()}
+        self.atom2literal: dict[FNode, SddNode] = {atom: manager.literal(i) for i, atom in tlemmas.entries(i2atom)}
         self.manager: SddManager = manager
 
     def walk_and(self, formula: FNode, args: t.Sequence[SddNode], **kwargs) -> SddNode:
@@ -82,19 +84,43 @@ class SDDWalker(DagWalker):
         return None
 
 
-def to_sdd(env: Environment, phi: FNode, atom2id: dict[FNode, int]) -> tuple[
-    Vtree, SddNode]:
-    vt: Vtree = Vtree(len(atom2id), list(range(1, len(atom2id) + 1)), 'balanced')
+def to_sdd(
+        env: Environment,
+        phi: FNode,
+        i2atom: tlemmas.i2atom,
+        constrained: t.Literal['x', 'A'] | None,
+) -> tuple[Vtree, SddNode]:
+    atoms: int = tlemmas.atoms(i2atom)
+
+    vt: Vtree
+    match constrained:
+        case None:
+            vt = Vtree.new_with_var_order(atoms, list(range(1, atoms + 1)), 'balanced')
+
+        case 'x':
+            which: list[int] = [0] * (1 + atoms)
+            for i, atom in tlemmas.entries(i2atom):
+                which[i] = not atom.is_symbol(smt.BOOL)
+
+            vt = Vtree.new_with_X_constrained(atoms, array('q', which), 'balanced')
+
+        case 'A':
+            which: list[int] = [0] * (1 + atoms)
+            for i, atom in tlemmas.entries(i2atom):
+                which[i] = atom.is_symbol(smt.BOOL)
+
+            vt = Vtree.new_with_X_constrained(atoms, array('q', which), 'balanced')
+
     mgr: SddManager = SddManager.from_vtree(vt)
     mgr.auto_gc_and_minimize_on()
 
-    walker: SDDWalker = SDDWalker(atom2id=atom2id, manager=mgr, env=env)
+    walker: SDDWalker = SDDWalker(i2atom=i2atom, manager=mgr, env=env)
     root: SddNode = walker.walk(phi)
 
     return vt, root
 
 
-def translate(smtlib: Path, mapping: Path, vtree: Path, sdd: Path) -> None:
+def translate(smtlib: Path, mapping: Path, vtree: Path, sdd: Path, constrained: t.Literal['x', 'A'] | None) -> None:
     env: Environment = get_env()
     i2atom: tlemmas.i2atom = tlemmas.read_mapping(env, mapping)
 
@@ -105,7 +131,8 @@ def translate(smtlib: Path, mapping: Path, vtree: Path, sdd: Path) -> None:
     vt, root = to_sdd(
         env=env,
         phi=phi,
-        atom2id={v: k for k, v in tlemmas.entries(i2atom)},
+        i2atom=i2atom,
+        constrained=constrained,
     )
 
     with utils.log('store'):
@@ -119,9 +146,10 @@ def main() -> None:
     parser.add_argument('--mapping', type=utils.file, required=True)
     parser.add_argument('--vtree', type=Path, required=True)
     parser.add_argument('--sdd', type=Path, required=True)
+    parser.add_argument('--constrained', type=str, choices=['x', 'A'], required=False)
     args: argparse.Namespace = parser.parse_args()
 
-    translate(smtlib=args.smtlib, mapping=args.mapping, vtree=args.vtree, sdd=args.sdd)
+    translate(smtlib=args.smtlib, mapping=args.mapping, vtree=args.vtree, sdd=args.sdd, constrained=args.constrained)
 
 
 if __name__ == '__main__':

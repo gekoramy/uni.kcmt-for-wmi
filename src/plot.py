@@ -34,7 +34,7 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
             f'decdnnf_{compiler}',
             f'decdnnf_baseline_{compiler}',
         ]
-        for compiler in ['d4', 'sdd']
+        for compiler in ['d4', 'sdd', 'x_constrained_sdd', 'A_constrained_sdd']
     },
     **{
         f'decdnnf_two_steps_exists_{qo}_{compiler}': [

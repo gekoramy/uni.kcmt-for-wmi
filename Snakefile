@@ -114,6 +114,14 @@ rule aggregate_density:
             *["assets/tddnnf/sdd/{type}/{density}." + suffix for suffix in ["err"]],
             "assets/benchmarks/tddnnf/sdd/{type}/{density}.jsonl"
         ],
+        tddnnf_x_constrained_sdd=[
+            *["assets/tddnnf/x_constrained_sdd/{type}/{density}." + suffix for suffix in["err"]],
+            "assets/benchmarks/tddnnf/x_constrained_sdd/{type}/{density}.jsonl"
+        ],
+        tddnnf_A_constrained_sdd=[
+            *["assets/tddnnf/A_constrained_sdd/{type}/{density}." + suffix for suffix in["err"]],
+            "assets/benchmarks/tddnnf/A_constrained_sdd/{type}/{density}.jsonl"
+        ],
         tddnnf_exists_x_d4=[
             *["assets/tddnnf_exists_x/d4/{type}/{density}." + suffix for suffix in ["err"]],
             "assets/benchmarks/tddnnf_exists_x/d4/{type}/{density}.jsonl"
@@ -137,6 +145,14 @@ rule aggregate_density:
         decdnnf_sdd=[
             *["assets/decdnnf/tddnnf/sdd/{type}/{density}." + suffix for suffix in ["err", "models"]],
             "assets/benchmarks/decdnnf/tddnnf/sdd/{type}/{density}.jsonl"
+        ],
+        decdnnf_x_constrained_sdd=[
+            *["assets/decdnnf/tddnnf/x_constrained_sdd/{type}/{density}." + suffix for suffix in ["err", "models"]],
+            "assets/benchmarks/decdnnf/tddnnf/x_constrained_sdd/{type}/{density}.jsonl"
+        ],
+        decdnnf_A_constrained_sdd=[
+            *["assets/decdnnf/tddnnf/A_constrained_sdd/{type}/{density}." + suffix for suffix in ["err", "models"]],
+            "assets/benchmarks/decdnnf/tddnnf/A_constrained_sdd/{type}/{density}.jsonl"
         ],
         decdnnf_exists_x_d4=[
             *["assets/decdnnf/tddnnf_exists_x/d4/{type}/{density}." + suffix for suffix in ["err", "models"]],
@@ -165,6 +181,14 @@ rule aggregate_density:
         decdnnf_baseline_sdd=[
             *["assets/wmi/decdnnf_baseline/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
             "assets/benchmarks/decdnnf_baseline/sdd/noop/{type}/{density}.jsonl"
+        ],
+        decdnnf_baseline_x_constrained_sdd=[
+            *["assets/wmi/decdnnf_baseline/x_constrained_sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/benchmarks/decdnnf_baseline/x_constrained_sdd/noop/{type}/{density}.jsonl"
+        ],
+        decdnnf_baseline_A_constrained_sdd=[
+            *["assets/wmi/decdnnf_baseline/A_constrained_sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/benchmarks/decdnnf_baseline/A_constrained_sdd/noop/{type}/{density}.jsonl"
         ],
         decdnnf_two_steps_exists_x_d4=[
             *["assets/wmi/decdnnf_two_steps/exists_x/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
@@ -413,6 +437,40 @@ rule compile_tddnnf_with_sdd:
         """
 
 
+rule compile_tddnnf_with_constrained_sdd:
+    threads: 1
+    resources:
+        mem="20GB"
+    input:
+        phi_n_tlemmas="assets/tlemmas/{type}/{density}.phi_n_tlemmas.smt2",
+        mapping="assets/tlemmas/{type}/{density}.mapping",
+    output:
+        sdd="assets/tddnnf/{on,[xA]}_constrained_sdd/{type}/{density}.min-sdd",
+        vtree="assets/tddnnf/{on,[xA]}_constrained_sdd/{type}/{density}.min-vtree"
+    log:
+        err="assets/tddnnf/{on,[xA]}_constrained_sdd/{type}/{density}.err"
+    benchmark:
+        "assets/benchmarks/tddnnf/{on,[xA]}_constrained_sdd/{type}/{density}.jsonl"
+    params:
+        script="src.tddnnf.smtlib_to_sdd"
+    shell:
+        """
+        if [[ -s {input.phi_n_tlemmas:q} ]]; then
+          timeout --verbose {config[timeout][compilator]}m \
+            python -m {params.script} \
+            --smtlib {input.phi_n_tlemmas} \
+            --mapping {input.mapping} \
+            --sdd {output.sdd} \
+            --vtree {output.vtree} \
+            --constrained {wildcards.on} \
+            2> {log.err} \
+            || touch {output}
+        fi
+
+        touch {output}
+        """
+
+
 rule compile_tddnnf_projected_with_sdd:
     threads: 1
     resources:
@@ -583,12 +641,12 @@ rule compute_wmi_with_decdnnf_baseline:
         models="assets/decdnnf/tddnnf/{compiler}/{type}/{density}.models",
         mapping="assets/tlemmas/{type}/{density}.mapping"
     output:
-        wmi="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.out"
+        wmi="assets/wmi/decdnnf_baseline/{compiler,d4|.*sdd}/{int,noop|latte}/{type}/{density}.out"
     log:
-        steps="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.steps",
-        err="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.err"
+        steps="assets/wmi/decdnnf_baseline/{compiler,d4|.*sdd}/{int,noop|latte}/{type}/{density}.steps",
+        err="assets/wmi/decdnnf_baseline/{compiler,d4|.*sdd}/{int,noop|latte}/{type}/{density}.err"
     benchmark:
-        "assets/benchmarks/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.jsonl"
+        "assets/benchmarks/decdnnf_baseline/{compiler,d4|.*sdd}/{int,noop|latte}/{type}/{density}.jsonl"
     params:
         script="src.wmi"
     shell:
