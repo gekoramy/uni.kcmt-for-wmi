@@ -41,7 +41,11 @@ def parse_data(
             with open(path, 'rb') as f:
                 lines: int = sum(not line.isspace() for line in f)
 
-            data: pl.DataFrame = pl.DataFrame({'models': lines}) if lines else pl.DataFrame()
+            data: pl.DataFrame = (
+                pl.DataFrame({'models': lines}, schema={'models': pl.Float64})
+                if lines else
+                pl.DataFrame()
+            )
 
         case '.err':
             text: str = path.read_text()

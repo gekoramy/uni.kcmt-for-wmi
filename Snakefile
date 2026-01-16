@@ -647,6 +647,7 @@ rule compute_wmi_with_decdnnf_two_steps_sdd:
             decdnnf_two_steps \
             --models_projected {input.models_projected} \
             --mapping {input.mapping} \
+            --quantify_out {wildcards.qo} \
             sdd \
             --vtree {input.vtree} \
             --sdd {input.sdd} \
@@ -691,6 +692,7 @@ rule compute_wmi_with_decdnnf_two_steps_d4:
             decdnnf_two_steps \
             --models_projected {input.models_projected} \
             --mapping {input.mapping} \
+            --quantify_out {wildcards.qo} \
             d4 \
             --nnf {input.nnf} \
             1> {output.wmi} \

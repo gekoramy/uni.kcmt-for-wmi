@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from multiprocessing.pool import Pool
 from pathlib import Path
 
+import pysmt.shortcuts as smt
 from pysdd.sdd import SddManager, Vtree, SddNode
 from pysmt.environment import Environment
 from pysmt.fnode import FNode
@@ -21,6 +22,7 @@ from src.tddnnf import tlemmas
 @dataclass(frozen=True)
 class Arguments:
     cores: int
+    quantify_out: t.Literal['x', 'A']
     models_projected: Path
     mapping: Path
     nnf: Path
@@ -29,10 +31,37 @@ class Arguments:
 @dataclass(frozen=True)
 class ArgumentsWithSDD:
     cores: int
+    quantify_out: t.Literal['x', 'A']
     models_projected: Path
     mapping: Path
     vtree: Path
     sdd: Path
+
+
+def inspect(
+        mapping: tlemmas.i2atom,
+        quantify_out: t.Literal['x', 'A'],
+        mus_projected: list[dict[bool, list[int]]],
+        modelss: list[list[dict[bool, list[int]]]],
+) -> None:
+    quantified_out: t.Callable[[FNode], bool]
+    match quantify_out:
+        case 'x':
+            quantified_out = lambda fnode: not fnode.is_symbol(smt.BOOL)
+
+        case 'A':
+            quantified_out = lambda fnode: fnode.is_symbol(smt.BOOL)
+
+    is_quantified_out: frozenset[int] = frozenset(i for i, atom in tlemmas.entries(mapping) if quantified_out(atom))
+
+    utils.log_entry(
+        "models'",
+        sum(
+            sum(any(i in to_inspect for i in it.chain(*mu.values())) for mu in models)
+            for mu_projected, models in zip(mus_projected, modelss)
+            if (to_inspect := is_quantified_out.difference(it.chain(*mu_projected.values())))
+        )
+    )
 
 
 def enum(
@@ -53,6 +82,13 @@ def enum(
                     mus_projected,
                 )
             )
+
+        inspect(
+            mapping,
+            args.quantify_out,
+            mus_projected,
+            models,
+        )
 
         yield from (
             tlemmas.convert(mapping, model)
@@ -80,6 +116,13 @@ def enum_with_sdd(
                 )
             )
 
+        inspect(
+            mapping,
+            args.quantify_out,
+            mus_projected,
+            models,
+        )
+
         yield from (
             tlemmas.convert(mapping, model)
             for model in it.chain(*models)
@@ -105,7 +148,7 @@ def conditioning(
 
         minimize(unoptimized, conditioned)
 
-        return mu(mu_projected, conditioned)
+        return mus(mu_projected, conditioned)
 
 
 def conditioning_with_sdd(
@@ -142,7 +185,7 @@ def conditioning_with_sdd(
 
         minimize(unoptimized, nnf)
 
-        return mu(mu_projected, nnf)
+        return mus(mu_projected, nnf)
 
 
 def minimize(definition: list[str], nnf: Path) -> None:
@@ -154,7 +197,7 @@ def minimize(definition: list[str], nnf: Path) -> None:
         )
 
 
-def mu(mu_projected: dict[bool, list[int]], nnf: Path) -> list[dict[bool, list[int]]]:
+def mus(mu_projected: dict[bool, list[int]], nnf: Path) -> list[dict[bool, list[int]]]:
     return [
         {
             boolean: mu_projected[boolean] + literals

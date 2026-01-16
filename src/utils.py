@@ -43,6 +43,10 @@ def log_step(step: str, took: float) -> None:
     logger().debug('{"step": "%s", "took": %f}', step, took)
 
 
+def log_entry(key: str, value: int) -> None:
+    logger().debug('{"step": "%s", "took": %d}', key, value)
+
+
 def times(whatever: dict[str, dict | float]) -> t.Iterable[tuple[str, float]]:
     """
     >>> list(times({ 'alpha time': 1.0, 'alpha': { 'beta time': 2.0, 'beta': { 'gamma time': 3.0 } } }))

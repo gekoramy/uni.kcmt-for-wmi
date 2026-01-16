@@ -15,12 +15,13 @@ from pysmt.fnode import FNode
 from wmpy.cli.density import Density
 from wmpy.core import Polytope, Polynomial, AssignmentConverter
 from wmpy.core.weights import Weights
-from wmpy.enumeration import SAEnumerator, Enumerator
+from wmpy.enumeration import Enumerator
 from wmpy.integration import Integrator, LattEIntegrator, ParallelWrapper, CacheWrapper
 
 import src.decdnnf.enumerator_baseline as decdnnf_baseline
 import src.decdnnf.enumerator_two_steps as decdnnf_two_steps
 from src import utils
+from src.sae import sae
 
 
 @dataclass
@@ -145,6 +146,7 @@ def main() -> None:
             with utils.use(sub.add_parser('decdnnf_two_steps')) as subparser:
                 subparser.add_argument('--models_projected', type=utils.file, required=True)
                 subparser.add_argument('--mapping', type=utils.file, required=True)
+                subparser.add_argument('--quantify_out', type=str, choices=['x', 'A'], required=True)
 
                 with utils.use(subparser.add_subparsers(dest='using', required=True)) as subsub:
                     with utils.use(subsub.add_parser('d4')) as subsubparser:
@@ -164,7 +166,7 @@ def main() -> None:
     enumerator: Enumerator
     match args.enumerator:
         case 'sae':
-            enumerator = SAEnumerator(density.support, smt.Real(1), env)
+            enumerator = sae.SAEnumerator(density.support, smt.Real(1), env)
 
         case 'decdnnf_baseline' | 'decdnnf_two_steps':
 
@@ -187,6 +189,7 @@ def main() -> None:
                                 env,
                                 decdnnf_two_steps.Arguments(
                                     cores=args.cores,
+                                    quantify_out=args.quantify_out,
                                     models_projected=args.models_projected,
                                     mapping=args.mapping,
                                     nnf=args.nnf,
@@ -198,6 +201,7 @@ def main() -> None:
                                 env,
                                 decdnnf_two_steps.ArgumentsWithSDD(
                                     cores=args.cores,
+                                    quantify_out=args.quantify_out,
                                     models_projected=args.models_projected,
                                     mapping=args.mapping,
                                     vtree=args.vtree,
