@@ -52,14 +52,24 @@ def inspect(
         case 'A':
             quantified_out = lambda fnode: fnode.is_symbol(smt.BOOL)
 
-    is_quantified_out: frozenset[int] = frozenset(i for i, atom in tlemmas.entries(mapping) if quantified_out(atom))
+    rem: frozenset[int] = frozenset(
+        i
+        for i, atom in tlemmas.entries(mapping)
+        if not quantified_out(atom)
+    )
 
     utils.log_entry(
         "models'",
         sum(
-            sum(any(i in to_inspect for i in it.chain(*mu.values())) for mu in models)
+            sum(
+                any(
+                    i in rem_prime
+                    for i in it.chain(*mu.values())
+                )
+                for mu in models
+            )
             for mu_projected, models in zip(mus_projected, modelss)
-            if (to_inspect := is_quantified_out.difference(it.chain(*mu_projected.values())))
+            if (rem_prime := rem.difference(it.chain(*mu_projected.values())))
         )
     )
 
