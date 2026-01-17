@@ -61,15 +61,13 @@ def inspect(
     utils.log_entry(
         "models'",
         sum(
-            sum(
-                any(
-                    i in rem_prime
-                    for i in it.chain(*mu.values())
-                )
-                for mu in models
+            any(
+                i in rem_prime
+                for i in it.chain(*model.values())
             )
             for mu_projected, models in zip(mus_projected, modelss)
             if (rem_prime := rem.difference(it.chain(*mu_projected.values())))
+            for model in models
         )
     )
 
