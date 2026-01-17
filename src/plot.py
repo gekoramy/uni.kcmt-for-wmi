@@ -9,7 +9,8 @@ from pathlib import Path
 import math
 import numpy as np
 import polars as pl
-from matplotlib import pyplot as plt, transforms, ticker, collections
+from matplotlib import pyplot as plt, transforms, ticker
+from matplotlib.colors import Colormap
 
 from src import utils
 
@@ -641,6 +642,82 @@ def foreach_step(
     return fig
 
 
+def inspection(
+        df: pl.DataFrame,
+        qo: t.Literal['x', 'A'],
+) -> plt.Figure:
+    fig, ax = plt.subplots(1, 1, figsize=(300, 20))
+    cmap: Colormap = plt.get_cmap('tab20b')
+
+    enumerators: list[tuple[str, tuple[str, str, str]]] = [
+        *(
+            [
+                ('sae', ('models_sae', 'models\'_sae', 'npolys_sae'))
+            ]
+        ),
+        *[
+            (key, (f'models_decdnnf_exists_{qo}_{compiler}', f'models\'_{key}', f'npolys_{key}'))
+            for compiler in ['d4', 'sdd']
+            if (key := f'decdnnf_two_steps_exists_{qo}_{compiler}')
+        ],
+    ]
+
+    many: int = sum(len(cols) for _, cols in enumerators)
+    width: float = 1 / (many + len(enumerators) - 1)
+
+    ax.set_axisbelow(True)
+    ax.set_yscale('symlog', linthresh=10)
+    ax.yaxis.set_minor_locator(ticker.FixedLocator([
+        *range(0, 10, 2),
+        *[
+            x
+            for exp in range(1, 6)
+            for x in np.arange(2, 10) * (10 ** exp)
+        ],
+    ]))
+
+    ax.grid()
+    ax.yaxis.grid(which='minor')
+
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+    ax.tick_params(
+        axis='y',
+        which='both',
+        left=True,
+        right=True,
+        labelleft=True,
+        labelright=True,
+    )
+
+    data: pl.DataFrame = df.select(
+        *(
+            col
+            for _, cols in enumerators
+            for col in cols
+        )
+    )
+
+    xs: np.ndarray[tuple[int], np.dtype[np.int64]] = np.arange(len(data), dtype=np.int64) + 1
+    for i, (enum, cols) in enumerate(enumerators):
+        for j, col in enumerate(cols):
+            offset: float = width * (4 * i + j)
+
+            ax.bar(
+                x=xs + offset,
+                height=data.get_column(col).to_numpy(),
+                color=cmap(4 * i + j),
+                label=label(col),
+                width=width,
+            )
+
+    ax.set_xlim(.5, len(data) + .5)
+    ax.legend(loc='upper left', ncols=len(enumerators))
+
+    fig.suptitle('inspection')
+    fig.tight_layout()
+    return fig
+
+
 def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument('--csv', type=utils.file, required=True)
@@ -681,9 +758,12 @@ def main() -> None:
                         df,
                         'models → npolys',
                         [
-                            ((f'models_{steps[-2]}', f'npolys_{enum}'), enum)
-                            for enum, steps in enumerator2steps.items()
-                            if 'exists' in enum
+                            (('models_sae', 'npolys_sae'), 'sae'),
+                            *[
+                                ((f'models_{steps[-2]}', f'npolys_{enum}'), enum)
+                                for enum, steps in enumerator2steps.items()
+                                if 'exists' in enum
+                            ],
                         ],
                     )
 
@@ -698,15 +778,46 @@ def main() -> None:
                         ],
                     )
 
+                case 'models to models\'':
+                    fig = plot_lines(
+                        df,
+                        'models → models\'',
+                        [
+                            (('models_sae', 'models\'_sae'), 'sae'),
+                            *[
+                                ((f'models_{steps[-2]}', f'models\'_{enum}'), enum)
+                                for enum, steps in enumerator2steps.items()
+                                if 'exists' in enum
+                            ],
+                        ],
+                    )
+
                 case 'models':
                     fig = plot(
                         df,
                         'models',
                         [
-                            (f'{args.column}_{steps[-2]}', enum)
-                            for enum, steps in enumerator2steps.items()
-                            if 'exists' in enum
-                        ],
+                            (f'{args.column}_sae', 'sae'),
+                            *[
+                                (f'{args.column}_{steps[-2]}', enum)
+                                for enum, steps in enumerator2steps.items()
+                                if 'exists' in enum
+                            ],
+                        ]
+                    )
+
+                case 'models\'':
+                    fig = plot(
+                        df,
+                        'models',
+                        [
+                            (f'{args.column}_sae', 'sae'),
+                            *[
+                                (f'{args.column}_{enum}', enum)
+                                for enum, _ in enumerator2steps.items()
+                                if 'exists' in enum
+                            ],
+                        ]
                     )
 
         case _:
@@ -750,6 +861,12 @@ def main() -> None:
 
                 case 'survival':
                     fig = survival(df)
+
+                case 'inspection-x':
+                    fig = inspection(df, 'x')
+
+                case 'inspection-A':
+                    fig = inspection(df, 'A')
 
                 case column:
                     fig = plot(
