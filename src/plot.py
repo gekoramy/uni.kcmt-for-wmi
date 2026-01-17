@@ -76,14 +76,14 @@ def plot(
     padding: float = 2
 
     minimum: float = (
-            df.select(
-                pl.col(column)
-                for column, _ in columns_n_enumerators
-            )
-            .min_horizontal()
-            .min()
-            / padding
+        df.select(
+            pl.col(column)
+            for column, _ in columns_n_enumerators
+        )
+        .min_horizontal()
+        .min()
     )
+    minimum = 0 if minimum < padding else minimum / padding
 
     maximum: float = (
         df.select(
@@ -112,8 +112,12 @@ def plot(
         limits_x: list[float] = list(it.accumulate(steps_x, lambda acc, _: acc * padding, initial=maximum * padding))
         limits_y: list[float] = list(it.accumulate(steps_y, lambda acc, _: acc * padding, initial=maximum * padding))
 
-        ax.set_xscale('log')
-        ax.set_yscale('log')
+        if minimum <= 1:
+            ax.set_xscale('symlog', linthresh=1, linscale=.25)
+            ax.set_yscale('symlog', linthresh=1, linscale=.25)
+        else:
+            ax.set_xscale('log')
+            ax.set_yscale('log')
 
         ax.set_xlim(minimum, limits_x[-1])
         ax.set_ylim(minimum, limits_y[-1])
@@ -229,14 +233,14 @@ def plot_time(
 ) -> plt.Figure:
     padding: float = 2
     minimum: float = (
-            df.select(
-                pl.col(f's_{enum}')
-                for enum in enumerator2steps.keys()
-            )
-            .min_horizontal()
-            .min()
-            / padding
+        df.select(
+            pl.col(f's_{enum}')
+            for enum in enumerator2steps.keys()
+        )
+        .min_horizontal()
+        .min()
     )
+    minimum = 0 if minimum < padding else minimum / padding
 
     tot: int = math.comb(len(enumerator2steps), 2)
     nrows: int = 3
@@ -258,8 +262,12 @@ def plot_time(
         limits_y: list[float] = list(it.accumulate([from_step(timeout, step).total_seconds() for step in steps_y]))
         limits_y.append(padding * limits_y[-1])
 
-        ax.set_xscale('log')
-        ax.set_yscale('log')
+        if minimum <= 1:
+            ax.set_xscale('symlog', linthresh=1, linscale=.25)
+            ax.set_yscale('symlog', linthresh=1, linscale=.25)
+        else:
+            ax.set_xscale('log')
+            ax.set_yscale('log')
 
         ax.set_xlim(minimum, limits_x[-1])
         ax.set_ylim(minimum, limits_y[-1])
@@ -366,10 +374,11 @@ def plot_lines(
     }
 
     minimum: float = (
-            df.select(columns)
-            .min_horizontal()
-            .min() / padding
+        df.select(columns)
+        .min_horizontal()
+        .min()
     )
+    minimum = 0 if minimum < padding else minimum / padding
 
     maximum: float = (
         df.select(columns)
@@ -395,8 +404,12 @@ def plot_lines(
         limits_x: list[float] = list(it.accumulate(steps_x, lambda acc, _: acc * padding, initial=maximum * padding))
         limits_y: list[float] = list(it.accumulate(steps_y, lambda acc, _: acc * padding, initial=maximum * padding))
 
-        ax.set_xscale('log')
-        ax.set_yscale('log')
+        if minimum <= 1:
+            ax.set_xscale('symlog', linthresh=1, linscale=.25)
+            ax.set_yscale('symlog', linthresh=1, linscale=.25)
+        else:
+            ax.set_xscale('log')
+            ax.set_yscale('log')
 
         ax.set_xlim(minimum, limits_x[-1])
         ax.set_ylim(minimum, limits_y[-1])
