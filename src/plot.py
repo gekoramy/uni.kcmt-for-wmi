@@ -482,16 +482,16 @@ def plot_lines(
             trg_y[mask] = limit
             trg_rm |= mask
 
-        src: np.ndarray[tuple[int, t.Literal[2]], np.dtype[np.int64]] = np.column_stack((src_x, src_y))
-        trg: np.ndarray[tuple[int, t.Literal[2]], np.dtype[np.int64]] = np.column_stack((trg_x, trg_y))
-
-        lines = collections.LineCollection(
-            segments=(np.stack((src, trg), axis=1)),
+        ax.quiver(
+            src_x,
+            src_y,
+            trg_x - src_x,
+            trg_y - src_y,
+            angles='xy',
+            scale_units='xy',
+            scale=1,
             alpha=0.5,
-        )
-
-        ax.add_collection(
-            lines
+            color='C0',
         )
 
         ax.scatter(
