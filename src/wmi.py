@@ -13,7 +13,7 @@ from numpy.typing import ArrayLike
 from pysmt.environment import Environment, get_env
 from pysmt.fnode import FNode
 from wmpy.cli.density import Density
-from wmpy.core import Polytope, Polynomial, AssignmentConverter
+from wmpy.core.polynomial import PolynomialParser
 from wmpy.core.weights import Weights
 from wmpy.enumeration import Enumerator
 from wmpy.integration import Integrator, LattEIntegrator, ParallelWrapper, CacheWrapper
@@ -22,6 +22,7 @@ import src.decdnnf.enumerator_baseline as decdnnf_baseline
 import src.decdnnf.enumerator_two_steps as decdnnf_two_steps
 from src import utils
 from src.sae import sae
+from src.wmpy import custom
 
 
 @dataclass
@@ -99,12 +100,13 @@ def wmi(
         domain: t.Collection[FNode],
 ) -> dict[str, ArrayLike]:
     enumerator = LogEnumerator(enumerator)
-    converter = AssignmentConverter(enumerator)
+    converter = custom.AssignmentConverter(enumerator)
+    polynomials = PolynomialParser(domain)
 
-    convex_integrals: list[tuple[Polytope, Polynomial]] = []
+    convex_integrals: list[tuple[custom.Polytope, custom.Polynomial]] = []
     n_unassigned_bools: list[int] = []
     for truth_assignment, nub in enumerator.enumerate(query):
-        convex_integrals.append(converter.convert(truth_assignment, domain))
+        convex_integrals.append(converter.convert(truth_assignment, domain, polynomials))
         n_unassigned_bools.append(nub)
 
     result: dict[str, ArrayLike] = {
