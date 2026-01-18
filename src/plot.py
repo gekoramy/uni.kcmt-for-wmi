@@ -29,21 +29,22 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
         ]
     },
     **{
-        f'decdnnf_baseline_{compiler}': [
+        f'wmi_decdnnf_{compiler}': [
             'tlemmas',
             f'tddnnf_{compiler}',
             f'decdnnf_{compiler}',
-            f'decdnnf_baseline_{compiler}',
+            f'wmi_decdnnf_{compiler}',
         ]
         for compiler in ['d4', 'sdd']
     },
     **{
-        f'decdnnf_two_steps_exists_{qo}_{compiler}': [
+        f'wmi_decdnnf_exists_{qo}_{compiler}': [
             'tlemmas',
             f'tddnnf_{compiler}',
             f'tddnnf_exists_{qo}_{compiler}',
-            f'decdnnf_exists_{qo}_{compiler}',
-            f'decdnnf_two_steps_exists_{qo}_{compiler}',
+            f'decdnnf_1st_step_exists_{qo}_{compiler}',
+            f'decdnnf_2nd_step_exists_{qo}_{compiler}',
+            f'wmi_decdnnf_exists_{qo}_{compiler}',
         ]
         for compiler in ['d4', 'sdd']
         for qo in 'xA'
@@ -662,16 +663,21 @@ def inspection(
     fig, ax = plt.subplots(1, 1, figsize=(300, 20))
     cmap: Colormap = plt.get_cmap('tab20b')
 
+    oq: t.Literal['x', 'A'] = 'xA'.replace(qo, '')
+
     enumerators: list[tuple[str, tuple[str, str, str]]] = [
-        *(
-            [
-                ('sae', ('models_sae', 'models\'_sae', 'npolys_sae'))
-            ]
-        ),
+        ('sae', ('models_sae', f'distinct_by_{oq}_sae', 'npolys_sae')),
         *[
-            (key, (f'models_decdnnf_exists_{qo}_{compiler}', f'models\'_{key}', f'npolys_{key}'))
+            (
+                key,
+                (
+                    f'models_decdnnf_1st_step_exists_{qo}_{compiler}',
+                    f'distinct_by_{oq}_{key}',
+                    f'npolys_{key}',
+                ),
+            )
             for compiler in ['d4', 'sdd']
-            if (key := f'decdnnf_two_steps_exists_{qo}_{compiler}')
+            if (key := f'wmi_decdnnf_exists_{qo}_{compiler}')
         ],
     ]
 
@@ -773,7 +779,7 @@ def main() -> None:
                         [
                             (('models_sae', 'npolys_sae'), 'sae'),
                             *[
-                                ((f'models_{steps[-2]}', f'npolys_{enum}'), enum)
+                                ((f'models_{steps[-3]}', f'npolys_{enum}'), enum)
                                 for enum, steps in enumerator2steps.items()
                                 if 'exists' in enum
                             ],
@@ -785,7 +791,7 @@ def main() -> None:
                         df,
                         'models → nuniquepolys',
                         [
-                            ((f'models_{steps[-2]}', f'nuniquepolys_{enum}'), enum)
+                            ((f'models_{steps[-3]}', f'nuniquepolys_{enum}'), enum)
                             for enum, steps in enumerator2steps.items()
                             if 'exists' in enum
                         ],
@@ -794,13 +800,18 @@ def main() -> None:
                 case 'models to models\'':
                     fig = plot_lines(
                         df,
-                        'models → models\'',
+                        'models → distinct_by',
                         [
-                            (('models_sae', 'models\'_sae'), 'sae'),
+                            (('models_sae', 'distinct_by_x_sae'), 'sae'),
                             *[
-                                ((f'models_{steps[-2]}', f'models\'_{enum}'), enum)
+                                ((f'models_{steps[-3]}', f'distinct_by_A_{enum}'), enum)
                                 for enum, steps in enumerator2steps.items()
-                                if 'exists' in enum
+                                if 'exists_x' in enum
+                            ],
+                            *[
+                                ((f'models_{steps[-3]}', f'distinct_by_x_{enum}'), enum)
+                                for enum, steps in enumerator2steps.items()
+                                if 'exists_A' in enum
                             ],
                         ],
                     )
@@ -812,7 +823,7 @@ def main() -> None:
                         [
                             (f'{args.column}_sae', 'sae'),
                             *[
-                                (f'{args.column}_{steps[-2]}', enum)
+                                (f'{args.column}_{steps[-3]}', enum)
                                 for enum, steps in enumerator2steps.items()
                                 if 'exists' in enum
                             ],
@@ -822,13 +833,18 @@ def main() -> None:
                 case 'models\'':
                     fig = plot(
                         df,
-                        'models',
+                        'distinct_by',
                         [
-                            (f'{args.column}_sae', 'sae'),
+                            (f'distinct_by_x_sae', 'sae'),
                             *[
-                                (f'{args.column}_{enum}', enum)
+                                (f'distinct_by_A_{enum}', enum)
                                 for enum, _ in enumerator2steps.items()
-                                if 'exists' in enum
+                                if 'exists_x' in enum
+                            ],
+                            *[
+                                (f'distinct_by_x_{enum}', enum)
+                                for enum, _ in enumerator2steps.items()
+                                if 'exists_A' in enum
                             ],
                         ]
                     )

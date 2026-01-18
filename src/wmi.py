@@ -102,13 +102,26 @@ def wmi(
     converter = custom.AssignmentConverter(enumerator)
     polynomials = PolynomialParser(domain)
 
+    distinct_by: dict[t.Literal['x', 'A'], set[frozenset[tuple[FNode, bool]]]] = {
+        'x': set(),
+        'A': set(),
+    }
+
     convex_integrals: list[tuple[custom.Polytope, custom.Polynomial]] = []
     n_unassigned_bools: list[int] = []
     for truth_assignment, nub in enumerator.enumerate(query):
+        x, A = [], []
+        for atom, boolean in truth_assignment.items():
+            (x, A)[atom.is_symbol(smt.BOOL)].append((atom, boolean))
+        distinct_by['x'].add(frozenset(x))
+        distinct_by['A'].add(frozenset(A))
+
         convex_integrals.append(converter.convert(truth_assignment, domain, polynomials))
         n_unassigned_bools.append(nub)
 
     result: dict[str, ArrayLike] = {
+        'distinct_by_x': len(distinct_by['x']),
+        'distinct_by_A': len(distinct_by['A']),
         'npolys': len(convex_integrals),
         'nuniquepolys': len(set(it.starmap(CacheWrapper._compute_key, convex_integrals))),
     }

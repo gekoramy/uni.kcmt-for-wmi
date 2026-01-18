@@ -31,6 +31,8 @@ def parse_data(
             data: pl.DataFrame = pl.read_json(
                 path,
                 schema={
+                    'distinct_by_x': pl.Int64,
+                    'distinct_by_A': pl.Int64,
                     'wmi': pl.Float64,
                     'npolys': pl.Int64,
                     'nuniquepolys': pl.Int64,
