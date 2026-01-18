@@ -75,7 +75,6 @@ class SAEnumerator:
 
             utils.log_entry("models", 1)
             utils.log_entry("models'", 0)
-            utils.log_entry("distinct", 1)
 
             # no Boolean atoms -> enumerate *partial* TAs over LRA atoms only
             for ta_lra in self._get_allsat(formula, lra_atoms):
@@ -86,8 +85,7 @@ class SAEnumerator:
             mus_projected: list = list(self._get_allsat(formula, bool_atoms))
             utils.log_entry("models", len(mus_projected))
 
-            models_prime: int = 0
-            distinct: int = 0
+            suspicious: int = 0
 
             for ta_bool in mus_projected:
 
@@ -100,7 +98,6 @@ class SAEnumerator:
                 )
 
                 if is_convex:
-                    distinct += 1
                     # simplified formula is a conjunction of atoms (we're done)
                     yield ta, len(bool_atoms - ta_bool.keys())
 
@@ -113,7 +110,6 @@ class SAEnumerator:
                             if a.symbol_type() == BOOL and a in bool_atoms
                         }
                     )
-                    atom2i: dict[FNode, int] = {a: i for i, a in enumerate(residual_atoms)}
                     residual_atoms.extend(
                         list(
                             {
@@ -124,27 +120,16 @@ class SAEnumerator:
                         )
                     )
 
-                    hmmm: set[frozenset[int]] = set()
                     # may be both on LRA and boolean atoms
                     for ta_residual in self._get_allsat(
                             simplified_formula, residual_atoms
                     ):
                         curr_ta = dict(ta)
                         curr_ta.update(ta_residual)
-                        hmmm.add(
-                            frozenset(
-                                (-1, +1)[boolean] * i
-                                for atom, boolean in ta_residual.items()
-                                if (i := atom2i.get(atom))
-                            )
-                        )
-                        models_prime += any(atom.is_symbol(BOOL) for atom in ta_residual.keys())
+                        suspicious += any(atom.is_symbol(BOOL) for atom in ta_residual.keys())
                         yield curr_ta, len(bool_atoms - curr_ta.keys())
 
-                    distinct += len(hmmm)
-
-            utils.log_entry("models'", models_prime)
-            utils.log_entry("distinct", distinct)
+            utils.log_entry("models'", suspicious)
 
     def _get_allsat(
             self,
