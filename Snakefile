@@ -139,49 +139,53 @@ rule aggregate_density:
             *["assets/decdnnf/tddnnf/sdd/{type}/{density}." + suffix for suffix in ["err", "models"]],
             "assets/benchmarks/decdnnf/tddnnf/sdd/{type}/{density}.jsonl"
         ],
-        decdnnf_exists_x_d4=[
-            *["assets/decdnnf/tddnnf_exists_x/d4/{type}/{density}." + suffix for suffix in ["err", "models"]],
-            "assets/benchmarks/decdnnf/tddnnf_exists_x/d4/{type}/{density}.jsonl"
-        ],
-        decdnnf_exists_x_sdd=[
-            *["assets/decdnnf/tddnnf_exists_x/sdd/{type}/{density}." + suffix for suffix in ["err", "models"]],
-            "assets/benchmarks/decdnnf/tddnnf_exists_x/sdd/{type}/{density}.jsonl"
-        ],
-        decdnnf_exists_A_d4=[
-            *["assets/decdnnf/tddnnf_exists_A/d4/{type}/{density}." + suffix for suffix in ["err", "models"]],
-            "assets/benchmarks/decdnnf/tddnnf_exists_A/d4/{type}/{density}.jsonl"
-        ],
-        decdnnf_exists_A_sdd=[
-            *["assets/decdnnf/tddnnf_exists_A/sdd/{type}/{density}." + suffix for suffix in ["err", "models"]],
-            "assets/benchmarks/decdnnf/tddnnf_exists_A/sdd/{type}/{density}.jsonl"
-        ],
+        **{
+            f"decdnnf_1st_step_exists_{qo}_{compiler}": [
+                "assets/decdnnf/tddnnf_exists_" + key + "/{type}/{density}.err",
+                "assets/decdnnf/tddnnf_exists_" + key + "/{type}/{density}.models",
+                "assets/benchmarks/decdnnf/tddnnf_exists_" + key + "/{type}/{density}.jsonl"
+            ]
+            for qo in ["x", "A"]
+            for compiler in ["d4", "sdd"]
+            if (key := f"{qo}/{compiler}")
+        },
+        **{
+            f"decdnnf_2nd_step_exists_{qo}_{compiler}": [
+                "assets/decdnnf_two_steps/exists_" + key + "/{type}/{density}.err",
+                "assets/decdnnf_two_steps/exists_" + key + "/{type}/{density}.models",
+                "assets/benchmarks/decdnnf_two_steps/exists_" + key + "/{type}/{density}.jsonl"
+            ]
+            for qo in ["x", "A"]
+            for compiler in ["d4", "sdd"]
+            if (key := f"{qo}/{compiler}")
+        },
         sae=[
             *["assets/wmi/sae/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
             "assets/benchmarks/sae/noop/{type}/{density}.jsonl"
         ],
-        decdnnf_baseline_d4=[
-            *["assets/wmi/decdnnf_baseline/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
-            "assets/benchmarks/decdnnf_baseline/d4/noop/{type}/{density}.jsonl"
+        wmi_decdnnf_d4=[
+            *["assets/wmi/decdnnf/tddnnf/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/benchmarks/wmi/decdnnf/tddnnf/d4/noop/{type}/{density}.jsonl"
         ],
-        decdnnf_baseline_sdd=[
-            *["assets/wmi/decdnnf_baseline/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
-            "assets/benchmarks/decdnnf_baseline/sdd/noop/{type}/{density}.jsonl"
+        wmi_decdnnf_sdd=[
+            *["assets/wmi/decdnnf/tddnnf/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/benchmarks/wmi/decdnnf/tddnnf/sdd/noop/{type}/{density}.jsonl"
         ],
-        decdnnf_two_steps_exists_x_d4=[
+        wmi_decdnnf_exists_x_d4=[
             *["assets/wmi/decdnnf_two_steps/exists_x/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
-            "assets/benchmarks/decdnnf_two_steps/exists_x/d4/noop/{type}/{density}.jsonl"
+            "assets/benchmarks/wmi/decdnnf_two_steps/exists_x/d4/noop/{type}/{density}.jsonl"
         ],
-        decdnnf_two_steps_exists_x_sdd=[
+        wmi_decdnnf_exists_x_sdd=[
             *["assets/wmi/decdnnf_two_steps/exists_x/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
-            "assets/benchmarks/decdnnf_two_steps/exists_x/sdd/noop/{type}/{density}.jsonl"
+            "assets/benchmarks/wmi/decdnnf_two_steps/exists_x/sdd/noop/{type}/{density}.jsonl"
         ],
-        decdnnf_two_steps_exists_A_d4=[
+        wmi_decdnnf_exists_A_d4=[
             *["assets/wmi/decdnnf_two_steps/exists_A/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
-            "assets/benchmarks/decdnnf_two_steps/exists_A/d4/noop/{type}/{density}.jsonl"
+            "assets/benchmarks/wmi/decdnnf_two_steps/exists_A/d4/noop/{type}/{density}.jsonl"
         ],
-        decdnnf_two_steps_exists_A_sdd=[
+        wmi_decdnnf_exists_A_sdd=[
             *["assets/wmi/decdnnf_two_steps/exists_A/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
-            "assets/benchmarks/decdnnf_two_steps/exists_A/sdd/noop/{type}/{density}.jsonl"
+            "assets/benchmarks/wmi/decdnnf_two_steps/exists_A/sdd/noop/{type}/{density}.jsonl"
         ]
     output:
         "assets/aggregates/{type}/{density}.csv"
@@ -542,6 +546,70 @@ rule decdnnf:
         """
 
 
+rule decdnnf_two_steps_sdd:
+    threads: 26
+    input:
+        models_projected="assets/decdnnf/tddnnf_exists_{qo}/sdd/{type}/{density}.models",
+        vtree="assets/tddnnf/sdd/{type}/{density}.min-vtree",
+        sdd="assets/tddnnf/sdd/{type}/{density}.min-sdd",
+    output:
+        "assets/decdnnf_two_steps/exists_{qo}/sdd/{type}/{density}.models"
+    log:
+        "assets/decdnnf_two_steps/exists_{qo}/sdd/{type}/{density}.err"
+    benchmark:
+        "assets/benchmarks/decdnnf_two_steps/exists_{qo}/sdd/{type}/{density}.jsonl"
+    params:
+        "src.decdnnf.decdnnf"
+    shell:
+        """
+        if [[ -s {input.models_projected:q} ]]; then
+          timeout --verbose {config[timeout][enumerator]}m \
+            python -m {params} \
+            --cores {threads} \
+            --output {output} \
+            --models_projected {input.models_projected} \
+            sdd \
+            --vtree {input.vtree} \
+            --sdd {input.sdd} \
+            2> {log} \
+            || touch {output}
+        fi
+
+        touch {output}
+        """
+
+
+rule decdnnf_two_steps_nnf:
+    threads: 26
+    input:
+        models_projected="assets/decdnnf/tddnnf_exists_{qo}/d4/{type}/{density}.models",
+        nnf="assets/tddnnf/d4/{type}/{density}.min-nnf",
+    output:
+        "assets/decdnnf_two_steps/exists_{qo}/d4/{type}/{density}.models"
+    log:
+        "assets/decdnnf_two_steps/exists_{qo}/d4/{type}/{density}.err"
+    benchmark:
+        "assets/benchmarks/decdnnf_two_steps/exists_{qo}/d4/{type}/{density}.jsonl"
+    params:
+        "src.decdnnf.decdnnf"
+    shell:
+        """
+        if [[ -s {input.models_projected:q} ]]; then
+          timeout --verbose {config[timeout][enumerator]}m \
+            python -m {params} \
+            --cores {threads} \
+            --output {output} \
+            --models_projected {input.models_projected} \
+            nnf \
+            --nnf {input.nnf} \
+            2> {log} \
+            || touch {output}
+        fi
+
+        touch {output}
+        """
+
+
 rule compute_wmi_with_sae:
     threads: 13
     resources:
@@ -574,22 +642,22 @@ rule compute_wmi_with_sae:
         """
 
 
-rule compute_wmi_with_decdnnf_baseline:
+rule compute_wmi_with_decdnnf:
     threads:
         lambda wildcards: 1 if wildcards.int == "noop" else 13
     resources:
         mem=lambda wildcards: None if wildcards.int == "noop" else "20GB"
     input:
         density="assets/densities/{type}/{density}.json",
-        models="assets/decdnnf/tddnnf/{compiler}/{type}/{density}.models",
-        mapping="assets/tlemmas/{type}/{density}.mapping"
+        mapping="assets/tlemmas/{type}/{density}.mapping",
+        models="assets/{decdnnf}/{type}/{density}.models"
     output:
-        wmi="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.out"
+        wmi="assets/wmi/{decdnnf}/{int,noop|latte}/{type}/{density}.out"
     log:
-        steps="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.steps",
-        err="assets/wmi/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.err"
+        steps="assets/wmi/{decdnnf}/{int}/{type}/{density}.steps",
+        err="assets/wmi/{decdnnf}/{int}/{type}/{density}.err"
     benchmark:
-        "assets/benchmarks/decdnnf_baseline/{compiler,d4|sdd}/{int,noop|latte}/{type}/{density}.jsonl"
+        "assets/benchmarks/wmi/{decdnnf}/{int}/{type}/{density}.jsonl"
     params:
         script="src.wmi"
     shell:
@@ -603,99 +671,9 @@ rule compute_wmi_with_decdnnf_baseline:
             --cached \
             --steps {log.steps} \
             --cores {threads} \
-            decdnnf_baseline \
+            decdnnf \
             --models {input.models} \
             --mapping {input.mapping} \
-            1> {output.wmi} \
-            2> {log.err} \
-            || touch {output}
-        fi
-
-        touch {output}
-        """
-
-
-rule compute_wmi_with_decdnnf_two_steps_sdd:
-    threads: 26
-    resources:
-        mem="20GB"
-    input:
-        density="assets/densities/{type}/{density}.json",
-        models_projected="assets/decdnnf/tddnnf_exists_{qo}/sdd/{type}/{density}.models",
-        mapping="assets/tlemmas/{type}/{density}.mapping",
-        vtree="assets/tddnnf/sdd/{type}/{density}.min-vtree",
-        sdd="assets/tddnnf/sdd/{type}/{density}.min-sdd"
-    output:
-        wmi="assets/wmi/decdnnf_two_steps/exists_{qo}/sdd/{int,noop|latte}/{type}/{density}.out"
-    log:
-        steps="assets/wmi/decdnnf_two_steps/exists_{qo}/sdd/{int,noop|latte}/{type}/{density}.steps",
-        err="assets/wmi/decdnnf_two_steps/exists_{qo}/sdd/{int,noop|latte}/{type}/{density}.err"
-    benchmark:
-        "assets/benchmarks/decdnnf_two_steps/exists_{qo}/sdd/{int,noop|latte}/{type}/{density}.jsonl"
-    params:
-        script="src.wmi"
-    shell:
-        """
-        if [[ -s {input.models_projected:q} ]]; then
-          timeout --verbose {config[timeout][enumerator]}m \
-            python -m {params.script} \
-            --density {input.density} \
-            --integrator {wildcards.int} \
-            --parallel \
-            --cached \
-            --steps {log.steps} \
-            --cores {threads} \
-            decdnnf_two_steps \
-            --models_projected {input.models_projected} \
-            --mapping {input.mapping} \
-            --quantify_out {wildcards.qo} \
-            sdd \
-            --vtree {input.vtree} \
-            --sdd {input.sdd} \
-            1> {output.wmi} \
-            2> {log.err} \
-            || touch {output}
-        fi
-
-        touch {output}
-        """
-
-
-rule compute_wmi_with_decdnnf_two_steps_d4:
-    threads: 26
-    resources:
-        mem="20GB"
-    input:
-        density="assets/densities/{type}/{density}.json",
-        models_projected="assets/decdnnf/tddnnf_exists_{qo}/d4/{type}/{density}.models",
-        mapping="assets/tlemmas/{type}/{density}.mapping",
-        nnf="assets/tddnnf/d4/{type}/{density}.min-nnf",
-    output:
-        wmi="assets/wmi/decdnnf_two_steps/exists_{qo}/d4/{int,noop|latte}/{type}/{density}.out"
-    log:
-        steps="assets/wmi/decdnnf_two_steps/exists_{qo}/d4/{int,noop|latte}/{type}/{density}.steps",
-        err="assets/wmi/decdnnf_two_steps/exists_{qo}/d4/{int,noop|latte}/{type}/{density}.err"
-    benchmark:
-        "assets/benchmarks/decdnnf_two_steps/exists_{qo}/d4/{int,noop|latte}/{type}/{density}.jsonl"
-    params:
-        script="src.wmi"
-    shell:
-        """
-        if [[ -s {input.models_projected:q} ]]; then
-          timeout --verbose {config[timeout][enumerator]}m \
-            python -m {params.script} \
-            --density {input.density} \
-            --integrator {wildcards.int} \
-            --parallel \
-            --cached \
-            --steps {log.steps} \
-            --cores {threads} \
-            decdnnf_two_steps \
-            --models_projected {input.models_projected} \
-            --mapping {input.mapping} \
-            --quantify_out {wildcards.qo} \
-            d4 \
-            --nnf {input.nnf} \
             1> {output.wmi} \
             2> {log.err} \
             || touch {output}

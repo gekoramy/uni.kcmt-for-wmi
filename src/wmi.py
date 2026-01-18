@@ -19,7 +19,6 @@ from wmpy.enumeration import Enumerator
 from wmpy.integration import Integrator, LattEIntegrator, ParallelWrapper, CacheWrapper
 
 import src.decdnnf.enumerator_baseline as decdnnf_baseline
-import src.decdnnf.enumerator_two_steps as decdnnf_two_steps
 from src import utils
 from src.sae import sae
 from src.wmpy import custom
@@ -141,22 +140,9 @@ def main() -> None:
         with utils.use(parser.add_subparsers(dest='enumerator', required=True)) as sub:
             sub.add_parser('sae')
 
-            with utils.use(sub.add_parser('decdnnf_baseline')) as subparser:
+            with utils.use(sub.add_parser('decdnnf')) as subparser:
                 subparser.add_argument('--models', type=utils.file, required=True)
                 subparser.add_argument('--mapping', type=utils.file, required=True)
-
-            with utils.use(sub.add_parser('decdnnf_two_steps')) as subparser:
-                subparser.add_argument('--models_projected', type=utils.file, required=True)
-                subparser.add_argument('--mapping', type=utils.file, required=True)
-                subparser.add_argument('--quantify_out', type=str, choices=['x', 'A'], required=True)
-
-                with utils.use(subparser.add_subparsers(dest='using', required=True)) as subsub:
-                    with utils.use(subsub.add_parser('d4')) as subsubparser:
-                        subsubparser.add_argument('--nnf', type=utils.file, required=True)
-
-                    with utils.use(subsub.add_parser('sdd')) as subsubparser:
-                        subsubparser.add_argument('--vtree', type=utils.file, required=True)
-                        subsubparser.add_argument('--sdd', type=utils.file, required=True)
 
         args: argparse.Namespace = parser.parse_args()
 
@@ -170,46 +156,15 @@ def main() -> None:
         case 'sae':
             enumerator = sae.SAEnumerator(density.support, smt.Real(1), env)
 
-        case 'decdnnf_baseline' | 'decdnnf_two_steps':
-
-            ta: t.Callable[[], t.Generator[dict[bool, list[FNode]]]]
-            match args.enumerator:
-                case 'decdnnf_baseline':
-                    ta = lambda: decdnnf_baseline.enum(
-                        env,
-                        decdnnf_baseline.Arguments(
-                            cores=args.cores,
-                            models=args.models,
-                            mapping=args.mapping
-                        )
-                    )
-
-                case 'decdnnf_two_steps':
-                    match args.using:
-                        case 'd4':
-                            ta = lambda: decdnnf_two_steps.enum(
-                                env,
-                                decdnnf_two_steps.Arguments(
-                                    cores=args.cores,
-                                    quantify_out=args.quantify_out,
-                                    models_projected=args.models_projected,
-                                    mapping=args.mapping,
-                                    nnf=args.nnf,
-                                )
-                            )
-
-                        case 'sdd':
-                            ta = lambda: decdnnf_two_steps.enum_with_sdd(
-                                env,
-                                decdnnf_two_steps.ArgumentsWithSDD(
-                                    cores=args.cores,
-                                    quantify_out=args.quantify_out,
-                                    models_projected=args.models_projected,
-                                    mapping=args.mapping,
-                                    vtree=args.vtree,
-                                    sdd=args.sdd,
-                                )
-                            )
+        case 'decdnnf':
+            ta: t.Callable[[], t.Generator[dict[bool, list[FNode]]]] = lambda: decdnnf_baseline.enum(
+                env,
+                decdnnf_baseline.Arguments(
+                    cores=args.cores,
+                    models=args.models,
+                    mapping=args.mapping
+                )
+            )
 
             enumerator = FnEnumerator(
                 env,
