@@ -260,7 +260,7 @@ rule generate_wmibench_synthetic_pa:
 
 
 rule compute_tlemmas:
-    threads: 13
+    threads: 17
     resources:
         mem="20GB"
     input:
