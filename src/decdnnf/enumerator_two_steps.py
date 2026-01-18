@@ -59,6 +59,20 @@ def inspect(
     )
 
     utils.log_entry(
+        "distinct",
+        len(set(
+            frozenset(
+                [
+                    *model[True],
+                    *(-atom for atom in model[False])
+                ]
+            )
+            for models in modelss
+            for model in models
+        ))
+    )
+
+    utils.log_entry(
         "models'",
         sum(
             any(
