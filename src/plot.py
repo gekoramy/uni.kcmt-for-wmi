@@ -802,7 +802,7 @@ def main() -> None:
                         df,
                         'models → distinct_by',
                         [
-                            (('models_sae', 'distinct_by_x_sae'), 'sae'),
+                            (('models_sae', 'distinct_by_A_sae'), 'sae'),
                             *[
                                 ((f'models_{steps[-3]}', f'distinct_by_A_{enum}'), enum)
                                 for enum, steps in enumerator2steps.items()
@@ -835,7 +835,7 @@ def main() -> None:
                         df,
                         'distinct_by',
                         [
-                            (f'distinct_by_x_sae', 'sae'),
+                            ('distinct_by_A_sae', 'sae'),
                             *[
                                 (f'distinct_by_A_{enum}', enum)
                                 for enum, _ in enumerator2steps.items()
