@@ -163,6 +163,10 @@ rule aggregate_density:
             *["assets/wmi/sae/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
             "assets/benchmarks/sae/noop/{type}/{density}.jsonl"
         ],
+        sae_with_tlemmas=[
+            *["assets/wmi/sae/noop/{type}/{density}.with-tlemmas." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/benchmarks/sae/noop/{type}/{density}.with-tlemmas.jsonl"
+        ],
         wmi_decdnnf_d4=[
             *["assets/wmi/decdnnf/tddnnf/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
             "assets/benchmarks/wmi/decdnnf/tddnnf/d4/noop/{type}/{density}.jsonl"
@@ -196,7 +200,7 @@ rule aggregate_density:
 rule generate_wmpy_synthetic:
     threads: 1
     output:
-        "assets/densities/wmpy_synthetic/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}.json"
+        r"assets/densities/wmpy_synthetic/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed,\d+}.json"
     params:
         script="src/synthetic.py"
     shell:
@@ -292,6 +296,27 @@ rule compute_tlemmas:
           --cores {threads} \
           2> {log.err} \
           || touch {output}
+        """
+
+
+rule densities_with_tlemmas:
+    threads: 1
+    input:
+        density="assets/densities/{type}/{density}.json",
+        phi_n_tlemmas="assets/tlemmas/{type}/{density}.phi_n_tlemmas.smt2"
+    output:
+        "assets/densities/{type}/{density}.with-tlemmas.json"
+    params:
+        script="src.smtlib_to_density"
+    shell:
+        """
+        if [[ -s {input.phi_n_tlemmas:q} ]]; then
+          python -m {params.script} \
+            --smtlib {input.phi_n_tlemmas} \
+            --density {input.density} {output}
+        fi
+
+        touch {output}
         """
 
 
@@ -627,18 +652,22 @@ rule compute_wmi_with_sae:
         script="src.wmi"
     shell:
         """
-        timeout --verbose {config[timeout][enumerator]}m \
-          python -m {params.script} \
-          --density {input} \
-          --integrator {wildcards.int} \
-          --parallel \
-          --cached \
-          --steps {log.steps} \
-          --cores {threads} \
-          sae \
-          1> {output.wmi} \
-          2> {log.err} \
-          || touch {output}
+        if [[ -s {input:q} ]]; then
+          timeout --verbose {config[timeout][enumerator]}m \
+            python -m {params.script} \
+            --density {input} \
+            --integrator {wildcards.int} \
+            --parallel \
+            --cached \
+            --steps {log.steps} \
+            --cores {threads} \
+            sae \
+            1> {output.wmi} \
+            2> {log.err} \
+            || touch {output}
+        fi
+        
+        touch {output}
         """
 
 
