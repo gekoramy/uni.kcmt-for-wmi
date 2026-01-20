@@ -26,6 +26,10 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
     **{
         'sae': [
             'sae'
+        ],
+        'sae_with_tlemmas': [
+            'tlemmas',
+            'sae_with_tlemmas'
         ]
     },
     **{
