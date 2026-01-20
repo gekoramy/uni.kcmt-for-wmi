@@ -781,7 +781,10 @@ def main() -> None:
                         df,
                         'models → npolys',
                         [
-                            (('models_sae', 'npolys_sae'), 'sae'),
+                            *[
+                                ((f'models_{enum}', f'npolys_{enum}'), enum)
+                                for enum in ['sae', 'sae_with_tlemmas']
+                            ],
                             *[
                                 ((f'models_{steps[-3]}', f'npolys_{enum}'), enum)
                                 for enum, steps in enumerator2steps.items()
@@ -795,27 +798,32 @@ def main() -> None:
                         df,
                         'models → nuniquepolys',
                         [
-                            ((f'models_{steps[-3]}', f'nuniquepolys_{enum}'), enum)
-                            for enum, steps in enumerator2steps.items()
-                            if 'exists' in enum
-                        ],
-                    )
-
-                case 'models to models\'':
-                    fig = plot_lines(
-                        df,
-                        'models → distinct_by',
-                        [
-                            (('models_sae', 'distinct_by_A_sae'), 'sae'),
                             *[
-                                ((f'models_{steps[-3]}', f'distinct_by_A_{enum}'), enum)
-                                for enum, steps in enumerator2steps.items()
-                                if 'exists_x' in enum
+                                ((f'models_{enum}', f'nuniquepolys_{enum}'), enum)
+                                for enum in ['sae', 'sae_with_tlemmas']
                             ],
                             *[
-                                ((f'models_{steps[-3]}', f'distinct_by_x_{enum}'), enum)
+                                ((f'models_{steps[-3]}', f'nuniquepolys_{enum}'), enum)
                                 for enum, steps in enumerator2steps.items()
-                                if 'exists_A' in enum
+                                if 'exists' in enum
+                            ],
+                        ]
+                    )
+
+                case 'models to distinct_by_x' | 'models to distinct_by_A':
+                    by: t.Literal['x', 'A'] = args.column[-1]
+                    fig = plot_lines(
+                        df,
+                        f'models → distinct_by_{by}',
+                        [
+                            *[
+                                ((f'models_{enum}', f'distinct_by_{by}_{enum}'), enum)
+                                for enum in ['sae', 'sae_with_tlemmas']
+                            ],
+                            *[
+                                ((f'models_{steps[-3]}', f'distinct_by_{by}_{enum}'), enum)
+                                for enum, steps in enumerator2steps.items()
+                                if 'exists' in enum
                             ],
                         ],
                     )
@@ -825,30 +833,14 @@ def main() -> None:
                         df,
                         'models',
                         [
-                            (f'{args.column}_sae', 'sae'),
+                            *[
+                                (f'{args.column}_{enum}', enum)
+                                for enum in ['sae', 'sae_with_tlemmas']
+                            ],
                             *[
                                 (f'{args.column}_{steps[-3]}', enum)
                                 for enum, steps in enumerator2steps.items()
                                 if 'exists' in enum
-                            ],
-                        ]
-                    )
-
-                case 'models\'':
-                    fig = plot(
-                        df,
-                        'distinct_by',
-                        [
-                            ('distinct_by_A_sae', 'sae'),
-                            *[
-                                (f'distinct_by_A_{enum}', enum)
-                                for enum, _ in enumerator2steps.items()
-                                if 'exists_x' in enum
-                            ],
-                            *[
-                                (f'distinct_by_x_{enum}', enum)
-                                for enum, _ in enumerator2steps.items()
-                                if 'exists_A' in enum
                             ],
                         ]
                     )
@@ -900,6 +892,17 @@ def main() -> None:
 
                 case 'inspection-A':
                     fig = inspection(df, 'A')
+
+                case 'distinct_by_x' | 'distinct_by_A':
+                    by: t.Literal['x', 'A'] = args.column[-1]
+                    fig = plot(
+                        df,
+                        'distinct_by',
+                        [
+                            (f'distinct_by_{by}_{enum}', enum)
+                            for enum, _ in enumerator2steps.items()
+                        ]
+                    )
 
                 case column:
                     fig = plot(
