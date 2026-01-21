@@ -53,6 +53,18 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
         for compiler in ['d4', 'sdd']
         for qo in 'xA'
     },
+    **{
+        f'wmi_decdnnf_extend_n_reduce_{compiler}': [
+            'tlemmas_phi',
+            'tlemmas_not_phi',
+            f'tddnnf_{compiler}_t_reduced',
+            f'tddnnf_{compiler}_t_extended',
+            f'decdnnf_{compiler}_t_extended',
+            f'decdnnf_extend_n_reduce_{compiler}',
+            f'wmi_decdnnf_extend_n_reduce_{compiler}',
+        ]
+        for compiler in ['d4', 'sdd']
+    },
 )
 
 
