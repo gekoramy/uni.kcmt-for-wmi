@@ -12,12 +12,12 @@ from pysmt.environment import Environment
 from pysmt.fnode import FNode
 
 from src import utils
-from src.tddnnf import tlemmas
+from src.tddnnf import with_tlemmas
 
 
 @dataclass(frozen=True)
 class ArgumentsWithSDD:
-    mapping: tlemmas.i2atom
+    mapping: with_tlemmas.i2atom
     project_onto: list[int]
     vtree: Path
     sdd: Path
@@ -27,7 +27,7 @@ class ArgumentsWithSDD:
 
 @dataclass(frozen=True)
 class ArgumentsWithBCS12:
-    mapping: tlemmas.i2atom
+    mapping: with_tlemmas.i2atom
     project_onto: list[int]
     bcs12: Path
     projected_bcs12: Path
@@ -38,7 +38,7 @@ def bcs12(args: ArgumentsWithBCS12):
         case 0:
             raise NotImplementedError
 
-        case n if n == tlemmas.atoms(args.mapping):
+        case n if n == with_tlemmas.atoms(args.mapping):
             shutil.copyfile(args.bcs12, args.projected_bcs12)
 
         case _:
@@ -59,7 +59,7 @@ def sdd(args: ArgumentsWithSDD):
         case 0:
             raise NotImplementedError
 
-        case n if n == tlemmas.atoms(args.mapping):
+        case n if n == with_tlemmas.atoms(args.mapping):
             shutil.copyfile(args.vtree, args.projected_vtree)
             shutil.copyfile(args.sdd, args.projected_sdd)
 
@@ -72,7 +72,7 @@ def sdd(args: ArgumentsWithSDD):
                 phi: SddNode = mgr.read_sdd_file(str.encode(args.sdd.as_posix()))
 
             with utils.log('projecting'):
-                which: list[int] = [1] * (1 + tlemmas.atoms(args.mapping))
+                which: list[int] = [1] * (1 + with_tlemmas.atoms(args.mapping))
                 for k in args.project_onto:
                     which[k] = 0
 
@@ -107,7 +107,7 @@ def main() -> None:
     with utils.log('total'):
 
         env: Environment = pysmt.environment.get_env()
-        mapping: tlemmas.i2atom = tlemmas.read_mapping(env=env, mapping=args.mapping)
+        mapping: with_tlemmas.i2atom = with_tlemmas.read_mapping(env=env, mapping=args.mapping)
 
         to_project_onto: typing.Callable[[FNode], bool]
         match args.quantify_out:
@@ -117,7 +117,7 @@ def main() -> None:
             case 'A':
                 to_project_onto = lambda fnode: not fnode.is_symbol(smt.BOOL)
 
-        project_onto: list[int] = [k for k, v in tlemmas.entries(mapping) if to_project_onto(v)]
+        project_onto: list[int] = [k for k, v in with_tlemmas.entries(mapping) if to_project_onto(v)]
 
         match args.compiler:
             case 'bcs12':

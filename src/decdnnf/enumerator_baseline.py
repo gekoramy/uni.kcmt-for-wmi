@@ -6,7 +6,7 @@ from pysmt.environment import Environment
 from pysmt.fnode import FNode
 
 from src.decdnnf import decdnnf
-from src.tddnnf import tlemmas
+from src.tddnnf import with_tlemmas
 
 
 @dataclass(frozen=True)
@@ -20,12 +20,12 @@ def enum(
         env: Environment,
         args: Arguments,
 ) -> t.Generator[dict[bool, list[FNode]]]:
-    mapping: tlemmas.i2atom = tlemmas.read_mapping(env, args.mapping)
+    mapping: with_tlemmas.i2atom = with_tlemmas.read_mapping(env, args.mapping)
 
     with open(args.models, 'r', encoding='utf-8') as f:
         mus: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
 
     yield from (
-        tlemmas.convert(mapping, mu)
+        with_tlemmas.convert(mapping, mu)
         for mu in mus
     )

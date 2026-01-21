@@ -28,26 +28,26 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
             'sae'
         ],
         'sae_with_tlemmas': [
-            'tlemmas',
+            'tlemmas_phi',
             'sae_with_tlemmas'
         ]
     },
     **{
         f'wmi_decdnnf_{compiler}': [
-            'tlemmas',
-            f'tddnnf_{compiler}',
-            f'decdnnf_{compiler}',
+            'tlemmas_phi',
+            f'tddnnf_{compiler}_t_reduced',
+            f'decdnnf_{compiler}_t_reduced',
             f'wmi_decdnnf_{compiler}',
         ]
         for compiler in ['d4', 'sdd']
     },
     **{
         f'wmi_decdnnf_exists_{qo}_{compiler}': [
-            'tlemmas',
-            f'tddnnf_{compiler}',
-            f'tddnnf_exists_{qo}_{compiler}',
-            f'decdnnf_1st_step_exists_{qo}_{compiler}',
-            f'decdnnf_2nd_step_exists_{qo}_{compiler}',
+            'tlemmas_phi',
+            f'tddnnf_{compiler}_t_reduced',
+            f'tddnnf_exists_{qo}_{compiler}_t_reduced',
+            f'decdnnf_1st_step_exists_{qo}_{compiler}_t_reduced',
+            f'decdnnf_2nd_step_exists_{qo}_{compiler}_t_reduced',
             f'wmi_decdnnf_exists_{qo}_{compiler}',
         ]
         for compiler in ['d4', 'sdd']
@@ -675,7 +675,7 @@ def inspection(
             (
                 key,
                 (
-                    f'models_decdnnf_1st_step_exists_{qo}_{compiler}',
+                    f'models_decdnnf_1st_step_exists_{qo}_{compiler}_t_reduced',
                     f'distinct_by_{oq}_{key}',
                     f'npolys_{key}',
                 ),

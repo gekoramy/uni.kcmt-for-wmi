@@ -9,7 +9,7 @@ from pysmt.smtlib.parser import SmtLibParser
 from pysmt.walkers import DagWalker, handles
 
 from src import utils
-from src.tddnnf import tlemmas
+from src.tddnnf import with_tlemmas
 
 
 def negate(gate: str) -> str:
@@ -101,17 +101,17 @@ class BCS12Walker(DagWalker):
         return None
 
 
-def to_bcs12(env: Environment, phi: FNode, i2atom: tlemmas.i2atom) -> list[str]:
+def to_bcs12(env: Environment, phi: FNode, i2atom: with_tlemmas.i2atom) -> list[str]:
     walker: BCS12Walker = BCS12Walker(
-        atom2i={v: str(k) for k, v in tlemmas.entries(i2atom)},
+        atom2i={v: str(k) for k, v in with_tlemmas.entries(i2atom)},
         env=env
     )
     root: str = walker.walk(phi)
 
-    atoms: int = tlemmas.atoms(i2atom)
+    atoms: int = with_tlemmas.atoms(i2atom)
     lines: list[str] = ['c BC-S1.2']
 
-    for i in tlemmas.entries(i2atom):
+    for i in with_tlemmas.entries(i2atom):
         lines.append(f'I {i}')
 
     # this gate references all atoms to ensure deterministic id assignment
@@ -133,7 +133,7 @@ def to_bcs12(env: Environment, phi: FNode, i2atom: tlemmas.i2atom) -> list[str]:
 
 def translate(smtlib: Path, mapping: Path, bcs12: Path) -> None:
     env: Environment = get_env()
-    i2atom: tlemmas.i2atom = tlemmas.read_mapping(env, mapping)
+    i2atom: with_tlemmas.i2atom = with_tlemmas.read_mapping(env, mapping)
 
     with open(smtlib, 'r', encoding='utf-8') as f:
         parser: SmtLibParser = SmtLibParser(environment=env)

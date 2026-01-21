@@ -12,7 +12,7 @@ from pysmt.smtlib.parser import SmtLibParser
 from pysmt.walkers import DagWalker, handles
 
 from src import utils
-from src.tddnnf import tlemmas
+from src.tddnnf import with_tlemmas
 
 
 def ref_sdd(sdd: SddNode) -> SddNode:
@@ -96,7 +96,7 @@ def to_sdd(env: Environment, phi: FNode, atom2id: dict[FNode, int]) -> tuple[
 
 def translate(smtlib: Path, mapping: Path, vtree: Path, sdd: Path) -> None:
     env: Environment = get_env()
-    i2atom: tlemmas.i2atom = tlemmas.read_mapping(env, mapping)
+    i2atom: with_tlemmas.i2atom = with_tlemmas.read_mapping(env, mapping)
 
     with open(smtlib, 'r', encoding='utf-8') as f:
         parser: SmtLibParser = SmtLibParser(environment=env)
@@ -105,7 +105,7 @@ def translate(smtlib: Path, mapping: Path, vtree: Path, sdd: Path) -> None:
     vt, root = to_sdd(
         env=env,
         phi=phi,
-        atom2id={v: k for k, v in tlemmas.entries(i2atom)},
+        atom2id={v: k for k, v in with_tlemmas.entries(i2atom)},
     )
 
     with utils.log('store'):
