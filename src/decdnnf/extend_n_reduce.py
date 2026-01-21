@@ -1,35 +1,26 @@
 import argparse
-import itertools as it
-import subprocess
 from multiprocessing.pool import Pool
 from pathlib import Path
+
+from ddnnife import Ddnnf, DdnnfMut
 
 from src import utils
 from src.decdnnf import decdnnf
 
+_ddnnf: DdnnfMut
 
-def is_satisfiable(
-        t_reduced_phi: Path,
-        model_t_extended_phi: dict[bool, list[int]],
-) -> bool:
-    decdnnf: subprocess.CompletedProcess[str] = subprocess.run(
-        args=[
-            'decdnnf_rs',
-            'compute-model',
-            '--logging-level', 'off',
-            '--input', t_reduced_phi.as_posix(),
-            '--assumptions', ' '.join(map(str, [
-                *model_t_extended_phi[True],
-                *(-atom for atom in model_t_extended_phi[False])
-            ])),
-        ],
-        capture_output=True,
-        encoding='utf-8',
-    )
 
-    assert 0 == decdnnf.returncode, decdnnf.stdout
+def _init_worker(t_reduced_phi: Path) -> None:
+    global _ddnnf
+    _ddnnf = Ddnnf.from_file(t_reduced_phi.as_posix(), None).as_mut()
 
-    return 'UNSATISFIABLE' not in decdnnf.stdout
+
+def is_satisfiable(model_t_extended_phi: dict[bool, list[int]]) -> bool:
+    global _ddnnf
+    return _ddnnf.is_sat([
+        *model_t_extended_phi[True],
+        *(-atom for atom in model_t_extended_phi[False])
+    ])
 
 
 def main() -> None:
@@ -43,13 +34,10 @@ def main() -> None:
     with open(args.models_t_extended_phi, 'r', encoding='utf-8') as f:
         models_t_extended_phi: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
 
-    with Pool(args.cores) as pool:
-        t_sat: list[bool] = pool.starmap(
+    with Pool(args.cores, initializer=_init_worker, initargs=(args.t_reduced_phi,)) as pool:
+        t_sat: list[bool] = pool.map(
             is_satisfiable,
-            zip(
-                it.cycle([args.t_reduced_phi]),
-                models_t_extended_phi,
-            )
+            models_t_extended_phi,
         )
 
     decdnnf.write_models(args.output, [mu for mu, is_t_sat in zip(models_t_extended_phi, t_sat) if is_t_sat])
