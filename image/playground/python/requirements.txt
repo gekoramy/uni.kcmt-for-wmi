@@ -11,3 +11,4 @@ polars
 tqdm
 matplotlib
 snakemake
+ddnnife
