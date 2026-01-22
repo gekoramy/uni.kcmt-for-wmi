@@ -709,6 +709,7 @@ rule decdnnf_two_steps_nnf:
         touch {output}
         """
 
+
 rule decdnnf_extend_n_reduce:
     threads: 26
     input:
