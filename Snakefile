@@ -122,6 +122,14 @@ rule aggregate_density:
             *["assets/tddnnf/sdd/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err"]],
             "assets/benchmarks/tddnnf/sdd/{type}/{density}.t_reduced_phi.jsonl"
         ],
+        tddnnf_d4_phi=[
+            *["assets/tddnnf/d4/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err"]],
+            "assets/benchmarks/tddnnf/d4/{type}/{density}.t_reduced_phi.jsonl"
+        ],
+        tddnnf_sdd_phi=[
+            *["assets/tddnnf/sdd/{type}/{density}.phi." + suffix for suffix in ["err"]],
+            "assets/benchmarks/tddnnf/sdd/{type}/{density}.phi.jsonl"
+        ],
         tddnnf_d4_t_extended=[
             *["assets/tddnnf/d4/{type}/{density}.t_extended_phi." + suffix for suffix in ["err"]],
             "assets/benchmarks/tddnnf/d4/{type}/{density}.t_extended_phi.jsonl"
@@ -145,6 +153,14 @@ rule aggregate_density:
         tddnnf_exists_A_sdd_t_reduced=[
             *["assets/tddnnf_exists_A/sdd/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err", "steps"]],
             "assets/benchmarks/tddnnf_exists_A/sdd/{type}/{density}.t_reduced_phi.jsonl"
+        ],
+        decdnnf_d4_phi=[
+            *["assets/decdnnf/tddnnf/d4/{type}/{density}.phi." + suffix for suffix in ["err", "models"]],
+            "assets/benchmarks/decdnnf/tddnnf/d4/{type}/{density}.phi.jsonl"
+        ],
+        decdnnf_sdd_phi=[
+            *["assets/decdnnf/tddnnf/sdd/{type}/{density}.phi." + suffix for suffix in ["err", "models"]],
+            "assets/benchmarks/decdnnf/tddnnf/sdd/{type}/{density}.phi.jsonl"
         ],
         decdnnf_d4_t_reduced=[
             *["assets/decdnnf/tddnnf/d4/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err", "models"]],
@@ -182,6 +198,16 @@ rule aggregate_density:
             for compiler in ["d4", "sdd"]
             if (key := f"{qo}/{compiler}")
         },
+        decdnnf_phi_n_reduce_d4=[
+            "assets/decdnnf_phi_n_reduce/tddnnf/d4/{type}/{density}.t_reduced_phi.models",
+            "assets/decdnnf_phi_n_reduce/tddnnf/d4/{type}/{density}.err",
+            "assets/benchmarks/decdnnf_phi_n_reduce/tddnnf/d4/{type}/{density}.jsonl"
+        ],
+        decdnnf_phi_n_reduce_sdd=[
+            "assets/decdnnf_phi_n_reduce/tddnnf/sdd/{type}/{density}.t_reduced_phi.models",
+            "assets/decdnnf_phi_n_reduce/tddnnf/sdd/{type}/{density}.err",
+            "assets/benchmarks/decdnnf_phi_n_reduce/tddnnf/sdd/{type}/{density}.jsonl"
+        ],
         decdnnf_extend_n_reduce_d4=[
             "assets/decdnnf_extend_n_reduce/tddnnf/d4/{type}/{density}.t_reduced_phi.models",
             "assets/decdnnf_extend_n_reduce/tddnnf/d4/{type}/{density}.err",
@@ -223,6 +249,14 @@ rule aggregate_density:
         wmi_decdnnf_exists_A_sdd=[
             *["assets/wmi/decdnnf_two_steps/exists_A/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
             "assets/benchmarks/wmi/decdnnf_two_steps/exists_A/sdd/noop/{type}/{density}.jsonl"
+        ],
+        wmi_decdnnf_phi_n_reduce_d4=[
+            *["assets/wmi/decdnnf_phi_n_reduce/tddnnf/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/benchmarks/wmi/decdnnf_phi_n_reduce/tddnnf/d4/noop/{type}/{density}.jsonl"
+        ],
+        wmi_decdnnf_phi_n_reduce_sdd=[
+            *["assets/wmi/decdnnf_phi_n_reduce/tddnnf/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/benchmarks/wmi/decdnnf_phi_n_reduce/tddnnf/sdd/noop/{type}/{density}.jsonl"
         ],
         wmi_decdnnf_extend_n_reduce_d4=[
             *["assets/wmi/decdnnf_extend_n_reduce/tddnnf/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
@@ -345,6 +379,7 @@ rule compose_phi_with_tlemmas:
         tlemmas_not_phi="assets/tlemmas/not_phi/{type}/{density}.smt2"
     output:
         mapping="assets/phi_with_tlemmas/{type}/{density}.mapping",
+        phi="assets/phi_with_tlemmas/{type}/{density}.phi.smt2",
         t_reduced_phi="assets/phi_with_tlemmas/{type}/{density}.t_reduced_phi.smt2",
         t_extended_phi="assets/phi_with_tlemmas/{type}/{density}.t_extended_phi.smt2"
     log:
@@ -364,6 +399,7 @@ rule compose_phi_with_tlemmas:
             --tlemmas_phi {input.tlemmas_phi} \
             --tlemmas_not_phi {input.tlemmas_not_phi} \
             --mapping {output.mapping} \
+            --phi {output.phi} \
             --t_reduced_phi {output.t_reduced_phi} \
             --t_extended_phi {output.t_extended_phi} \
             2> {log.err} \
@@ -710,6 +746,36 @@ rule decdnnf_two_steps_nnf:
         """
 
 
+rule decdnnf_phi_n_reduce:
+    threads: 26
+    input:
+        models_phi="assets/decdnnf/{nnf}.phi.models",
+        t_reduced_phi="assets/{nnf}.t_reduced_phi.min-nnf"
+    output:
+        "assets/decdnnf_phi_n_reduce/{nnf}.t_reduced_phi.models"
+    log:
+        "assets/decdnnf_phi_n_reduce/{nnf}.err"
+    benchmark:
+        "assets/benchmarks/decdnnf_phi_n_reduce/{nnf}.jsonl"
+    params:
+        "src.decdnnf.extend_n_reduce"
+    shell:
+        """
+        if [[ -s {input.models_phi:q} && -s {input.t_reduced_phi:q} ]]; then
+          timeout --verbose {config[timeout][enumerator]}m \
+            python -m {params} \
+            --cores {threads} \
+            --output {output} \
+            --models {input.models_phi} \
+            --t_reduced_phi {input.t_reduced_phi} \
+            2> {log} \
+            || touch {output}
+        fi
+
+        touch {output}
+        """
+
+
 rule decdnnf_extend_n_reduce:
     threads: 26
     input:
@@ -730,7 +796,7 @@ rule decdnnf_extend_n_reduce:
             python -m {params} \
             --cores {threads} \
             --output {output} \
-            --models_t_extended_phi {input.models_t_extended_phi} \
+            --models {input.models_t_extended_phi} \
             --t_reduced_phi {input.t_reduced_phi} \
             2> {log} \
             || touch {output}

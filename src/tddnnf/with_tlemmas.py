@@ -97,6 +97,7 @@ def main() -> None:
     parser.add_argument('--tlemmas_phi', type=utils.file, required=True)
     parser.add_argument('--tlemmas_not_phi', type=utils.file, required=True)
     parser.add_argument('--mapping', type=Path, required=True)
+    parser.add_argument('--phi', type=Path, required=True)
     parser.add_argument('--t_reduced_phi', type=Path, required=True)
     parser.add_argument('--t_extended_phi', type=Path, required=True)
     args: argparse.Namespace = parser.parse_args()
@@ -124,6 +125,11 @@ def main() -> None:
             smtlibscript_from_formula(atom).serialize(tmp)
             json.dump(tmp.getvalue(), f)
             f.write('\n')
+
+    with utils.log('writing phi'), open(args.phi, 'w', encoding='utf-8') as f:
+        smtlibscript_from_formula(
+            phi
+        ).serialize(f)
 
     if os.path.getsize(args.tlemmas_phi):
         with utils.log('read tlemmas(phi)'), open(args.tlemmas_phi, 'r', encoding='utf-8') as f:
