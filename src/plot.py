@@ -576,23 +576,16 @@ def survival(
             labelbottom=False,
         )
 
-        cols: list[str] = [f'stderr_{step}' for step in steps]
-
-        timeouts: pl.DataFrame = df.select(
-            pl.col(step)
-            .filter(pl.col(step).cast(pl.Utf8).str.contains('timeout'))
-            .count()
-            .alias(step)
-            for step in cols
+        survived: pl.DataFrame = df.select(
+            pl.col(f'stderr_{step}').cast(pl.Utf8).fill_null('').str.contains('timeout').alias(step)
+            for step in steps
+        ).select(
+            pl.any_horizontal(steps[:i + 1]).not_().sum().alias(step)
+            for i, step in enumerate(steps)
         )
 
-        timed_out: list[int] = [
-            timeouts[step].first()
-            for step in cols
-        ]
-
         xs = np.arange(1 + len(steps), dtype=np.int64)
-        ys = list(it.accumulate(timed_out, lambda acc, x: acc - x, initial=len(df)))
+        ys = [len(df), *(survived[step].first() for step in steps)]
         ax.plot(xs, ys, 'o--')
         ax.fill_between(xs, 0, ys, alpha=.5)
 
