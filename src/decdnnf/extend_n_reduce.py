@@ -1,4 +1,5 @@
 import argparse
+import gzip
 from multiprocessing.pool import Pool
 from pathlib import Path
 
@@ -31,7 +32,7 @@ def main() -> None:
         parser.add_argument('--output', type=Path, required=True)
         args: argparse.Namespace = parser.parse_args()
 
-    with open(args.models, 'r', encoding='utf-8') as f:
+    with gzip.open(args.models, 'rt', encoding='utf-8') as f:
         models: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
 
     with Pool(args.cores, initializer=_init_worker, initargs=(args.t_reduced_phi,)) as pool:

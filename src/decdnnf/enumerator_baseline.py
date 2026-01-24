@@ -1,3 +1,4 @@
+import gzip
 import typing as t
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,7 +23,7 @@ def enum(
 ) -> t.Generator[dict[bool, list[FNode]]]:
     mapping: with_tlemmas.i2atom = with_tlemmas.read_mapping(env, args.mapping)
 
-    with open(args.models, 'r', encoding='utf-8') as f:
+    with gzip.open(args.models, 'rt', encoding='utf-8') as f:
         mus: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
 
     yield from (

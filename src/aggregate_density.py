@@ -1,3 +1,4 @@
+import gzip
 import re
 import typing as t
 from pathlib import Path
@@ -39,8 +40,8 @@ def parse_data(
                 }
             )
 
-        case '.models':
-            with open(path, 'rb') as f:
+        case '.gz':
+            with gzip.open(path, 'rt', encoding='utf-8') as f:
                 lines: int = sum(not line.isspace() for line in f)
 
             data: pl.DataFrame = (
@@ -90,7 +91,7 @@ def main(who2paths: dict[str, list[Path]], output: Path) -> None:
                         path
                         for paths in who2paths.values()
                         for path in paths
-                        if path.suffix not in ('.steps', '.out', '.err', '.models', '.jsonl')
+                        if path.suffix not in ('.steps', '.out', '.err', '.gz', '.jsonl')
                 ),
                 None,
             ))

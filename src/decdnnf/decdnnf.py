@@ -1,5 +1,6 @@
 import argparse
 import functools as ft
+import gzip
 import itertools as it
 import re
 import subprocess
@@ -209,7 +210,7 @@ def main() -> None:
 
         args: argparse.Namespace = parser.parse_args()
 
-    with open(args.models_projected, 'r', encoding='utf-8') as f:
+    with gzip.open(args.models_projected, 'rt', encoding='utf-8') as f:
         mus_projected: list[dict[bool, list[int]]] = list(parse(f))
 
     models: list[list[dict[bool, list[int]]]]
