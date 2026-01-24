@@ -1,5 +1,5 @@
 import argparse
-import gzip
+import typing as t
 from multiprocessing.pool import Pool
 from pathlib import Path
 
@@ -16,32 +16,37 @@ def _init_worker(t_reduced_phi: Path) -> None:
     _ddnnf = Ddnnf.from_file(t_reduced_phi.as_posix(), None).as_mut()
 
 
-def is_satisfiable(model: dict[bool, list[int]]) -> bool:
+def if_satisfiable(model: dict[bool, list[int]]) -> dict[bool, list[int]] | None:
     global _ddnnf
-    return _ddnnf.is_sat([
+    is_sat: bool = _ddnnf.is_sat([
         *model[True],
         *(-atom for atom in model[False])
     ])
+    return model if is_sat else None
 
 
 def main() -> None:
     with utils.use(argparse.ArgumentParser()) as parser:
         parser.add_argument('--cores', type=int, required=True)
-        parser.add_argument('--models', type=utils.file, required=True)
+        parser.add_argument('--phi', type=utils.file, required=True)
         parser.add_argument('--t_reduced_phi', type=utils.file, required=True)
         parser.add_argument('--output', type=Path, required=True)
         args: argparse.Namespace = parser.parse_args()
 
-    with gzip.open(args.models, 'rt', encoding='utf-8') as f:
-        models: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
+    assert args.cores > 1
 
-    with Pool(args.cores, initializer=_init_worker, initargs=(args.t_reduced_phi,)) as pool:
-        t_sat: list[bool] = pool.map(
-            is_satisfiable,
+    cores4decdnnf: int = max(1, args.cores // 3)
+    cores4ddnnife: int = args.cores - cores4decdnnf
+
+    models: t.Generator[dict[bool, list[int]]] = decdnnf.pipe(cores4decdnnf, args.phi)
+
+    with Pool(cores4ddnnife, initializer=_init_worker, initargs=(args.t_reduced_phi,)) as pool:
+        t_sat: t.Iterator[dict[bool, list[int]] | None] = pool.imap_unordered(
+            if_satisfiable,
             models,
         )
 
-    decdnnf.write_models(args.output, [mu for mu, is_t_sat in zip(models, t_sat) if is_t_sat])
+        decdnnf.write_models(args.output, [mu for mu in t_sat if mu])
 
 
 if __name__ == '__main__':

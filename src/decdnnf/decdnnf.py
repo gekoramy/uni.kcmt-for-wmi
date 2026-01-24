@@ -27,6 +27,19 @@ def args(
     ]
 
 
+def pipe(cores: int, nnf: Path, ) -> t.Generator[dict[bool, list[int]]]:
+    decdnnf: subprocess.Popen[str] = subprocess.Popen(
+        args=args(cores=cores, nnf=nnf),
+        encoding='utf-8',
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    yield from parse(decdnnf.stdout)
+
+    assert 0 == decdnnf.wait(), decdnnf.stderr.read()
+
+
 def raw(
         cores: int,
         nnf: Path,

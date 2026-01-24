@@ -154,14 +154,6 @@ rule aggregate_density:
             *["assets/tddnnf_exists_A/sdd/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err", "steps"]],
             "assets/benchmarks/tddnnf_exists_A/sdd/{type}/{density}.t_reduced_phi.jsonl"
         ],
-        decdnnf_d4_phi=[
-            *["assets/decdnnf/tddnnf/d4/{type}/{density}.phi." + suffix for suffix in ["err", "models.gz"]],
-            "assets/benchmarks/decdnnf/tddnnf/d4/{type}/{density}.phi.jsonl"
-        ],
-        decdnnf_sdd_phi=[
-            *["assets/decdnnf/tddnnf/sdd/{type}/{density}.phi." + suffix for suffix in ["err", "models.gz"]],
-            "assets/benchmarks/decdnnf/tddnnf/sdd/{type}/{density}.phi.jsonl"
-        ],
         decdnnf_d4_t_reduced=[
             *["assets/decdnnf/tddnnf/d4/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err", "models.gz"]],
             "assets/benchmarks/decdnnf/tddnnf/d4/{type}/{density}.t_reduced_phi.jsonl"
@@ -169,14 +161,6 @@ rule aggregate_density:
         decdnnf_sdd_t_reduced=[
             *["assets/decdnnf/tddnnf/sdd/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err", "models.gz"]],
             "assets/benchmarks/decdnnf/tddnnf/sdd/{type}/{density}.t_reduced_phi.jsonl"
-        ],
-        decdnnf_d4_t_extended=[
-            *["assets/decdnnf/tddnnf/d4/{type}/{density}.t_extended_phi." + suffix for suffix in ["err", "models.gz"]],
-            "assets/benchmarks/decdnnf/tddnnf/d4/{type}/{density}.t_extended_phi.jsonl"
-        ],
-        decdnnf_sdd_t_extended=[
-            *["assets/decdnnf/tddnnf/sdd/{type}/{density}.t_extended_phi." + suffix for suffix in ["err", "models.gz"]],
-            "assets/benchmarks/decdnnf/tddnnf/sdd/{type}/{density}.t_extended_phi.jsonl"
         ],
         **{
             f"decdnnf_1st_step_exists_{qo}_{compiler}_t_reduced": [
@@ -770,7 +754,7 @@ rule decdnnf_phi_n_reduce:
     resources:
         disk="50GB"
     input:
-        models_phi="assets/decdnnf/{nnf}.phi.models.gz",
+        phi="assets/{nnf}.phi.min-nnf",
         t_reduced_phi="assets/{nnf}.t_reduced_phi.min-nnf"
     output:
         temp("assets/decdnnf_phi_n_reduce/{nnf}.t_reduced_phi.models")
@@ -779,15 +763,15 @@ rule decdnnf_phi_n_reduce:
     benchmark:
         "assets/benchmarks/decdnnf_phi_n_reduce/{nnf}.jsonl"
     params:
-        "src.decdnnf.extend_n_reduce"
+        "src.decdnnf.decdnnf_n_ddnnife"
     shell:
         """
-        if [[ -s {input.models_phi:q} && -s {input.t_reduced_phi:q} ]]; then
+        if [[ -s {input.phi:q} && -s {input.t_reduced_phi:q} ]]; then
           timeout --verbose {config[timeout][enumerator]}m \
             python -m {params} \
             --cores {threads} \
             --output {output} \
-            --models {input.models_phi} \
+            --phi {input.phi} \
             --t_reduced_phi {input.t_reduced_phi} \
             2> {log} \
             || touch {output}
@@ -802,7 +786,7 @@ rule decdnnf_extend_n_reduce:
     resources:
         disk="50GB"
     input:
-        models_t_extended_phi="assets/decdnnf/{nnf}.t_extended_phi.models.gz",
+        t_extended_phi="assets/{nnf}.t_extended_phi.min-nnf",
         t_reduced_phi="assets/{nnf}.t_reduced_phi.min-nnf"
     output:
         temp("assets/decdnnf_extend_n_reduce/{nnf}.t_reduced_phi.models")
@@ -811,15 +795,15 @@ rule decdnnf_extend_n_reduce:
     benchmark:
         "assets/benchmarks/decdnnf_extend_n_reduce/{nnf}.jsonl"
     params:
-        "src.decdnnf.extend_n_reduce"
+        "src.decdnnf.decdnnf_n_ddnnife"
     shell:
         """
-        if [[ -s {input.models_t_extended_phi:q} && -s {input.t_reduced_phi:q} ]]; then
+        if [[ -s {input.t_extended_phi:q} && -s {input.t_reduced_phi:q} ]]; then
           timeout --verbose {config[timeout][enumerator]}m \
             python -m {params} \
             --cores {threads} \
             --output {output} \
-            --models {input.models_t_extended_phi} \
+            --phi {input.t_extended_phi} \
             --t_reduced_phi {input.t_reduced_phi} \
             2> {log} \
             || touch {output}
