@@ -648,7 +648,11 @@ rule compress_models:
         temp("assets/{models}.models.gz")
     shell:
         """
-        gzip --keep --best {input}
+        if [[ -s {input:q} ]]; then
+          gzip --keep --best {input}
+        fi
+        
+        touch {output}
         """
 
 
