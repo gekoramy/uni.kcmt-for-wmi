@@ -389,7 +389,7 @@ rule compose_phi_with_tlemmas:
             2> {log.err} \
             || touch {output}
         fi
-        
+
         touch {output}
         """
 
@@ -618,7 +618,7 @@ rule minimize_sdd:
             --sdd {input.sdd} {output.sdd} \
             --minutes {config[timeout][minimize]}
         fi
-        
+
         touch {output}
         """
 
@@ -651,7 +651,7 @@ rule compress_models:
         if [[ -s {input:q} ]]; then
           gzip --keep --best {input}
         fi
-        
+
         touch {output}
         """
 
@@ -680,7 +680,7 @@ rule decdnnf:
             2> {log} \
             || touch {output}
         fi
-        
+
         touch {output}
         """
 
@@ -848,7 +848,7 @@ rule compute_wmi_with_sae:
             2> {log.err} \
             || touch {output}
         fi
-        
+
         touch {output}
         """
 
