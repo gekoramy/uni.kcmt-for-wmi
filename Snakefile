@@ -712,7 +712,7 @@ rule decdnnf_two_steps_sdd:
     benchmark:
         "assets/benchmarks/decdnnf_two_steps/exists_{qo}/sdd/{type}/{density}.t_reduced_phi.jsonl"
     params:
-        "src.decdnnf.decdnnf"
+        "src.decdnnf.decdnnf_conditioned"
     shell:
         """
         if [[ -s {input.models_projected:q} ]]; then
@@ -746,7 +746,7 @@ rule decdnnf_two_steps_nnf:
     benchmark:
         "assets/benchmarks/decdnnf_two_steps/exists_{qo}/d4/{type}/{density}.t_reduced_phi.jsonl"
     params:
-        "src.decdnnf.decdnnf"
+        "src.decdnnf.decdnnf_conditioned"
     shell:
         """
         if [[ -s {input.models_projected:q} ]]; then
