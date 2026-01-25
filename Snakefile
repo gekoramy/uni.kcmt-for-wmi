@@ -522,7 +522,7 @@ rule fix_nnf:
 rule compile_tddnnf_with_sdd:
     threads: 1
     resources:
-        mem="40GB"
+        mem="20GB"
     input:
         phi_with_tlemmas="assets/phi_with_tlemmas/{type}/{density}.{phi}.smt2",
         mapping="assets/phi_with_tlemmas/{type}/{density}.mapping",
@@ -555,7 +555,7 @@ rule compile_tddnnf_with_sdd:
 rule compile_tddnnf_projected_with_sdd:
     threads: 1
     resources:
-        mem="40GB"
+        mem="20GB"
     input:
         mapping="assets/phi_with_tlemmas/{type}/{density}.mapping",
         sdd="assets/tddnnf/sdd/{type}/{density}.t_reduced_phi.min-sdd",
