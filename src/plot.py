@@ -1,6 +1,7 @@
 import argparse
 import dataclasses
 import itertools as it
+import re
 import typing as t
 from collections import OrderedDict
 from datetime import timedelta
@@ -684,19 +685,9 @@ def inspection(
     oq: t.Literal['x', 'A'] = 'xA'.replace(qo, '')
 
     enumerators: list[tuple[str, tuple[str, str, str]]] = [
-        ('sae', ('models_sae', f'distinct_by_{oq}_sae', 'npolys_sae')),
-        *[
-            (
-                key,
-                (
-                    f'models_decdnnf_1st_step_exists_{qo}_{compiler}_t_reduced',
-                    f'distinct_by_{oq}_{key}',
-                    f'npolys_{key}',
-                ),
-            )
-            for compiler in ['d4', 'sdd']
-            if (key := f'wmi_decdnnf_exists_{qo}_{compiler}')
-        ],
+        (enum, (f'models_{enum}', f'distinct_by_{oq}_{enum}', f'npolys_{enum}'))
+        for enum in enumerator2steps.keys()
+        if re.search(fr'sae|exists_{qo}', enum)
     ]
 
     many: int = sum(len(cols) for _, cols in enumerators)
@@ -795,15 +786,9 @@ def main() -> None:
                         df,
                         'models → npolys',
                         [
-                            *[
-                                ((f'models_{enum}', f'npolys_{enum}'), enum)
-                                for enum in ['sae', 'sae_with_tlemmas']
-                            ],
-                            *[
-                                ((f'models_{steps[-3]}', f'npolys_{enum}'), enum)
-                                for enum, steps in enumerator2steps.items()
-                                if 'exists' in enum
-                            ],
+                            ((f'models_{enum}', f'npolys_{enum}'), enum)
+                            for enum in enumerator2steps.keys()
+                            if re.search(r'sae|exists', enum)
                         ],
                     )
 
@@ -812,15 +797,9 @@ def main() -> None:
                         df,
                         'models → nuniquepolys',
                         [
-                            *[
-                                ((f'models_{enum}', f'nuniquepolys_{enum}'), enum)
-                                for enum in ['sae', 'sae_with_tlemmas']
-                            ],
-                            *[
-                                ((f'models_{steps[-3]}', f'nuniquepolys_{enum}'), enum)
-                                for enum, steps in enumerator2steps.items()
-                                if 'exists' in enum
-                            ],
+                            ((f'models_{enum}', f'nuniquepolys_{enum}'), enum)
+                            for enum in enumerator2steps.keys()
+                            if re.search(r'sae|exists', enum)
                         ]
                     )
 
@@ -830,15 +809,9 @@ def main() -> None:
                         df,
                         f'models → distinct_by_{by}',
                         [
-                            *[
-                                ((f'models_{enum}', f'distinct_by_{by}_{enum}'), enum)
-                                for enum in ['sae', 'sae_with_tlemmas']
-                            ],
-                            *[
-                                ((f'models_{steps[-3]}', f'distinct_by_{by}_{enum}'), enum)
-                                for enum, steps in enumerator2steps.items()
-                                if 'exists' in enum
-                            ],
+                            ((f'models_{enum}', f'distinct_by_{by}_{enum}'), enum)
+                            for enum in enumerator2steps.keys()
+                            if re.search(r'sae|exists', enum)
                         ],
                     )
 
@@ -847,17 +820,17 @@ def main() -> None:
                         df,
                         'models',
                         [
-                            *[
-                                (f'{args.column}_{enum}', enum)
-                                for enum in ['sae', 'sae_with_tlemmas']
-                            ],
-                            *[
-                                (f'{args.column}_{steps[-3]}', enum)
-                                for enum, steps in enumerator2steps.items()
-                                if 'exists' in enum
-                            ],
+                            (f'{args.column}_{enum}', enum)
+                            for enum in enumerator2steps.keys()
+                            if re.search(r'sae|exists', enum)
                         ]
                     )
+
+                case 'inspection-x':
+                    fig = inspection(df, 'x')
+
+                case 'inspection-A':
+                    fig = inspection(df, 'A')
 
         case _:
             match args.column:
@@ -900,12 +873,6 @@ def main() -> None:
 
                 case 'survival':
                     fig = survival(df)
-
-                case 'inspection-x':
-                    fig = inspection(df, 'x')
-
-                case 'inspection-A':
-                    fig = inspection(df, 'A')
 
                 case 'distinct_by_x' | 'distinct_by_A':
                     by: t.Literal['x', 'A'] = args.column[-1]
