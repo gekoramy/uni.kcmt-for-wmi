@@ -1,0 +1,41 @@
+diff --git a/src/app/model_counting.rs b/src/app/model_counting.rs
+index e9edb01..2982e1b 100644
+--- a/src/app/model_counting.rs
++++ b/src/app/model_counting.rs
+@@ -1,5 +1,5 @@
+ use super::{cli_manager, common};
+-use clap::{App, AppSettings, ArgMatches, SubCommand};
++use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+ use decdnnf_rs::ModelCounter;
+ 
+ #[derive(Default)]
+@@ -7,6 +7,8 @@ pub struct Command;
+ 
+ const CMD_NAME: &str = "model-counting";
+ 
++const ARG_COMPACT_FREE_VARS: &str = "ARG_COMPACT_FREE_VARS";
++
+ impl<'a> super::command::Command<'a> for Command {
+     fn name(&self) -> &str {
+         CMD_NAME
+@@ -18,11 +20,19 @@ impl<'a> super::command::Command<'a> for Command {
+             .setting(AppSettings::DisableVersion)
+             .args(&common::args_input())
+             .arg(cli_manager::logging_level_cli_arg())
++            .arg(
++                Arg::with_name(ARG_COMPACT_FREE_VARS)
++                    .short("c")
++                    .long("compact-free-vars")
++                    .takes_value(false)
++                    .help("compact models with free variables")
++            )
+     }
+ 
+     fn execute(&self, arg_matches: &ArgMatches<'_>) -> anyhow::Result<()> {
+         let ddnnf = common::read_input_ddnnf(arg_matches)?;
+-        let model_counter = ModelCounter::new(&ddnnf, false);
++        let compact_display = arg_matches.is_present(ARG_COMPACT_FREE_VARS);
++        let model_counter = ModelCounter::new(&ddnnf, compact_display);
+         println!("{}", model_counter.global_count());
+         Ok(())
+     }

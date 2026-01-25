@@ -18,7 +18,8 @@ craneLib.buildPackage {
       sha256 = "sha256-4IRt4BgupQ2gdaZCIu18O/XSBrLAt22XkrtmglPvg1I=";
     };
     patches = [
-      ./logging.patch
+      ./patches/logging.patch
+      ./patches/counting.patch
     ];
   };
 
