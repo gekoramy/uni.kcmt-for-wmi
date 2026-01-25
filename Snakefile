@@ -130,6 +130,14 @@ rule aggregate_density:
             "assets/tddnnf/sdd/{type}/{density}.phi.err",
             "assets/benchmarks/tddnnf/sdd/{type}/{density}.phi.jsonl"
         ],
+        tddnnf_d4_tlemmas_phi=[
+            "assets/tddnnf/d4/{type}/{density}.tlemmas_phi.err",
+            "assets/benchmarks/tddnnf/d4/{type}/{density}.tlemmas_phi.jsonl"
+        ],
+        tddnnf_sdd_tlemmas_phi=[
+            "assets/tddnnf/sdd/{type}/{density}.tlemmas_phi.err",
+            "assets/benchmarks/tddnnf/sdd/{type}/{density}.tlemmas_phi.jsonl"
+        ],
         tddnnf_d4_t_extended=[
             "assets/tddnnf/d4/{type}/{density}.t_extended_phi.err",
             "assets/benchmarks/tddnnf/d4/{type}/{density}.t_extended_phi.jsonl"
@@ -368,6 +376,7 @@ rule compose_phi_with_tlemmas:
     output:
         mapping="assets/phi_with_tlemmas/{type}/{density}.mapping",
         phi="assets/phi_with_tlemmas/{type}/{density}.phi.smt2",
+        tlemmas_phi="assets/phi_with_tlemmas/{type}/{density}.tlemmas_phi.smt2",
         t_reduced_phi="assets/phi_with_tlemmas/{type}/{density}.t_reduced_phi.smt2",
         t_extended_phi="assets/phi_with_tlemmas/{type}/{density}.t_extended_phi.smt2"
     log:
@@ -388,6 +397,7 @@ rule compose_phi_with_tlemmas:
             --tlemmas_not_phi {input.tlemmas_not_phi} \
             --mapping {output.mapping} \
             --phi {output.phi} \
+            --normalized_tlemmas_phi {output.tlemmas_phi} \
             --t_reduced_phi {output.t_reduced_phi} \
             --t_extended_phi {output.t_extended_phi} \
             2> {log.err} \
@@ -763,7 +773,7 @@ rule decdnnf_phi_n_reduce:
         disk="50GB"
     input:
         phi="assets/{nnf}.phi.min-nnf",
-        t_reduced_phi="assets/{nnf}.t_reduced_phi.min-nnf"
+        tlemmas_phi="assets/{nnf}.tlemmas_phi.min-nnf"
     output:
         temp("assets/decdnnf_phi_n_reduce/{nnf}.t_reduced_phi.models")
     log:
@@ -774,13 +784,13 @@ rule decdnnf_phi_n_reduce:
         "src.decdnnf.decdnnf_n_ddnnife"
     shell:
         """
-        if [[ -s {input.phi:q} && -s {input.t_reduced_phi:q} ]]; then
+        if [[ -s {input.phi:q} && -s {input.tlemmas_phi:q} ]]; then
           timeout --verbose {config[timeout][enumerator]}m \
             python -m {params} \
             --cores {threads} \
             --output {output} \
             --phi {input.phi} \
-            --t_reduced_phi {input.t_reduced_phi} \
+            --t_sat {input.tlemmas_phi} \
             2> {log} \
             || touch {output}
         fi
@@ -812,7 +822,7 @@ rule decdnnf_extend_n_reduce:
             --cores {threads} \
             --output {output} \
             --phi {input.t_extended_phi} \
-            --t_reduced_phi {input.t_reduced_phi} \
+            --t_sat {input.t_reduced_phi} \
             2> {log} \
             || touch {output}
         fi

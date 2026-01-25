@@ -98,6 +98,7 @@ def main() -> None:
     parser.add_argument('--tlemmas_not_phi', type=utils.file, required=True)
     parser.add_argument('--mapping', type=Path, required=True)
     parser.add_argument('--phi', type=Path, required=True)
+    parser.add_argument('--normalized_tlemmas_phi', type=Path, required=True)
     parser.add_argument('--t_reduced_phi', type=Path, required=True)
     parser.add_argument('--t_extended_phi', type=Path, required=True)
     args: argparse.Namespace = parser.parse_args()
@@ -137,6 +138,11 @@ def main() -> None:
 
         with utils.log('normalizing tlemmas(phi)'):
             tlemmas_phi = walker.walk(tlemmas_phi)
+
+        with utils.log('writing normalized tlemmas(phi)'), open(args.normalized_tlemmas_phi, 'w', encoding='utf-8') as f:
+            smtlibscript_from_formula(
+                tlemmas_phi
+            ).serialize(f)
 
         with utils.log('writing t-reduced phi'), open(args.t_reduced_phi, 'w', encoding='utf-8') as f:
             smtlibscript_from_formula(

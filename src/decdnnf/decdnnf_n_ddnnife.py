@@ -29,7 +29,7 @@ def main() -> None:
     with utils.use(argparse.ArgumentParser()) as parser:
         parser.add_argument('--cores', type=int, required=True)
         parser.add_argument('--phi', type=utils.file, required=True)
-        parser.add_argument('--t_reduced_phi', type=utils.file, required=True)
+        parser.add_argument('--t_sat', type=utils.file, required=True)
         parser.add_argument('--output', type=Path, required=True)
         args: argparse.Namespace = parser.parse_args()
 
@@ -40,7 +40,7 @@ def main() -> None:
 
     models: t.Generator[dict[bool, list[int]]] = decdnnf.pipe(cores4decdnnf, args.phi)
 
-    with Pool(cores4ddnnife, initializer=_init_worker, initargs=(args.t_reduced_phi,)) as pool:
+    with Pool(cores4ddnnife, initializer=_init_worker, initargs=(args.t_sat,)) as pool:
         t_sat: t.Iterator[dict[bool, list[int]] | None] = pool.imap_unordered(
             if_satisfiable,
             models,
