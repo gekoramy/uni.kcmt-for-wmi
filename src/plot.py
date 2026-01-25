@@ -58,7 +58,7 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
         f'wmi_decdnnf_phi_n_reduce_{compiler}': [
             'tlemmas_phi',
             f'tddnnf_{compiler}_phi',
-            f'tddnnf_{compiler}_t_reduced',
+            f'tddnnf_{compiler}_tlemmas',
             f'decdnnf_phi_n_reduce_{compiler}',
             f'wmi_decdnnf_phi_n_reduce_{compiler}',
         ]
