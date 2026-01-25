@@ -146,7 +146,7 @@ def main() -> None:
 
         with utils.log('writing t-reduced phi'), open(args.t_reduced_phi, 'w', encoding='utf-8') as f:
             smtlibscript_from_formula(
-                smt.And(phi, tlemmas_phi)
+                smt.And(phi, *tlemmas_phi.args())
             ).serialize(f)
 
     if os.path.getsize(args.tlemmas_not_phi):
