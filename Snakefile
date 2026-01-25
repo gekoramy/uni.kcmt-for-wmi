@@ -115,31 +115,31 @@ rule aggregate_density:
             "assets/benchmarks/tlemmas/not_phi/{type}/{density}.jsonl"
         ],
         tddnnf_d4_t_reduced=[
-            *["assets/tddnnf/d4/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err"]],
+            "assets/tddnnf/d4/{type}/{density}.t_reduced_phi.err",
             "assets/benchmarks/tddnnf/d4/{type}/{density}.t_reduced_phi.jsonl"
         ],
         tddnnf_sdd_t_reduced=[
-            *["assets/tddnnf/sdd/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err"]],
+            "assets/tddnnf/sdd/{type}/{density}.t_reduced_phi.err",
             "assets/benchmarks/tddnnf/sdd/{type}/{density}.t_reduced_phi.jsonl"
         ],
         tddnnf_d4_phi=[
-            *["assets/tddnnf/d4/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err"]],
+            "assets/tddnnf/d4/{type}/{density}.t_reduced_phi.err",
             "assets/benchmarks/tddnnf/d4/{type}/{density}.t_reduced_phi.jsonl"
         ],
         tddnnf_sdd_phi=[
-            *["assets/tddnnf/sdd/{type}/{density}.phi." + suffix for suffix in ["err"]],
+            "assets/tddnnf/sdd/{type}/{density}.phi.err",
             "assets/benchmarks/tddnnf/sdd/{type}/{density}.phi.jsonl"
         ],
         tddnnf_d4_t_extended=[
-            *["assets/tddnnf/d4/{type}/{density}.t_extended_phi." + suffix for suffix in ["err"]],
+            "assets/tddnnf/d4/{type}/{density}.t_extended_phi.err",
             "assets/benchmarks/tddnnf/d4/{type}/{density}.t_extended_phi.jsonl"
         ],
         tddnnf_sdd_t_extended=[
-            *["assets/tddnnf/sdd/{type}/{density}.t_extended_phi." + suffix for suffix in ["err"]],
+            "assets/tddnnf/sdd/{type}/{density}.t_extended_phi.err",
             "assets/benchmarks/tddnnf/sdd/{type}/{density}.t_extended_phi.jsonl"
         ],
         tddnnf_exists_x_d4_t_reduced=[
-            *["assets/tddnnf_exists_x/d4/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err"]],
+            "assets/tddnnf_exists_x/d4/{type}/{density}.t_reduced_phi.err",
             "assets/benchmarks/tddnnf_exists_x/d4/{type}/{density}.t_reduced_phi.jsonl"
         ],
         tddnnf_exists_x_sdd_t_reduced=[
@@ -147,7 +147,7 @@ rule aggregate_density:
             "assets/benchmarks/tddnnf_exists_x/sdd/{type}/{density}.t_reduced_phi.jsonl"
         ],
         tddnnf_exists_A_d4_t_reduced=[
-            *["assets/tddnnf_exists_A/d4/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err"]],
+            "assets/tddnnf_exists_A/d4/{type}/{density}.t_reduced_phi.err",
             "assets/benchmarks/tddnnf_exists_A/d4/{type}/{density}.t_reduced_phi.jsonl"
         ],
         tddnnf_exists_A_sdd_t_reduced=[
@@ -155,11 +155,11 @@ rule aggregate_density:
             "assets/benchmarks/tddnnf_exists_A/sdd/{type}/{density}.t_reduced_phi.jsonl"
         ],
         decdnnf_d4_t_reduced=[
-            *["assets/decdnnf/tddnnf/d4/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err"]],
+            "assets/decdnnf/tddnnf/d4/{type}/{density}.t_reduced_phi.err",
             "assets/benchmarks/decdnnf/tddnnf/d4/{type}/{density}.t_reduced_phi.jsonl"
         ],
         decdnnf_sdd_t_reduced=[
-            *["assets/decdnnf/tddnnf/sdd/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err"]],
+            "assets/decdnnf/tddnnf/sdd/{type}/{density}.t_reduced_phi.err",
             "assets/benchmarks/decdnnf/tddnnf/sdd/{type}/{density}.t_reduced_phi.jsonl"
         ],
         **{
