@@ -4,7 +4,7 @@ configfile: "configs/easy.yaml"
 
 validate(config,schema="configs/schema.json")
 
-container: "docker://ghcr.io/gekoramy/playground:814a8cfdba266a742d0626ff5f5bb15c7de596af"
+container: "docker://ghcr.io/gekoramy/playground:251ee782f3b5d94e5b24887d76659d0b5c0c707d"
 
 
 def densities() -> list[str]:
@@ -155,17 +155,16 @@ rule aggregate_density:
             "assets/benchmarks/tddnnf_exists_A/sdd/{type}/{density}.t_reduced_phi.jsonl"
         ],
         decdnnf_d4_t_reduced=[
-            *["assets/decdnnf/tddnnf/d4/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err", "models.gz"]],
+            *["assets/decdnnf/tddnnf/d4/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err"]],
             "assets/benchmarks/decdnnf/tddnnf/d4/{type}/{density}.t_reduced_phi.jsonl"
         ],
         decdnnf_sdd_t_reduced=[
-            *["assets/decdnnf/tddnnf/sdd/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err", "models.gz"]],
+            *["assets/decdnnf/tddnnf/sdd/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err"]],
             "assets/benchmarks/decdnnf/tddnnf/sdd/{type}/{density}.t_reduced_phi.jsonl"
         ],
         **{
             f"decdnnf_1st_step_exists_{qo}_{compiler}_t_reduced": [
                 "assets/decdnnf/tddnnf_exists_" + key + "/{type}/{density}.t_reduced_phi.err",
-                "assets/decdnnf/tddnnf_exists_" + key + "/{type}/{density}.t_reduced_phi.models.gz",
                 "assets/benchmarks/decdnnf/tddnnf_exists_" + key + "/{type}/{density}.t_reduced_phi.jsonl"
             ]
             for qo in ["x", "A"]
@@ -175,7 +174,6 @@ rule aggregate_density:
         **{
             f"decdnnf_2nd_step_exists_{qo}_{compiler}_t_reduced": [
                 "assets/decdnnf_two_steps/exists_" + key + "/{type}/{density}.t_reduced_phi.err",
-                "assets/decdnnf_two_steps/exists_" + key + "/{type}/{density}.t_reduced_phi.models.gz",
                 "assets/benchmarks/decdnnf_two_steps/exists_" + key + "/{type}/{density}.t_reduced_phi.jsonl"
             ]
             for qo in ["x", "A"]
@@ -183,22 +181,18 @@ rule aggregate_density:
             if (key := f"{qo}/{compiler}")
         },
         decdnnf_phi_n_reduce_d4=[
-            "assets/decdnnf_phi_n_reduce/tddnnf/d4/{type}/{density}.t_reduced_phi.models.gz",
             "assets/decdnnf_phi_n_reduce/tddnnf/d4/{type}/{density}.err",
             "assets/benchmarks/decdnnf_phi_n_reduce/tddnnf/d4/{type}/{density}.jsonl"
         ],
         decdnnf_phi_n_reduce_sdd=[
-            "assets/decdnnf_phi_n_reduce/tddnnf/sdd/{type}/{density}.t_reduced_phi.models.gz",
             "assets/decdnnf_phi_n_reduce/tddnnf/sdd/{type}/{density}.err",
             "assets/benchmarks/decdnnf_phi_n_reduce/tddnnf/sdd/{type}/{density}.jsonl"
         ],
         decdnnf_extend_n_reduce_d4=[
-            "assets/decdnnf_extend_n_reduce/tddnnf/d4/{type}/{density}.t_reduced_phi.models.gz",
             "assets/decdnnf_extend_n_reduce/tddnnf/d4/{type}/{density}.err",
             "assets/benchmarks/decdnnf_extend_n_reduce/tddnnf/d4/{type}/{density}.jsonl"
         ],
         decdnnf_extend_n_reduce_sdd=[
-            "assets/decdnnf_extend_n_reduce/tddnnf/sdd/{type}/{density}.t_reduced_phi.models.gz",
             "assets/decdnnf_extend_n_reduce/tddnnf/sdd/{type}/{density}.err",
             "assets/benchmarks/decdnnf_extend_n_reduce/tddnnf/sdd/{type}/{density}.jsonl"
         ],
@@ -212,42 +206,52 @@ rule aggregate_density:
         ],
         wmi_decdnnf_d4=[
             *["assets/wmi/decdnnf/tddnnf/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/tddnnf/d4/{type}/{density}.t_reduced_phi.min-nnf",
             "assets/benchmarks/wmi/decdnnf/tddnnf/d4/noop/{type}/{density}.jsonl"
         ],
         wmi_decdnnf_sdd=[
             *["assets/wmi/decdnnf/tddnnf/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/tddnnf/sdd/{type}/{density}.t_reduced_phi.min-nnf",
             "assets/benchmarks/wmi/decdnnf/tddnnf/sdd/noop/{type}/{density}.jsonl"
         ],
         wmi_decdnnf_exists_x_d4=[
             *["assets/wmi/decdnnf_two_steps/exists_x/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/tddnnf_exists_x/d4/{type}/{density}.t_reduced_phi.min-nnf",
             "assets/benchmarks/wmi/decdnnf_two_steps/exists_x/d4/noop/{type}/{density}.jsonl"
         ],
         wmi_decdnnf_exists_x_sdd=[
             *["assets/wmi/decdnnf_two_steps/exists_x/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/tddnnf_exists_x/sdd/{type}/{density}.t_reduced_phi.min-nnf",
             "assets/benchmarks/wmi/decdnnf_two_steps/exists_x/sdd/noop/{type}/{density}.jsonl"
         ],
         wmi_decdnnf_exists_A_d4=[
             *["assets/wmi/decdnnf_two_steps/exists_A/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/tddnnf_exists_A/d4/{type}/{density}.t_reduced_phi.min-nnf",
             "assets/benchmarks/wmi/decdnnf_two_steps/exists_A/d4/noop/{type}/{density}.jsonl"
         ],
         wmi_decdnnf_exists_A_sdd=[
             *["assets/wmi/decdnnf_two_steps/exists_A/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/tddnnf_exists_A/sdd/{type}/{density}.t_reduced_phi.min-nnf",
             "assets/benchmarks/wmi/decdnnf_two_steps/exists_A/sdd/noop/{type}/{density}.jsonl"
         ],
         wmi_decdnnf_phi_n_reduce_d4=[
             *["assets/wmi/decdnnf_phi_n_reduce/tddnnf/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/tddnnf/d4/{type}/{density}.phi.min-nnf",
             "assets/benchmarks/wmi/decdnnf_phi_n_reduce/tddnnf/d4/noop/{type}/{density}.jsonl"
         ],
         wmi_decdnnf_phi_n_reduce_sdd=[
             *["assets/wmi/decdnnf_phi_n_reduce/tddnnf/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/tddnnf/sdd/{type}/{density}.phi.min-nnf",
             "assets/benchmarks/wmi/decdnnf_phi_n_reduce/tddnnf/sdd/noop/{type}/{density}.jsonl"
         ],
         wmi_decdnnf_extend_n_reduce_d4=[
             *["assets/wmi/decdnnf_extend_n_reduce/tddnnf/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/tddnnf/d4/{type}/{density}.t_extended_phi.min-nnf",
             "assets/benchmarks/wmi/decdnnf_extend_n_reduce/tddnnf/d4/noop/{type}/{density}.jsonl"
         ],
         wmi_decdnnf_extend_n_reduce_sdd=[
             *["assets/wmi/decdnnf_extend_n_reduce/tddnnf/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/tddnnf/sdd/{type}/{density}.t_extended_phi.min-nnf",
             "assets/benchmarks/wmi/decdnnf_extend_n_reduce/tddnnf/sdd/noop/{type}/{density}.jsonl"
         ],
     output:

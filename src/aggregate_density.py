@@ -1,9 +1,11 @@
-import gzip
+import dataclasses
 import re
 import typing as t
 from pathlib import Path
 
 import polars as pl
+
+from src.decdnnf import decdnnf
 
 
 def patch(path: Path) -> str:
@@ -24,7 +26,7 @@ def parse_data(
             data = (
                 data
                 .with_columns(pl.lit(True).alias('tmp'))
-                .pivot(on=pl.col('step'), index=pl.col('tmp'), aggregate_function="mean")
+                .pivot(on=pl.col('step'), index=pl.col('tmp'), aggregate_function='mean')
                 .select(pl.all().exclude('tmp'))
             )
 
@@ -40,13 +42,18 @@ def parse_data(
                 }
             )
 
-        case '.gz':
-            with gzip.open(path, 'rt', encoding='utf-8') as f:
-                lines: int = sum(not line.isspace() for line in f)
-
+        case '.min-nnf':
             data: pl.DataFrame = (
-                pl.DataFrame({'models': lines}, schema={'models': pl.Float64})
-                if lines else
+                pl.DataFrame(
+                    dataclasses.asdict(decdnnf.ta(path)),
+                    schema={
+                        'models': pl.Float64,
+                        'vars': pl.Int64,
+                        'nodes': pl.Int64,
+                        'edges': pl.Int64,
+                    }
+                )
+                if path.stat().st_size > 0 else
                 pl.DataFrame()
             )
 
@@ -91,12 +98,12 @@ def main(who2paths: dict[str, list[Path]], output: Path) -> None:
                         path
                         for paths in who2paths.values()
                         for path in paths
-                        if path.suffix not in ('.steps', '.out', '.err', '.gz', '.jsonl')
+                        if path.suffix not in ('.steps', '.out', '.err', '.min-nnf', '.jsonl')
                 ),
                 None,
             ))
     ):
-        raise RuntimeError(f"unknown scheme: {unknown}")
+        raise RuntimeError(f'unknown scheme: {unknown}')
 
     dataframes: t.Iterable[pl.DataFrame] = [
         parse_data(who, path, output.stem)

@@ -1,12 +1,21 @@
 import re
 import subprocess
 import typing as t
+from dataclasses import dataclass
 from pathlib import Path
 
 b2regex: frozenset[tuple[bool, re.Pattern]] = frozenset([
     (False, re.compile(r'-(\d+)')),
     (True, re.compile(r' (\d+)')),
 ])
+
+
+@dataclass
+class NNF:
+    models: int
+    vars: int
+    nodes: int
+    edges: int
 
 
 def args(
@@ -50,6 +59,33 @@ def raw(cores: int, nnf: Path) -> t.Generator[dict[bool, list[int]]]:
     assert 0 == decdnnf.returncode, decdnnf.stdout
 
     yield from parse(decdnnf.stdout.splitlines())
+
+
+def ta(nnf: Path) -> NNF:
+    decdnnf: subprocess.CompletedProcess[str] = subprocess.run(
+        args=[
+            'decdnnf_rs',
+            'model-counting',
+            '--compact-free-vars',
+            '--input', nnf.as_posix(),
+        ],
+        encoding='utf-8',
+        capture_output=True,
+    )
+
+    assert 0 == decdnnf.returncode, decdnnf.stdout
+
+    matches: dict[str, int] = {
+        key: int(value)
+        for key, value in re.findall(r'number of (\w+): (\d+)', decdnnf.stderr)
+    }
+
+    return NNF(
+        models=int(decdnnf.stdout),
+        vars=matches['variables'],
+        nodes=matches['nodes'],
+        edges=matches['edges'],
+    )
 
 
 def parse(lines: t.Iterable[str]) -> t.Generator[dict[bool, list[int]]]:
