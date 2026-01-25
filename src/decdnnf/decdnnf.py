@@ -27,7 +27,7 @@ def args(
     ]
 
 
-def pipe(cores: int, nnf: Path, ) -> t.Generator[dict[bool, list[int]]]:
+def pipe(cores: int, nnf: Path) -> t.Generator[dict[bool, list[int]]]:
     decdnnf: subprocess.Popen[str] = subprocess.Popen(
         args=args(cores=cores, nnf=nnf),
         encoding='utf-8',
@@ -40,10 +40,7 @@ def pipe(cores: int, nnf: Path, ) -> t.Generator[dict[bool, list[int]]]:
     assert 0 == decdnnf.wait(), decdnnf.stderr.read()
 
 
-def raw(
-        cores: int,
-        nnf: Path,
-) -> t.Generator[dict[bool, list[int]]]:
+def raw(cores: int, nnf: Path) -> t.Generator[dict[bool, list[int]]]:
     decdnnf: subprocess.CompletedProcess[str] = subprocess.run(
         args=args(cores=cores, nnf=nnf),
         encoding='utf-8',
@@ -55,9 +52,7 @@ def raw(
     yield from parse(decdnnf.stdout.splitlines())
 
 
-def parse(
-        lines: t.Iterable[str]
-) -> t.Generator[dict[bool, list[int]]]:
+def parse(lines: t.Iterable[str]) -> t.Generator[dict[bool, list[int]]]:
     yield from (
         {
             boolean: [int(l) for l in regex.findall(line.strip().removesuffix('0'))]
