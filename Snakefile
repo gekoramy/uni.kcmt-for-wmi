@@ -745,6 +745,7 @@ rule decdnnf_two_steps_nnf:
 rule decdnnf_phi_n_reduce:
     threads: 26
     resources:
+        mem="60GB",
         disk="50GB"
     input:
         phi="assets/{nnf}.phi.min-nnf",
@@ -777,6 +778,7 @@ rule decdnnf_phi_n_reduce:
 rule decdnnf_extend_n_reduce:
     threads: 26
     resources:
+        mem="60GB",
         disk="50GB"
     input:
         t_extended_phi="assets/{nnf}.t_extended_phi.min-nnf",

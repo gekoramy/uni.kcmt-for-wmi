@@ -38,9 +38,9 @@ def main() -> None:
     cores4decdnnf: int = max(1, args.cores // 3)
     cores4ddnnife: int = args.cores - cores4decdnnf
 
-    models: t.Generator[dict[bool, list[int]]] = decdnnf.pipe(cores4decdnnf, args.phi)
-
     with Pool(cores4ddnnife, initializer=_init_worker, initargs=(args.t_sat,)) as pool:
+        models: t.Generator[dict[bool, list[int]]] = decdnnf.pipe(cores4decdnnf, args.phi)
+
         t_sat: t.Iterator[dict[bool, list[int]] | None] = pool.imap_unordered(
             if_satisfiable,
             models,
