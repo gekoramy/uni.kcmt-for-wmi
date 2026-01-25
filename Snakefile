@@ -558,8 +558,8 @@ rule compile_tddnnf_projected_with_sdd:
         mem="20GB"
     input:
         mapping="assets/phi_with_tlemmas/{type}/{density}.mapping",
-        sdd="assets/tddnnf/sdd/{type}/{density}.t_reduced_phi.min-sdd",
-        vtree="assets/tddnnf/sdd/{type}/{density}.t_reduced_phi.min-vtree"
+        sdd="assets/tddnnf/sdd/{type}/{density}.t_reduced_phi.sdd",
+        vtree="assets/tddnnf/sdd/{type}/{density}.t_reduced_phi.vtree"
     output:
         sdd="assets/tddnnf_exists_{qo,[xA]}/sdd/{type}/{density}.t_reduced_phi.sdd",
         vtree="assets/tddnnf_exists_{qo,[xA]}/sdd/{type}/{density}.t_reduced_phi.vtree"
@@ -612,35 +612,10 @@ rule minimize_nnf:
         """
 
 
-rule minimize_sdd:
-    threads: 1
-    input:
-        vtree="assets/{sdd}.vtree",
-        sdd="assets/{sdd}.sdd"
-    output:
-        vtree="assets/{sdd}.min-vtree",
-        sdd="assets/{sdd}.min-sdd"
-    benchmark:
-        "assets/benchmarks/minimize_sdd/{sdd}.jsonl"
-    params:
-        script="src.minimize_sdd"
-    shell:
-        """
-        if [[ -s {input.sdd:q} ]]; then
-          python -m {params.script} \
-            --vtree {input.vtree} {output.vtree} \
-            --sdd {input.sdd} {output.sdd} \
-            --minutes {config[timeout][minimize]}
-        fi
-
-        touch {output}
-        """
-
-
 rule sdd_to_nnf:
     threads: 1
     input:
-        "{sdd}.min-sdd"
+        "{sdd}.sdd"
     output:
         "{sdd}.nnf"
     params:
@@ -705,8 +680,8 @@ rule decdnnf_two_steps_sdd:
         disk="50GB"
     input:
         models_projected="assets/decdnnf/tddnnf_exists_{qo}/sdd/{type}/{density}.t_reduced_phi.models.gz",
-        vtree="assets/tddnnf/sdd/{type}/{density}.t_reduced_phi.min-vtree",
-        sdd="assets/tddnnf/sdd/{type}/{density}.t_reduced_phi.min-sdd",
+        vtree="assets/tddnnf/sdd/{type}/{density}.t_reduced_phi.vtree",
+        sdd="assets/tddnnf/sdd/{type}/{density}.t_reduced_phi.sdd",
     output:
         temp("assets/decdnnf_two_steps/exists_{qo}/sdd/{type}/{density}.t_reduced_phi.models")
     log:
