@@ -1,5 +1,6 @@
 import re
 import subprocess
+import sys
 import typing as t
 from dataclasses import dataclass
 from pathlib import Path
@@ -41,12 +42,12 @@ def pipe(cores: int, nnf: Path) -> t.Generator[dict[bool, list[int]]]:
         args=args(cores=cores, nnf=nnf),
         encoding='utf-8',
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stderr=sys.stderr,
     )
 
     yield from parse(decdnnf.stdout)
 
-    assert 0 == decdnnf.wait(), decdnnf.stderr.read()
+    assert 0 == (code := decdnnf.wait()), f"decdnnf exited with code {code}"
 
 
 def raw(cores: int, nnf: Path) -> t.Generator[dict[bool, list[int]]]:
