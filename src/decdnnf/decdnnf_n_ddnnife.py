@@ -49,6 +49,7 @@ def main() -> None:
         t_sat: t.Iterator[dict[bool, list[int]] | None] = pool.imap_unordered(
             if_satisfiable,
             models,
+            chunksize=cores4ddnnife,
         )
 
         decdnnf.write_models(args.output, [mu for mu in t_sat if mu])
