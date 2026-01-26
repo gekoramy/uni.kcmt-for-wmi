@@ -188,22 +188,14 @@ rule aggregate_density:
             for compiler in ["d4", "sdd"]
             if (key := f"{qo}/{compiler}")
         },
-        decdnnf_phi_n_reduce_d4=[
-            "assets/decdnnf_phi_n_reduce/tddnnf/d4/{type}/{density}.err",
-            "assets/benchmarks/decdnnf_phi_n_reduce/tddnnf/d4/{type}/{density}.jsonl"
-        ],
-        decdnnf_phi_n_reduce_sdd=[
-            "assets/decdnnf_phi_n_reduce/tddnnf/sdd/{type}/{density}.err",
-            "assets/benchmarks/decdnnf_phi_n_reduce/tddnnf/sdd/{type}/{density}.jsonl"
-        ],
-        decdnnf_extend_n_reduce_d4=[
-            "assets/decdnnf_extend_n_reduce/tddnnf/d4/{type}/{density}.err",
-            "assets/benchmarks/decdnnf_extend_n_reduce/tddnnf/d4/{type}/{density}.jsonl"
-        ],
-        decdnnf_extend_n_reduce_sdd=[
-            "assets/decdnnf_extend_n_reduce/tddnnf/sdd/{type}/{density}.err",
-            "assets/benchmarks/decdnnf_extend_n_reduce/tddnnf/sdd/{type}/{density}.jsonl"
-        ],
+        **{
+            f"decdnnf_n_ddnnife_{phi}_to_{t_sat}_{compiler}": [
+                f"assets/decdnnf_n_ddnnife/{phi}_to_{t_sat}/tddnnf/{compiler}/{{type}}/{{density}}.err",
+                f"assets/benchmarks/decdnnf_n_ddnnife/{phi}_to_{t_sat}/tddnnf/{compiler}/{{type}}/{{density}}.jsonl"
+            ]
+            for phi, t_sat in [("phi", "tlemmas_phi"), ("phi", "t_reduced_phi"), ("t_extended_phi", "t_reduced_phi")]
+            for compiler in ["d4", "sdd"]
+        },
         sae=[
             *["assets/wmi/sae/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
             "assets/benchmarks/sae/noop/{type}/{density}.jsonl"
@@ -242,26 +234,15 @@ rule aggregate_density:
             "assets/tddnnf_exists_A/sdd/{type}/{density}.t_reduced_phi.min-nnf",
             "assets/benchmarks/wmi/decdnnf_two_steps/exists_A/sdd/noop/{type}/{density}.jsonl"
         ],
-        wmi_decdnnf_phi_n_reduce_d4=[
-            *["assets/wmi/decdnnf_phi_n_reduce/tddnnf/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
-            "assets/tddnnf/d4/{type}/{density}.phi.min-nnf",
-            "assets/benchmarks/wmi/decdnnf_phi_n_reduce/tddnnf/d4/noop/{type}/{density}.jsonl"
-        ],
-        wmi_decdnnf_phi_n_reduce_sdd=[
-            *["assets/wmi/decdnnf_phi_n_reduce/tddnnf/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
-            "assets/tddnnf/sdd/{type}/{density}.phi.min-nnf",
-            "assets/benchmarks/wmi/decdnnf_phi_n_reduce/tddnnf/sdd/noop/{type}/{density}.jsonl"
-        ],
-        wmi_decdnnf_extend_n_reduce_d4=[
-            *["assets/wmi/decdnnf_extend_n_reduce/tddnnf/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
-            "assets/tddnnf/d4/{type}/{density}.t_extended_phi.min-nnf",
-            "assets/benchmarks/wmi/decdnnf_extend_n_reduce/tddnnf/d4/noop/{type}/{density}.jsonl"
-        ],
-        wmi_decdnnf_extend_n_reduce_sdd=[
-            *["assets/wmi/decdnnf_extend_n_reduce/tddnnf/sdd/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
-            "assets/tddnnf/sdd/{type}/{density}.t_extended_phi.min-nnf",
-            "assets/benchmarks/wmi/decdnnf_extend_n_reduce/tddnnf/sdd/noop/{type}/{density}.jsonl"
-        ],
+        **{
+            f"wmi_decdnnf_n_ddnnife_{phi}_to_{t_sat}_{compiler}": [
+                *[f"assets/wmi/decdnnf_n_ddnnife/{phi}_to_{t_sat}/tddnnf/{compiler}/noop/{{type}}/{{density}}.{suffix}" for suffix in ["out", "err", "steps"]],
+                f"assets/tddnnf/{compiler}/{{type}}/{{density}}.{phi}.min-nnf",
+                f"assets/benchmarks/wmi/decdnnf_n_ddnnife/{phi}_to_{t_sat}/tddnnf/{compiler}/noop/{{type}}/{{density}}.jsonl"
+            ]
+            for phi, t_sat in [("phi", "tlemmas_phi"), ("phi", "t_reduced_phi"), ("t_extended_phi", "t_reduced_phi")]
+            for compiler in ["d4", "sdd"]
+        },
     output:
         "assets/aggregates/{type}/{density}.csv"
     script:
@@ -742,64 +723,31 @@ rule decdnnf_two_steps_nnf:
         """
 
 
-rule decdnnf_phi_n_reduce:
+rule decdnnf_n_ddnnife:
     threads: 26
     resources:
         mem="60GB",
         disk="50GB"
     input:
-        phi="assets/{nnf}.phi.min-nnf",
-        tlemmas_phi="assets/{nnf}.tlemmas_phi.min-nnf"
+        phi="assets/{nnf}.{phi}.min-nnf",
+        t_sat="assets/{nnf}.{tsat}.min-nnf"
     output:
-        temp("assets/decdnnf_phi_n_reduce/{nnf}.t_reduced_phi.models")
+        temp(r"assets/decdnnf_n_ddnnife/{phi}_to_{tsat,\w+}/{nnf}.t_reduced_phi.models")
     log:
-        "assets/decdnnf_phi_n_reduce/{nnf}.err"
+        r"assets/decdnnf_n_ddnnife/{phi}_to_{tsat,\w+}/{nnf}.err"
     benchmark:
-        "assets/benchmarks/decdnnf_phi_n_reduce/{nnf}.jsonl"
+        r"assets/benchmarks/decdnnf_n_ddnnife/{phi}_to_{tsat,\w+}/{nnf}.jsonl"
     params:
         "src.decdnnf.decdnnf_n_ddnnife"
     shell:
         """
-        if [[ -s {input.phi:q} && -s {input.tlemmas_phi:q} ]]; then
+        if [[ -s {input.phi:q} && -s {input.t_sat:q} ]]; then
           timeout --verbose {config[timeout][enumerator]}m \
             python -m {params} \
             --cores {threads} \
             --output {output} \
             --phi {input.phi} \
-            --t_sat {input.tlemmas_phi} \
-            2> {log} \
-            || touch {output}
-        fi
-
-        touch {output}
-        """
-
-
-rule decdnnf_extend_n_reduce:
-    threads: 26
-    resources:
-        mem="60GB",
-        disk="50GB"
-    input:
-        t_extended_phi="assets/{nnf}.t_extended_phi.min-nnf",
-        t_reduced_phi="assets/{nnf}.t_reduced_phi.min-nnf"
-    output:
-        temp("assets/decdnnf_extend_n_reduce/{nnf}.t_reduced_phi.models")
-    log:
-        "assets/decdnnf_extend_n_reduce/{nnf}.err"
-    benchmark:
-        "assets/benchmarks/decdnnf_extend_n_reduce/{nnf}.jsonl"
-    params:
-        "src.decdnnf.decdnnf_n_ddnnife"
-    shell:
-        """
-        if [[ -s {input.t_extended_phi:q} && -s {input.t_reduced_phi:q} ]]; then
-          timeout --verbose {config[timeout][enumerator]}m \
-            python -m {params} \
-            --cores {threads} \
-            --output {output} \
-            --phi {input.t_extended_phi} \
-            --t_sat {input.t_reduced_phi} \
+            --t_sat {input.t_sat} \
             2> {log} \
             || touch {output}
         fi
