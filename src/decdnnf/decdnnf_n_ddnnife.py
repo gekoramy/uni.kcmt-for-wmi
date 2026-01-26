@@ -40,7 +40,7 @@ def main() -> None:
 
     mp.set_start_method('fork')
 
-    cores4decdnnf: int = max(1, args.cores // 3)
+    cores4decdnnf: int = 1
     cores4ddnnife: int = args.cores - cores4decdnnf
 
     with mp.Pool(cores4ddnnife, initializer=_init_worker, initargs=()) as pool:
