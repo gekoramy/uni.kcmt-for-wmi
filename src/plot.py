@@ -55,20 +55,30 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
         for qo in 'xA'
     },
     **{
-        f'wmi_decdnnf_phi_n_reduce_{compiler}': [
+        f'wmi_decdnnf_n_ddnnife_phi_to_tlemmas_phi_{compiler}': [
             'tlemmas_phi',
             f'tddnnf_{compiler}_phi',
-            f'tddnnf_{compiler}_tlemmas',
+            f'tddnnf_{compiler}_tlemmas_phi',
             f'decdnnf_phi_n_reduce_{compiler}',
             f'wmi_decdnnf_phi_n_reduce_{compiler}',
         ]
         for compiler in ['d4', 'sdd']
     },
     **{
-        f'wmi_decdnnf_extend_n_reduce_{compiler}': [
+        f'wmi_decdnnf_n_ddnnife_phi_to_t_reduced_phi_{compiler}': [
             'tlemmas_phi',
-            'tlemmas_not_phi',
+            f'tddnnf_{compiler}_phi',
             f'tddnnf_{compiler}_t_reduced',
+            f'decdnnf_phi_n_reduce_{compiler}',
+            f'wmi_decdnnf_phi_n_reduce_{compiler}',
+        ]
+        for compiler in ['d4', 'sdd']
+    },
+    **{
+        f'wmi_decdnnf_n_ddnnife_t_extended_phi_to_t_reduced_phi_{compiler}': [
+            'tlemmas_phi',
+            f'tddnnf_{compiler}_t_reduced',
+            'tlemmas_not_phi',
             f'tddnnf_{compiler}_t_extended',
             f'decdnnf_extend_n_reduce_{compiler}',
             f'wmi_decdnnf_extend_n_reduce_{compiler}',
