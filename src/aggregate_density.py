@@ -58,8 +58,7 @@ def parse_data(
             )
 
         case '.err':
-            text: str = path.read_text()
-            data: pl.DataFrame = pl.DataFrame({'stderr': text})
+            data: pl.DataFrame = pl.DataFrame({'stderr': stderr(path)})
 
         case '.jsonl':
             data: pl.DataFrame = pl.read_ndjson(
@@ -89,6 +88,18 @@ def parse_data(
         pl.lit(density).alias('density'),
         pl.lit(who).alias('who'),
     )
+
+
+def stderr(path: Path) -> str:
+    limit: int = 4096
+    if path.stat().st_size <= limit * 2:
+        return path.read_text(errors='replace', encoding='utf-8')
+
+    with path.open('rb') as f:
+        head = f.read(limit).decode(errors='replace', encoding='utf-8')
+        f.seek(-limit, 2)
+        tail = f.read().decode(errors='replace', encoding='utf-8')
+        return '\n'.join((head, '... [truncated] ...', tail))
 
 
 def main(who2paths: dict[str, list[Path]], output: Path) -> None:
