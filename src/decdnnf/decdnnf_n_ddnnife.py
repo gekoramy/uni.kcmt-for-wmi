@@ -1,6 +1,6 @@
 import argparse
 import typing as t
-from multiprocessing.pool import Pool
+import multiprocessing as mp
 from pathlib import Path
 
 from ddnnife import Ddnnf, DdnnfMut
@@ -8,17 +8,18 @@ from ddnnife import Ddnnf, DdnnfMut
 from src import utils
 from src.decdnnf import decdnnf
 
-_ddnnf: DdnnfMut
+_ddnnf: Ddnnf
+_ddnnf_mut: DdnnfMut
 
 
-def _init_worker(t_reduced_phi: Path) -> None:
-    global _ddnnf
-    _ddnnf = Ddnnf.from_file(t_reduced_phi.as_posix(), None).as_mut()
+def _init_worker() -> None:
+    global _ddnnf, _ddnnf_mut
+    _ddnnf_mut = _ddnnf.as_mut()
 
 
 def if_satisfiable(model: dict[bool, list[int]]) -> dict[bool, list[int]] | None:
-    global _ddnnf
-    is_sat: bool = _ddnnf.is_sat([
+    global _ddnnf_mut
+    is_sat: bool = _ddnnf_mut.is_sat([
         *model[True],
         *(-atom for atom in model[False])
     ])
@@ -34,11 +35,15 @@ def main() -> None:
         args: argparse.Namespace = parser.parse_args()
 
     assert args.cores > 1
+    global _ddnnf
+    _ddnnf = Ddnnf.from_file(args.t_sat.as_posix(), None)
+
+    mp.set_start_method('fork')
 
     cores4decdnnf: int = max(1, args.cores // 3)
     cores4ddnnife: int = args.cores - cores4decdnnf
 
-    with Pool(cores4ddnnife, initializer=_init_worker, initargs=(args.t_sat,)) as pool:
+    with mp.Pool(cores4ddnnife, initializer=_init_worker, initargs=()) as pool:
         models: t.Generator[dict[bool, list[int]]] = decdnnf.pipe(cores4decdnnf, args.phi)
 
         t_sat: t.Iterator[dict[bool, list[int]] | None] = pool.imap_unordered(
