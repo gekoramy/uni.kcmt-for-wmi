@@ -5,10 +5,7 @@ theorydd@git+https://github.com/ecivini/tddnnf@6199fba3c66699a21b57ff1f65affa7f2
 wmpy@git+https://github.com/unitn-sml/wmpy@aa1244af94a66526b18465c5d207086d91404101
 graphviz
 pyrefly
-orjson
-jsonlines
 polars
-tqdm
 matplotlib
 snakemake
 ddnnife
