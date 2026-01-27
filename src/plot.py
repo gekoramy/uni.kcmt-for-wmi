@@ -789,6 +789,19 @@ def main() -> None:
         case 'steps':
             fig = foreach_step(df, args.column)
 
+        case 'only-decdnnf_n_ddnnife':
+            match args.column:
+                case 'models to npolys':
+                    fig = plot_lines(
+                        df,
+                        'models → npolys',
+                        [
+                            ((f'models_{enum}', f'npolys_{enum}'), enum)
+                            for enum in enumerator2steps.keys()
+                            if re.search(r'sae|decdnnf_n_ddnnife', enum)
+                        ],
+                    )
+
         case 'only-exists':
             match args.column:
                 case 'models to npolys':
