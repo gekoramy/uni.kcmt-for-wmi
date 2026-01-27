@@ -38,12 +38,10 @@ def main() -> None:
     global _ddnnf
     _ddnnf = Ddnnf.from_file(args.t_sat.as_posix(), None)
 
-    mp.set_start_method('fork')
-
     cores4decdnnf: int = 1
     cores4ddnnife: int = args.cores - cores4decdnnf
 
-    with mp.Pool(cores4ddnnife, initializer=_init_worker, initargs=()) as pool:
+    with mp.get_context('fork').Pool(cores4ddnnife, initializer=_init_worker, initargs=()) as pool:
         models: t.Generator[dict[bool, list[int]]] = decdnnf.pipe(cores4decdnnf, args.phi)
 
         t_sat: t.Iterator[dict[bool, list[int]] | None] = pool.imap_unordered(
