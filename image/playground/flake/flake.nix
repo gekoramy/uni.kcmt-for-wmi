@@ -2,12 +2,14 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     crane.url = "github:ipetkov/crane";
+    ddnnife.url = "github:gekoramy/ddnnife";
   };
 
   outputs = {
     self,
     nixpkgs,
     crane,
+    ddnnife,
   }: let
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
@@ -18,6 +20,7 @@
       d4 = pkgs.callPackage ./nix/d4 {};
       mathsat = pkgs.callPackage ./nix/mathsat {};
       decdnnf_rs = pkgs.callPackage ./nix/decdnnf_rs {inherit craneLib;};
+      ddnnife = ddnnife.packages.${system}.python;
 
       bundle = pkgs.buildEnv {
         name = "bundle";

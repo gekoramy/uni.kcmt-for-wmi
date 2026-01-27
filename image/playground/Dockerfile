@@ -14,6 +14,8 @@ COPY ./flake .
 
 RUN --mount=type=secret,id=nix-config,env=NIX_CONFIG \
   nix profile add .#bundle \
+  && nix build .#ddnnife \
+  && cp result/ddnnife-*.whl . \
   && nix-collect-garbage -d
 
 WORKDIR /deps
@@ -21,6 +23,7 @@ WORKDIR /deps
 COPY ./python .
 
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install /flake/ddnnife-*.whl
 RUN pysmt-install --msat --confirm-agreement
 RUN patch -i constants.patch $(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")/theorydd/constants.py
 RUN python pysmt-postinstall.py

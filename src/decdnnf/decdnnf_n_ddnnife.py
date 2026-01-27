@@ -9,17 +9,11 @@ from src import utils
 from src.decdnnf import decdnnf
 
 _ddnnf: Ddnnf
-_ddnnf_mut: DdnnfMut
-
-
-def _init_worker() -> None:
-    global _ddnnf, _ddnnf_mut
-    _ddnnf_mut = _ddnnf.as_mut()
 
 
 def if_satisfiable(model: dict[bool, list[int]]) -> dict[bool, list[int]] | None:
-    global _ddnnf_mut
-    is_sat: bool = _ddnnf_mut.is_sat([
+    global _ddnnf
+    is_sat: bool = _ddnnf.is_sat([
         *model[True],
         *(-atom for atom in model[False])
     ])
@@ -41,7 +35,7 @@ def main() -> None:
     cores4decdnnf: int = 1
     cores4ddnnife: int = args.cores - cores4decdnnf
 
-    with mp.get_context('fork').Pool(cores4ddnnife, initializer=_init_worker, initargs=()) as pool:
+    with mp.get_context('fork').Pool(cores4ddnnife) as pool:
         models: t.Generator[dict[bool, list[int]]] = decdnnf.pipe(cores4decdnnf, args.phi)
 
         t_sat: t.Iterator[dict[bool, list[int]] | None] = pool.imap_unordered(
