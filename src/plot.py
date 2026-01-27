@@ -85,6 +85,14 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
         ]
         for compiler in ['d4', 'sdd']
     },
+    **{
+        f'wmi_decdnnf_n_mathsat_{compiler}': [
+            f'tddnnf_{compiler}_phi',
+            f'decdnnf_n_mathsat_{compiler}',
+            f'wmi_decdnnf_n_mathsat_{compiler}',
+        ]
+        for compiler in ['d4', 'sdd']
+    },
 )
 
 

@@ -200,6 +200,13 @@ rule aggregate_density:
             for phi, t_sat in [("phi", "tlemmas_phi"), ("phi", "t_reduced_phi"), ("t_extended_phi", "t_reduced_phi")]
             for compiler in ["d4", "sdd"]
         },
+        **{
+            f"decdnnf_n_mathsat_{compiler}": [
+                f"assets/decdnnf_n_mathsat/{compiler}/{{type}}/{{density}}.err",
+                f"assets/benchmarks/decdnnf_n_mathsat/{compiler}/{{type}}/{{density}}.jsonl"
+            ]
+            for compiler in ["d4", "sdd"]
+        },
         sae=[
             *["assets/wmi/sae/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
             "assets/benchmarks/sae/noop/{type}/{density}.jsonl"
@@ -245,6 +252,14 @@ rule aggregate_density:
                 f"assets/benchmarks/wmi/decdnnf_n_ddnnife/{phi}_to_{t_sat}/tddnnf/{compiler}/noop/{{type}}/{{density}}.jsonl"
             ]
             for phi, t_sat in [("phi", "tlemmas_phi"), ("phi", "t_reduced_phi"), ("t_extended_phi", "t_reduced_phi")]
+            for compiler in ["d4", "sdd"]
+        },
+        **{
+            f"wmi_decdnnf_n_mathsat_{compiler}": [
+                *[f"assets/wmi/decdnnf_n_mathsat/{compiler}/noop/{{type}}/{{density}}.{suffix}" for suffix in ["out", "err", "steps"]],
+                f"assets/tddnnf/{compiler}/{{type}}/{{density}}.phi.min-nnf",
+                f"assets/benchmarks/wmi/decdnnf_n_mathsat/{compiler}/noop/{{type}}/{{density}}.jsonl"
+            ]
             for compiler in ["d4", "sdd"]
         },
     output:
@@ -752,6 +767,38 @@ rule decdnnf_n_ddnnife:
             --output {output} \
             --phi {input.phi} \
             --t_sat {input.t_sat} \
+            2> {log} \
+            || touch {output}
+        fi
+
+        touch {output}
+        """
+
+
+rule decdnnf_n_mathsat:
+    threads: 13
+    resources:
+        disk="50GB"
+    input:
+        mapping="assets/phi_with_tlemmas/{type}/{density}.mapping",
+        phi="assets/tddnnf/{compiler,d4|sdd}/{type}/{density}.phi.min-nnf"
+    output:
+        temp("assets/decdnnf_n_mathsat/{compiler,d4|sdd}/{type}/{density}.t_reduced_phi.models")
+    log:
+        "assets/decdnnf_n_mathsat/{compiler,d4|sdd}/{type}/{density}.err"
+    benchmark:
+        "assets/benchmarks/decdnnf_n_mathsat/{compiler,d4|sdd}/{type}/{density}.jsonl"
+    params:
+        "src.decdnnf.decdnnf_n_mathsat"
+    shell:
+        """
+        if [[ -s {input.mapping:q} ]]; then
+          timeout --verbose {config[timeout][enumerator]}m \
+            python -m {params} \
+            --cores {threads} \
+            --output {output} \
+            --mapping {input.mapping} \
+            --phi {input.phi} \
             2> {log} \
             || touch {output}
         fi
