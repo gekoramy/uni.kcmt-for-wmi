@@ -743,9 +743,9 @@ rule decdnnf_two_steps_nnf:
 
 
 rule decdnnf_n_ddnnife:
-    threads: 13
+    threads: 26
     resources:
-        mem="60GB",
+        mem="20GB",
         disk="50GB"
     input:
         phi="assets/{nnf}.{phi}.min-nnf",
@@ -776,8 +776,9 @@ rule decdnnf_n_ddnnife:
 
 
 rule decdnnf_n_mathsat:
-    threads: 13
+    threads: 26
     resources:
+        mem="20GB",
         disk="50GB"
     input:
         mapping="assets/phi_with_tlemmas/{type}/{density}.mapping",
