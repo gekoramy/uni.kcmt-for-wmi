@@ -782,7 +782,7 @@ rule decdnnf_n_mathsat:
         disk="50GB"
     input:
         mapping="assets/phi_with_tlemmas/{type}/{density}.mapping",
-        phi="assets/tddnnf/{compiler,d4|sdd}/{type}/{density}.phi.min-nnf"
+        phi="assets/tddnnf/{compiler}/{type}/{density}.phi.min-nnf"
     output:
         temp("assets/decdnnf_n_mathsat/{compiler,d4|sdd}/{type}/{density}.t_reduced_phi.models")
     log:
