@@ -5,7 +5,7 @@ seed: [ 1, 2 ]
 timeout:
   enumerator: 20
   compilator: 40
-  tlemmas: 120
+  tlemmas: 60
 
 wmpy_synthetic:
   n_reals: [ 5, 6 ]

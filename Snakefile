@@ -339,9 +339,9 @@ rule generate_wmibench_synthetic_pa:
 
 
 rule compute_tlemmas:
-    threads: 17
+    threads: 26
     resources:
-        mem="20GB"
+        mem="40GB"
     input:
         "assets/densities/{type}/{density}.json"
     output:
