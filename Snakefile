@@ -726,7 +726,7 @@ rule decdnnf_two_steps_nnf:
 rule decdnnf_n_ddnnife:
     threads: 26
     resources:
-        mem="60GB",
+        mem="100GB",
         disk="50GB"
     input:
         phi="assets/{nnf}.{phi}.min-nnf",
