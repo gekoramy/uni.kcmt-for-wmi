@@ -35,12 +35,10 @@ def t_atoms(ixs: t.Iterable[int]) -> Generator[FNode]:
 
 def if_satisfiable(model: dict[bool, list[int]]) -> dict[bool, list[int]] | None:
     global _solver
-    _solver.push()
     is_sat: bool = _solver.solve((
         *t_atoms(model[True]),
         *(smt.Not(a) for a in t_atoms(model[False])),
     ))
-    _solver.pop()
     return model if is_sat else None
 
 
