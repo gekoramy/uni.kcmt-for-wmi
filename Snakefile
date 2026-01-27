@@ -4,7 +4,7 @@ configfile: "configs/easy.yaml"
 
 validate(config,schema="configs/schema.json")
 
-container: "docker://ghcr.io/gekoramy/playground:ad64818e479873f8bf6c0ff0a792c56fd6de1999"
+container: "docker://ghcr.io/gekoramy/playground:bf72cd4fe47714146d2c4a1f102fb9d6a5437d9f"
 
 
 def densities() -> list[str]:
