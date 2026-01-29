@@ -84,6 +84,9 @@ def nnf2dot(file: t.Iterator[str]) -> graphviz.Graph:
                     ),
                 )
 
+    if not any('--' in line for line in dot.body):
+        dot.node('0', 'FT'[next(iter(nnf2b.values()))], shape='doublecircle', color='red')
+
     return dot
 
 
