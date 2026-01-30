@@ -10,6 +10,7 @@ from pathlib import Path
 import math
 import numpy as np
 import polars as pl
+import pypalettes
 from matplotlib import pyplot as plt, transforms, ticker, colors
 
 from src import utils
@@ -116,7 +117,6 @@ def compare_columns(
         df: pl.DataFrame,
         columns_n_enumerators: list[tuple[tuple[str, str], str]],
 ) -> plt.Figure:
-
     minimum: float = (
         df.select(
             pl.col(column)
@@ -148,11 +148,13 @@ def compare_columns(
 
     iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
 
-    custom_cmap: colors.Colormap = colors.LinearSegmentedColormap.from_list('my_list', ['#B03040', 'black'])
+    cmap = pypalettes.load_cmap('Sunset2')
     tmin, tmax = max(1.0, minimum), maximum[0] * padding
     major: np.ndarray[tuple[int], np.dtype[np.float64]] = ticker.LogLocator(base=10).tick_values(tmin, tmax)
     major = major[(tmin <= major) & (major <= tmax)]
-    minor: np.ndarray[tuple[int], np.dtype[np.float64]] = ticker.LogLocator(base=10, subs=np.arange(2, 12, 2)).tick_values(tmin, tmax)
+    minor: np.ndarray[tuple[int], np.dtype[np.float64]] = (
+        ticker.LogLocator(base=10, subs=np.arange(2, 12, 2)).tick_values(tmin, tmax)
+    )
     minor = minor[(tmin <= minor) & (minor <= tmax)]
 
     ax: plt.Axes
@@ -227,37 +229,19 @@ def compare_columns(
         # count points at each location for timeout points
         unique_timeout, counts_timeout = np.unique(xy[rm], axis=0, return_counts=True)
 
-        vmax: int = max(
-            np.max(counts_regular, initial=10),
-            np.max(counts_timeout, initial=10),
-        )
-
         scatters: list[plt.PathCollection] = [
             ax.scatter(
-                x=unique_regular[:, 0],
-                y=unique_regular[:, 1],
-                c=counts_regular,
-                cmap=custom_cmap,
-                vmin=1,
-                vmax=vmax,
-                marker='o',
+                x=xy[:, 0],
+                y=xy[:, 1],
+                s=s * 80,
                 zorder=3,
-            ),
-            ax.scatter(
-                x=unique_timeout[:, 0],
-                y=unique_timeout[:, 1],
-                c=counts_timeout,
-                cmap=custom_cmap,
-                vmin=1,
-                vmax=vmax,
-                marker='x',
-                zorder=3,
-            ),
+                **kwargs,
+            )
+            for xy, s, kwargs in [
+                (unique_regular, counts_regular, dict(marker='o', edgecolors='none', facecolors=cmap(0), alpha=.6)),
+                (unique_timeout, counts_timeout, dict(marker='x', color=cmap(0))),
+            ]
         ]
-
-        # add colorbar to show the meaning of colors
-        cbar = fig.colorbar(next(filter(lambda x: x, scatters)), ax=ax, label='count')
-        cbar.ax.yaxis.set_major_locator(ticker.FixedLocator(list({*counts_regular, *counts_timeout})))
 
         ax.set_xlabel(label(col_x))
         ax.set_ylabel(label(col_y))
@@ -267,14 +251,11 @@ def compare_columns(
     return fig
 
 
-
 def plot(
         df: pl.DataFrame,
         title: str,
         columns_n_enumerators: list[tuple[str, str]] | None = None,
 ) -> plt.Figure:
-    padding: float = 2
-
     minimum: float = (
         df.select(
             pl.col(column)
@@ -283,7 +264,7 @@ def plot(
         .min_horizontal()
         .min()
     )
-    minimum = 0 if minimum < padding else minimum / padding
+    minimum = 0.0 if minimum < 10 else minimum
 
     maximum: float = (
         df.select(
@@ -294,6 +275,9 @@ def plot(
         .max()
     )
 
+    log_width: float = math.log10(max(1.0, maximum)) - math.log10(max(1.0, minimum))
+    padding: float = 10 ** (max(1.0, log_width) / 10)
+
     tot: int = math.comb(len(columns_n_enumerators), 2)
     nrows: int = 3
     ncols: int = math.ceil(tot / nrows)
@@ -301,11 +285,15 @@ def plot(
 
     iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
 
-    custom_cmap: colors.Colormap = colors.LinearSegmentedColormap.from_list('my_list', ['#E46C62', '#B34072', '#6F1F59'])
+    cmap = pypalettes.load_cmap('Sunset2')
     tmin, tmax = max(1.0, minimum), maximum * padding
-    major: np.ndarray[tuple[int], np.dtype[np.float64]] = ticker.LogLocator(base=10).tick_values(tmin, tmax)
+    major: np.ndarray[tuple[int], np.dtype[np.float64]] = (
+        ticker.LogLocator(base=10).tick_values(tmin, tmax)
+    )
     major = major[(tmin <= major) & (major <= tmax)]
-    minor: np.ndarray[tuple[int], np.dtype[np.float64]] = ticker.LogLocator(base=10, subs=np.arange(2, 12, 2)).tick_values(tmin, tmax)
+    minor: np.ndarray[tuple[int], np.dtype[np.float64]] = (
+        ticker.LogLocator(base=10, subs=np.arange(2, 12, 2)).tick_values(tmin, tmax)
+    )
     minor = minor[(tmin <= minor) & (minor <= tmax)]
 
     ax: plt.Axes
@@ -377,59 +365,46 @@ def plot(
             )
         )
 
-        rm = np.zeros(len(df), dtype=np.bool)
+        rm_x = np.zeros(len(df), dtype=np.bool)
+        rm_y = np.zeros(len(df), dtype=np.bool)
 
         xs = data.get_column(f'{col_x}').to_numpy(writable=True)
         for step, limit in zip(steps_x, limits_x):
             mask = data.get_column(f'tout_{step}').to_numpy()
-            rm |= mask
+            rm_x |= mask
             xs[mask] = limit
 
         ys = data.get_column(f'{col_y}').to_numpy(writable=True)
         for step, limit in zip(steps_y, limits_y):
             mask = data.get_column(f'tout_{step}').to_numpy()
-            rm |= mask
+            rm_y |= mask
             ys[mask] = limit
 
         xy = np.column_stack((xs, ys))
 
         # count points at each location for non-timeout points
-        unique_regular, counts_regular = np.unique(xy[~rm], axis=0, return_counts=True)
+        unique_regular, counts_regular = np.unique(xy[~(rm_x | rm_y)], axis=0, return_counts=True)
 
         # count points at each location for timeout points
-        unique_timeout, counts_timeout = np.unique(xy[rm], axis=0, return_counts=True)
-
-        vmax: int = max(
-            np.max(counts_regular, initial=10),
-            np.max(counts_timeout, initial=10),
-        )
+        unique_timeout_x, counts_timeout_x = np.unique(xy[rm_x & ~rm_y], axis=0, return_counts=True)
+        unique_timeout_y, counts_timeout_y = np.unique(xy[~rm_x & rm_y], axis=0, return_counts=True)
+        unique_timeout, counts_timeout = np.unique(xy[rm_x & rm_y], axis=0, return_counts=True)
 
         scatters: list[plt.PathCollection] = [
             ax.scatter(
-                x=unique_regular[:, 0],
-                y=unique_regular[:, 1],
-                c=counts_regular,
-                cmap=custom_cmap,
-                vmin=1,
-                vmax=vmax,
-                marker='o',
+                x=xy[:, 0],
+                y=xy[:, 1],
+                s=s * 80,
                 zorder=3,
-            ),
-            ax.scatter(
-                x=unique_timeout[:, 0],
-                y=unique_timeout[:, 1],
-                c=counts_timeout,
-                cmap=custom_cmap,
-                vmin=1,
-                vmax=vmax,
-                marker='x',
-                zorder=3,
-            ),
+                **kwargs,
+            )
+            for xy, s, kwargs in [
+                (unique_regular, counts_regular, dict(marker='o', edgecolors='none', facecolors=cmap(0), alpha=.6)),
+                (unique_timeout_x, counts_timeout_x, dict(marker='3', color=cmap(0))),
+                (unique_timeout_y, counts_timeout_y, dict(marker='1', color=cmap(0))),
+                (unique_timeout, counts_timeout, dict(marker='x', color=cmap(0))),
+            ]
         ]
-
-        # add colorbar to show the meaning of colors
-        cbar = fig.colorbar(next(filter(lambda x: x, scatters)), ax=ax, label='count')
-        cbar.ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
 
         ax.set_xlabel(label(enum_x))
         ax.set_ylabel(label(enum_y))
@@ -461,6 +436,7 @@ def plot_time(
     ncols: int = math.ceil(tot / nrows)
     fig, axs = plt.subplots(nrows, ncols, figsize=(8 * ncols, 8 * nrows))
 
+    cmap = pypalettes.load_cmap('Sunset2')
     iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
 
     ax: plt.Axes
