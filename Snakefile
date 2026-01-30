@@ -56,7 +56,7 @@ rule all:
                     "distinct_by_x", "distinct_by_A"],
             suffix=["pdf", "png"]
         ),
-        expand("assets/plots/{column}.only-decdnnf_n_ddnnife.{suffix}",
+        expand("assets/plots/{column}.only-decdnnf_n.{suffix}",
             column=["models to npolys"],
             suffix=["pdf", "png"]
         ),
