@@ -10,7 +10,7 @@ from pathlib import Path
 import math
 import numpy as np
 import polars as pl
-from matplotlib import pyplot as plt, transforms, ticker
+from matplotlib import pyplot as plt, transforms, ticker, colors
 from matplotlib.colors import Colormap
 
 from src import utils
@@ -146,6 +146,13 @@ def plot(
 
     iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
 
+    custom_cmap: colors.Colormap = colors.LinearSegmentedColormap.from_list('my_list', ['#E46C62', '#B34072', '#6F1F59'])
+    tmin, tmax = max(1.0, minimum), maximum * padding
+    major: np.ndarray[tuple[int], np.dtype[np.float64]] = ticker.LogLocator(base=10).tick_values(tmin, tmax)
+    major = major[(tmin <= major) & (major <= tmax)]
+    minor: np.ndarray[tuple[int], np.dtype[np.float64]] = ticker.LogLocator(base=10, subs=np.arange(2, 12, 2)).tick_values(tmin, tmax)
+    minor = minor[(tmin <= minor) & (minor <= tmax)]
+
     ax: plt.Axes
     for ((col_x, enum_x), (col_y, enum_y)), ax in zip(
             it.combinations(columns_n_enumerators, 2),
@@ -166,9 +173,14 @@ def plot(
 
         ax.set_xlim(minimum, limits_x[-1])
         ax.set_ylim(minimum, limits_y[-1])
+        ax.xaxis.set_major_locator(ticker.FixedLocator(major))
+        ax.yaxis.set_major_locator(ticker.FixedLocator(major))
+        ax.xaxis.set_minor_locator(ticker.FixedLocator(minor))
+        ax.yaxis.set_minor_locator(ticker.FixedLocator(minor))
+        ax.grid(visible=True, which='both', linewidth=.1)
 
         for step, limit in zip(steps_x, limits_x):
-            ax.axvline(x=limit, color='darkgrey', linestyle='--')
+            ax.axvline(x=limit, color='black', linestyle='--', linewidth=1)
             ax.text(
                 x=limit,
                 y=minimum,
@@ -181,7 +193,7 @@ def plot(
             )
 
         for step, limit in zip(steps_y, limits_y):
-            ax.axhline(y=limit, color='darkgrey', linestyle='--')
+            ax.axhline(y=limit, color='black', linestyle='--', linewidth=1)
             ax.text(
                 x=minimum,
                 y=limit,
@@ -242,19 +254,21 @@ def plot(
                 x=unique_regular[:, 0],
                 y=unique_regular[:, 1],
                 c=counts_regular,
-                cmap='plasma',
+                cmap=custom_cmap,
                 vmin=1,
                 vmax=vmax,
                 marker='o',
+                zorder=3,
             ),
             ax.scatter(
                 x=unique_timeout[:, 0],
                 y=unique_timeout[:, 1],
                 c=counts_timeout,
-                cmap='plasma',
+                cmap=custom_cmap,
                 vmin=1,
                 vmax=vmax,
                 marker='x',
+                zorder=3,
             ),
         ]
 
@@ -262,8 +276,8 @@ def plot(
         cbar = fig.colorbar(next(filter(lambda x: x, scatters)), ax=ax, label='count')
         cbar.ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
 
-        ax.set_xlabel(enum_x)
-        ax.set_ylabel(enum_y)
+        ax.set_xlabel(label(enum_x))
+        ax.set_ylabel(label(enum_y))
         ax.set_aspect('equal')
 
     fig.suptitle(title)
