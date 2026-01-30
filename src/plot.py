@@ -812,6 +812,17 @@ def main() -> None:
 
         case 'only-decdnnf_n':
             match args.column:
+                case 'models':
+                    fig = plot(
+                        df,
+                        'models',
+                        [
+                            (f'{args.column}_{enum}', enum)
+                            for enum in enumerator2steps.keys()
+                            if re.search(r'decdnnf_n', enum)
+                        ]
+                    )
+
                 case 'models to npolys':
                     fig = plot_lines(
                         df,
