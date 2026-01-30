@@ -112,6 +112,162 @@ def label(step: str) -> str:
     return step.replace('_', ' ')
 
 
+def compare_columns(
+        df: pl.DataFrame,
+        columns_n_enumerators: list[tuple[tuple[str, str], str]],
+) -> plt.Figure:
+
+    minimum: float = (
+        df.select(
+            pl.col(column)
+            for columns, _ in columns_n_enumerators
+            for column in columns
+        )
+        .min_horizontal()
+        .min()
+    )
+    minimum = 0.0 if minimum < 10 else minimum
+
+    maximum: tuple[float, ...] = tuple(
+        df.select(
+            pl.col(columns[ix])
+            for columns, _ in columns_n_enumerators
+        )
+        .max_horizontal()
+        .max()
+        for ix in range(2)
+    )
+
+    log_width: float = math.log10(max(1.0, maximum[0])) - math.log10(max(1.0, minimum))
+    padding: float = 10 ** (max(1.0, log_width) / 10)
+
+    tot: int = len(columns_n_enumerators)
+    nrows: int = 3
+    ncols: int = math.ceil(tot / nrows)
+    fig, axs = plt.subplots(nrows, ncols, figsize=(8 * ncols, 8 * nrows))
+
+    iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
+
+    custom_cmap: colors.Colormap = colors.LinearSegmentedColormap.from_list('my_list', ['#B03040', 'black'])
+    tmin, tmax = max(1.0, minimum), maximum[0] * padding
+    major: np.ndarray[tuple[int], np.dtype[np.float64]] = ticker.LogLocator(base=10).tick_values(tmin, tmax)
+    major = major[(tmin <= major) & (major <= tmax)]
+    minor: np.ndarray[tuple[int], np.dtype[np.float64]] = ticker.LogLocator(base=10, subs=np.arange(2, 12, 2)).tick_values(tmin, tmax)
+    minor = minor[(tmin <= minor) & (minor <= tmax)]
+
+    ax: plt.Axes
+    for ((col_x, col_y), enum), ax in zip(
+            columns_n_enumerators,
+            iter4axs,
+    ):
+        steps_x: list[str] = enumerator2steps[enum]
+        limits_x: list[float] = list(it.accumulate(steps_x, lambda acc, _: acc * padding, initial=maximum[0] * padding))
+
+        if minimum <= 1:
+            ax.set_xscale('symlog', linthresh=1, linscale=.25)
+            ax.set_yscale('symlog', linthresh=1, linscale=.25)
+        else:
+            ax.set_xscale('log')
+            ax.set_yscale('log')
+
+        ax.set_xlim(minimum, limits_x[-1])
+        ax.set_ylim(minimum, maximum[1] * padding)
+        ax.xaxis.set_major_locator(ticker.FixedLocator(major))
+        ax.yaxis.set_major_locator(ticker.SymmetricalLogLocator(base=10, linthresh=1))
+        ax.xaxis.set_minor_locator(ticker.FixedLocator(minor))
+        ax.yaxis.set_minor_locator(ticker.SymmetricalLogLocator(base=10, subs=np.arange(2, 12, 2), linthresh=1))
+        ax.grid(visible=True, which='both', linewidth=.1)
+
+        for step, limit in zip(steps_x, limits_x):
+            ax.axvline(x=limit, color='black', linestyle='--', linewidth=1)
+            ax.text(
+                x=limit,
+                y=minimum,
+                s=label(step),
+                bbox=dict(boxstyle='square', fc=('white', .6), ls=''),
+                rotation=90,
+                rotation_mode='anchor',
+                transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
+                va='top',
+            )
+
+        ax.plot(
+            (minimum, max(limits_x)),
+            (minimum, max(limits_x)),
+            color='darkgrey',
+            linestyle=':',
+            linewidth=1,
+        )
+
+        data: pl.DataFrame = (
+            df.select(
+                pl.col(f'{col_x}'),
+                pl.col(f'{col_y}'),
+                *[
+                    pl.col(f'stderr_{step}').fill_null('').str.contains('timeout').alias(f'tout_{step}')
+                    for step in set(steps_x)
+                ],
+            )
+        )
+
+        rm = np.zeros(len(df), dtype=np.bool)
+
+        xs = data.get_column(f'{col_x}').to_numpy(writable=True)
+        ys = data.get_column(f'{col_y}').to_numpy(writable=True)
+        for step, limit in zip(steps_x, limits_x):
+            mask = data.get_column(f'tout_{step}').to_numpy()
+            rm |= mask
+            xs[mask] = limit
+
+        xy = np.column_stack((xs, ys))
+
+        # count points at each location for non-timeout points
+        unique_regular, counts_regular = np.unique(xy[~rm], axis=0, return_counts=True)
+
+        # count points at each location for timeout points
+        unique_timeout, counts_timeout = np.unique(xy[rm], axis=0, return_counts=True)
+
+        vmax: int = max(
+            np.max(counts_regular, initial=10),
+            np.max(counts_timeout, initial=10),
+        )
+
+        scatters: list[plt.PathCollection] = [
+            ax.scatter(
+                x=unique_regular[:, 0],
+                y=unique_regular[:, 1],
+                c=counts_regular,
+                cmap=custom_cmap,
+                vmin=1,
+                vmax=vmax,
+                marker='o',
+                zorder=3,
+            ),
+            ax.scatter(
+                x=unique_timeout[:, 0],
+                y=unique_timeout[:, 1],
+                c=counts_timeout,
+                cmap=custom_cmap,
+                vmin=1,
+                vmax=vmax,
+                marker='x',
+                zorder=3,
+            ),
+        ]
+
+        # add colorbar to show the meaning of colors
+        cbar = fig.colorbar(next(filter(lambda x: x, scatters)), ax=ax, label='count')
+        cbar.ax.yaxis.set_major_locator(ticker.FixedLocator(list({*counts_regular, *counts_timeout})))
+
+        ax.set_xlabel(label(col_x))
+        ax.set_ylabel(label(col_y))
+        ax.set_aspect('equal')
+
+    fig.tight_layout()
+    return fig
+
+
+
 def plot(
         df: pl.DataFrame,
         title: str,
@@ -829,6 +985,16 @@ def main() -> None:
                         'models → npolys',
                         [
                             ((f'models_{enum}', f'npolys_{enum}'), enum)
+                            for enum in enumerator2steps.keys()
+                            if re.search(r'sae|decdnnf_n', enum)
+                        ],
+                    )
+
+                case 'compare models vs npolys':
+                    fig = compare_columns(
+                        df,
+                        [
+                            ((f'npolys_{enum}', f'models_{enum}'), enum)
                             for enum in enumerator2steps.keys()
                             if re.search(r'sae|decdnnf_n', enum)
                         ],
