@@ -11,7 +11,6 @@ import math
 import numpy as np
 import polars as pl
 from matplotlib import pyplot as plt, transforms, ticker, colors
-from matplotlib.colors import Colormap
 
 from src import utils
 
@@ -712,7 +711,7 @@ def inspection(
         qo: t.Literal['x', 'A'],
 ) -> plt.Figure:
     fig, ax = plt.subplots(1, 1, figsize=(300, 20))
-    cmap: Colormap = plt.get_cmap('tab20b')
+    cmap: colors.Colormap = plt.get_cmap('tab20b')
 
     oq: t.Literal['x', 'A'] = 'xA'.replace(qo, '')
 
