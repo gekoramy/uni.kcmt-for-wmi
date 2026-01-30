@@ -8,3 +8,4 @@ pyrefly
 polars
 matplotlib
 snakemake
+pypalettes
