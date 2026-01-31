@@ -463,7 +463,7 @@ def plot_time(
         ax.set_ylim(minimum, limits_y[-1])
 
         for step, limit in zip(steps_x, limits_x):
-            ax.axvline(x=limit, color='darkgrey', linestyle='--')
+            ax.axvline(x=limit, color='black', linestyle='--', linewidth=1)
             ax.text(
                 x=limit,
                 y=minimum,
@@ -476,7 +476,7 @@ def plot_time(
             )
 
         for step, limit in zip(steps_y, limits_y):
-            ax.axhline(y=limit, color='darkgrey', linestyle='--')
+            ax.axhline(y=limit, color='black', linestyle='--', linewidth=1)
             ax.text(
                 x=minimum,
                 y=limit,
@@ -486,6 +486,7 @@ def plot_time(
                 va='bottom',
             )
 
+        ax.grid(visible=True, which='both', linewidth=.1)
         ax.plot(
             (minimum, max(*limits_x, *limits_y)),
             (minimum, max(*limits_x, *limits_y)),
@@ -512,34 +513,36 @@ def plot_time(
             )
         )
 
-        rm = np.zeros(len(df), dtype=np.bool)
-
+        rm_x = np.zeros(len(df), dtype=np.bool)
         xs = data.get_column(enum_x).to_numpy(writable=True)
         for step, limit in zip(steps_x, limits_x):
             mask = data.get_column(f'tout_{step}').to_numpy()
-            rm |= mask
+            rm_x |= mask
             xs[mask] = limit
 
+        rm_y = np.zeros(len(df), dtype=np.bool)
         ys = data.get_column(enum_y).to_numpy(writable=True)
         for step, limit in zip(steps_y, limits_y):
             mask = data.get_column(f'tout_{step}').to_numpy()
-            rm |= mask
+            rm_y |= mask
             ys[mask] = limit
 
-        ax.scatter(
-            x=xs[~rm],
-            y=ys[~rm],
-            color='C0',
-            alpha=.5,
-        )
+        coordinates = np.column_stack((xs, ys))
 
-        ax.scatter(
-            x=xs[rm],
-            y=ys[rm],
-            color='C0',
-            alpha=.5,
-            marker='x'
-        )
+        scatters: list[plt.PathCollection] = [
+            ax.scatter(
+                x=xy[:, 0],
+                y=xy[:, 1],
+                zorder=3,
+                **kwargs,
+            )
+            for xy, kwargs in [
+                (coordinates[~rm_x & ~rm_y], dict(marker='o', edgecolors='none', facecolors=cmap(0), alpha=.6)),
+                (coordinates[rm_x & ~rm_y], dict(marker='3', s=2 ** 6, color=cmap(0), alpha=.6)),
+                (coordinates[~rm_x & rm_y], dict(marker='1', s=2 ** 6, color=cmap(0), alpha=.6)),
+                (coordinates[rm_x & rm_y], dict(marker='x', color=cmap(0), alpha=.6)),
+            ]
+        ]
 
         ax.set_xlabel(enum_x)
         ax.set_ylabel(enum_y)
@@ -605,7 +608,7 @@ def plot_lines(
         ax.set_ylim(minimum, limits_y[-1])
 
         for step, limit in zip(steps_x, limits_x):
-            ax.axvline(x=limit, color='darkgrey', linestyle='--')
+            ax.axvline(x=limit, color='black', linestyle='--', linewidth=1)
             ax.text(
                 x=limit,
                 y=minimum,
@@ -618,7 +621,7 @@ def plot_lines(
             )
 
         for step, limit in zip(steps_y, limits_y):
-            ax.axhline(y=limit, color='darkgrey', linestyle='--')
+            ax.axhline(y=limit, color='black', linestyle='--', linewidth=1)
             ax.text(
                 x=minimum,
                 y=limit,
@@ -723,6 +726,7 @@ def survival(
         sharey=True,
     )
 
+    cmap = pypalettes.load_cmap('Sunset2')
     ax: plt.Axes
     for ax, (enumerator, steps) in zip(axs, enumerator2steps.items()):
 
@@ -749,8 +753,8 @@ def survival(
 
         xs = np.arange(1 + len(steps), dtype=np.int64)
         ys = [len(df), *(survived[step].first() for step in steps)]
-        ax.plot(xs, ys, 'o--')
-        ax.fill_between(xs, 0, ys, alpha=.5)
+        ax.plot(xs, ys, 'o--', color=cmap(0))
+        ax.fill_between(xs, 0, ys, color=cmap(0), alpha=.5)
 
         ax.set_xlim(xs[0] - .5, xs[-1] + .5)
         ax.set_ylim(0, len(df) + 1)
@@ -760,7 +764,7 @@ def survival(
                 x=x,
                 y=0,
                 s=label(step),
-                bbox=dict(boxstyle='square', fc=('white', .6), ls=''),
+                bbox=dict(boxstyle='square', fc=('white', .8), ls=''),
                 rotation=90,
                 rotation_mode='anchor',
                 transform=transforms.offset_copy(ax.transData, units='dots', x=-10, y=+10),
