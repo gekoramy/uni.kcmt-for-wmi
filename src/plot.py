@@ -11,7 +11,7 @@ import math
 import numpy as np
 import polars as pl
 import pypalettes
-from matplotlib import pyplot as plt, transforms, ticker, colors
+from matplotlib import pyplot as plt, transforms, ticker, colors, text
 
 from src import utils
 
@@ -177,7 +177,7 @@ def compare_columns(
         ax.xaxis.set_major_locator(ticker.FixedLocator(major))
         ax.yaxis.set_major_locator(ticker.SymmetricalLogLocator(base=10, linthresh=1))
         ax.xaxis.set_minor_locator(ticker.FixedLocator(minor))
-        ax.yaxis.set_minor_locator(ticker.SymmetricalLogLocator(base=10, subs=np.arange(2, 12, 2), linthresh=1))
+        ax.yaxis.set_minor_locator(ticker.SymmetricalLogLocator(base=10, subs=np.arange(2, 10, 2), linthresh=1))
         ax.grid(visible=True, which='both', linewidth=.1)
 
         for step, limit in zip(steps_x, limits_x):
@@ -292,7 +292,7 @@ def plot(
     )
     major = major[(tmin <= major) & (major <= tmax)]
     minor: np.ndarray[tuple[int], np.dtype[np.float64]] = (
-        ticker.LogLocator(base=10, subs=np.arange(2, 12, 2)).tick_values(tmin, tmax)
+        ticker.LogLocator(base=10, subs=np.arange(2, 10, 2)).tick_values(tmin, tmax)
     )
     minor = minor[(tmin <= minor) & (minor <= tmax)]
 
@@ -400,8 +400,8 @@ def plot(
             )
             for xy, s, kwargs in [
                 (unique_regular, counts_regular, dict(marker='o', edgecolors='none', facecolors=cmap(0), alpha=.6)),
-                (unique_timeout_x, counts_timeout_x, dict(marker='3', color=cmap(0))),
-                (unique_timeout_y, counts_timeout_y, dict(marker='1', color=cmap(0))),
+                (unique_timeout_x, counts_timeout_x * 1.5, dict(marker='3', color=cmap(0))),
+                (unique_timeout_y, counts_timeout_y * 1.5, dict(marker='1', color=cmap(0))),
                 (unique_timeout, counts_timeout, dict(marker='x', color=cmap(0))),
             ]
         ]
@@ -459,48 +459,56 @@ def plot_time(
             ax.set_xscale('log')
             ax.set_yscale('log')
 
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.tick_params(top=False, right=False)
+        ax.yaxis.set_minor_locator(ticker.SymmetricalLogLocator(base=10, subs=np.arange(2, 10, 2), linthresh=1))
+        ax.xaxis.set_minor_locator(ticker.SymmetricalLogLocator(base=10, subs=np.arange(2, 10, 2), linthresh=1))
+
+        trans_x = transforms.blended_transform_factory(ax.transData, ax.transAxes)
+        trans_y = transforms.blended_transform_factory(ax.transAxes, ax.transData)
 
         for i, (step, limit) in enumerate(zip(steps_x, limits_x)):
-            height = limits_y[-1] * (padding ** i)
-            ax.plot(
-                [limit, limit], [minimum, height],
-                color='black',
-                linestyle='--',
-                linewidth=1,
-            )
-            ax.text(
-                x=limit,
-                y=height,
-                s=label(step),
-                transform=transforms.offset_copy(ax.transData, units='dots', x=-4, y=-3),
+            ax.annotate(
+                label(step),
+                xy=(limit, 0),
+                xycoords=trans_x,
+                xytext=(0, 10 + i * 15),
+                textcoords=text.OffsetFrom(trans_x, (limit, 1), 'points'),
                 ha='right',
-                va='top',
+                va='bottom',
+                zorder=1,
+                arrowprops=dict(
+                    arrowstyle='-',
+                    color='black',
+                    linestyle='-',
+                    capstyle='butt',
+                    linewidth=.75,
+                    relpos=(1, 0),
+                ),
             )
 
         for i, (step, limit) in enumerate(zip(steps_y, limits_y)):
-            width = limits_x[-1] * (padding ** i)
-            ax.plot(
-                [0, width], [limit, limit],
-                color='black',
-                linestyle='--',
-                linewidth=1,
-            )
-            ax.text(
-                x=width,
-                y=limit,
-                s=label(step),
+            ax.annotate(
+                label(step),
+                xy=(0, limit),
+                xycoords=trans_y,
+                xytext=(10 + i * 15, 0),
+                textcoords=text.OffsetFrom(trans_y, (1, limit), 'points'),
                 rotation=90,
                 rotation_mode='anchor',
-                transform=transforms.offset_copy(ax.transData, units='dots', x=-3, y=-4),
                 ha='right',
-                va='bottom',
+                va='top',
+                zorder=1,
+                arrowprops=dict(
+                    arrowstyle='-',
+                    color='black',
+                    linestyle='-',
+                    capstyle='butt',
+                    linewidth=.75,
+                    relpos=(.5, 1),
+                ),
             )
 
-        ax.set_xlim(minimum, limits_x[-1] * (padding ** (len(steps_y) - 1)))
-        ax.set_ylim(minimum, limits_y[-1] * (padding ** (len(steps_x) - 1)))
+        ax.set_xlim(minimum, limits_x[-1])
+        ax.set_ylim(minimum, limits_y[-1])
 
         ax.grid(visible=True, which='both', linewidth=.1)
         ax.plot(
@@ -560,11 +568,10 @@ def plot_time(
             ]
         ]
 
-        ax.set_xlabel(enum_x)
-        ax.set_ylabel(enum_y)
+        ax.set_xlabel(f'{label(enum_x)} [$s$]')
+        ax.set_ylabel(f'{label(enum_y)} [$s$]')
         ax.set_aspect('equal')
 
-    fig.suptitle('time')
     fig.tight_layout()
     return fig
 
