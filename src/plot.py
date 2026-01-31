@@ -96,6 +96,13 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
 )
 
 
+def axes(input: plt.Axes | np.ndarray) -> t.Iterator[plt.Axes]:
+    if isinstance(input, plt.Axes):
+        yield input
+    else:
+        yield from input.flatten()
+
+
 def from_step(timeout: Timeout, step: str):
     if 'tlemmas' in step:
         return timeout.tlemmas
@@ -153,8 +160,6 @@ def compare_columns(
     ncols: int = math.ceil(tot / nrows)
     fig, axs = plt.subplots(nrows, ncols, figsize=(8 * ncols, 8 * nrows))
 
-    iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
-
     cmap = pypalettes.load_cmap('Sunset2')
     tmin, tmax = max(1.0, minimum), maximum[0] * padding
     major: np.ndarray[tuple[int], np.dtype[np.float64]] = ticker.LogLocator(base=10).tick_values(tmin, tmax)
@@ -167,7 +172,7 @@ def compare_columns(
     ax: plt.Axes
     for ((col_x, col_y), enum), ax in zip(
             columns_n_enumerators,
-            iter4axs,
+            axes(axs),
     ):
         steps_x: list[str] = enumerator2steps[enum]
         limits_x: list[float] = list(it.accumulate(steps_x, lambda acc, _: acc * padding, initial=maximum[0] * padding))
@@ -290,8 +295,6 @@ def plot(
     ncols: int = math.ceil(tot / nrows)
     fig, axs = plt.subplots(nrows, ncols, figsize=(8 * ncols, 8 * nrows))
 
-    iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
-
     cmap = pypalettes.load_cmap('Sunset2')
     tmin, tmax = max(1.0, minimum), maximum * padding
     major: np.ndarray[tuple[int], np.dtype[np.float64]] = (
@@ -306,7 +309,7 @@ def plot(
     ax: plt.Axes
     for ((col_x, enum_x), (col_y, enum_y)), ax in zip(
             it.combinations(columns_n_enumerators, 2),
-            iter4axs,
+            axes(axs),
     ):
         steps_x: list[str] = enumerator2steps[enum_x]
         steps_y: list[str] = enumerator2steps[enum_y]
@@ -444,12 +447,11 @@ def plot_time(
     fig, axs = plt.subplots(nrows, ncols, figsize=(8 * ncols, 8 * nrows))
 
     cmap = pypalettes.load_cmap('Sunset2')
-    iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
 
     ax: plt.Axes
     for ((expression_x, enum_x), (expression_y, enum_y)), ax in zip(
             it.combinations(expression_n_enumerator, 2),
-            iter4axs,
+            axes(axs),
     ):
         steps_x = enumerator2steps[enum_x]
         steps_y = enumerator2steps[enum_y]
@@ -614,12 +616,10 @@ def plot_lines(
     ncols: int = math.ceil(tot / nrows)
     fig, axs = plt.subplots(nrows, ncols, figsize=(8 * ncols, 8 * nrows))
 
-    iter4axs: t.Iterator[plt.Axes] = iter(it.chain(*axs))
-
     ax: plt.Axes
     for ((cols_x, enum_x), (cols_y, enum_y)), ax in zip(
             it.combinations(columns_n_enumerators, 2),
-            iter4axs,
+            axes(axs),
     ):
         steps_x: list[str] = enumerator2steps[enum_x]
         steps_y: list[str] = enumerator2steps[enum_y]
@@ -821,11 +821,10 @@ def foreach_step(
         sharex=True,
     )
 
-    iter4axs: t.Iterable[plt.Axes] = iter(it.chain(*axs))
     ax: plt.Axes
     height: float = 1 / (1 + max(map(len, enumerator2steps.values())))
 
-    for ax, (enumerator, steps) in zip(iter4axs, enumerator2steps.items()):
+    for ax, (enumerator, steps) in zip(axes(axs), enumerator2steps.items()):
         ax.invert_yaxis()
         ax.grid(True, 'both', axis='x')
         ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
