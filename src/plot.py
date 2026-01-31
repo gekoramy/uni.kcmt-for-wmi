@@ -423,8 +423,8 @@ def plot_time(
     padding: float = 2
     minimum: float = (
         df.select(
-            pl.col(f's_{enum}')
-            for enum in enumerator2steps.keys()
+            expr.alias(enum)
+            for expr, enum in expression_n_enumerator
         )
         .min_horizontal()
         .min()
