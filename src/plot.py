@@ -420,7 +420,7 @@ def plot_time(
         timeout: Timeout,
         expression_n_enumerator: list[tuple[pl.Expr, str]],
 ) -> plt.Figure:
-    padding: float = 2
+    padding: float = 1.4
     minimum: float = (
         df.select(
             expr.alias(enum)
@@ -459,32 +459,48 @@ def plot_time(
             ax.set_xscale('log')
             ax.set_yscale('log')
 
-        ax.set_xlim(minimum, limits_x[-1])
-        ax.set_ylim(minimum, limits_y[-1])
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.tick_params(top=False, right=False)
 
-        for step, limit in zip(steps_x, limits_x):
-            ax.axvline(x=limit, color='black', linestyle='--', linewidth=1)
+        for i, (step, limit) in enumerate(zip(steps_x, limits_x)):
+            height = limits_y[-1] * (padding ** i)
+            ax.plot(
+                [limit, limit], [minimum, height],
+                color='black',
+                linestyle='--',
+                linewidth=1,
+            )
             ax.text(
                 x=limit,
-                y=minimum,
+                y=height,
                 s=label(step),
-                bbox=dict(boxstyle='square', fc=('white', .6), ls=''),
-                rotation=90,
-                rotation_mode='anchor',
-                transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
+                transform=transforms.offset_copy(ax.transData, units='dots', x=-4, y=-3),
+                ha='right',
                 va='top',
             )
 
-        for step, limit in zip(steps_y, limits_y):
-            ax.axhline(y=limit, color='black', linestyle='--', linewidth=1)
+        for i, (step, limit) in enumerate(zip(steps_y, limits_y)):
+            width = limits_x[-1] * (padding ** i)
+            ax.plot(
+                [0, width], [limit, limit],
+                color='black',
+                linestyle='--',
+                linewidth=1,
+            )
             ax.text(
-                x=minimum,
+                x=width,
                 y=limit,
                 s=label(step),
-                bbox=dict(boxstyle='square', fc=('white', .6), ls=''),
-                transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
+                rotation=90,
+                rotation_mode='anchor',
+                transform=transforms.offset_copy(ax.transData, units='dots', x=-3, y=-4),
+                ha='right',
                 va='bottom',
             )
+
+        ax.set_xlim(minimum, limits_x[-1] * (padding ** (len(steps_y) - 1)))
+        ax.set_ylim(minimum, limits_y[-1] * (padding ** (len(steps_x) - 1)))
 
         ax.grid(visible=True, which='both', linewidth=.1)
         ax.plot(
