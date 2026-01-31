@@ -110,7 +110,14 @@ def from_step(timeout: Timeout, step: str):
 
 
 def label(step: str) -> str:
-    return step.replace('_', ' ')
+    return (
+        step.replace('_', ' ')
+        .replace('phi', r'$\varphi$')
+        .replace('tlemmas', r'$T$-lemmas')
+        .replace('t reduced', r'$T$-reduced $\varphi$')
+        .replace('t extended', r'$T$-extended $\varphi$')
+        .replace(r'$\varphi$ $\varphi$', r'$\varphi$')
+    )
 
 
 def compare_columns(
