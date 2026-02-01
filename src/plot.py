@@ -206,8 +206,8 @@ def compare_columns(
                 bbox=dict(boxstyle='square', fc=('white', .6), ls=''),
                 rotation=90,
                 rotation_mode='anchor',
-                transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
-                va='top',
+                transform=transforms.offset_copy(ax.transData, units='dots', x=+4 + plt.rcParams['font.size'], y=+4),
+                va='baseline',
             )
 
         ax.plot(
@@ -341,8 +341,8 @@ def plot(
                 bbox=dict(boxstyle='square', fc=('white', .6), ls=''),
                 rotation=90,
                 rotation_mode='anchor',
-                transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
-                va='top',
+                transform=transforms.offset_copy(ax.transData, units='dots', x=+4 + plt.rcParams['font.size'], y=+4),
+                va='baseline',
             )
 
         for step, limit in zip(steps_y, limits_y):
@@ -352,8 +352,8 @@ def plot(
                 y=limit,
                 s=label(step),
                 bbox=dict(boxstyle='square', fc=('white', .6), ls=''),
-                transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
-                va='bottom',
+                transform=transforms.offset_copy(ax.transData, units='dots', x=+4, y=+6.5),
+                va='baseline',
             )
 
         ax.plot(
@@ -477,7 +477,7 @@ def plot_time(
                 xytext=(0, 6 + i * 12),
                 textcoords=text.OffsetFrom(trans_x, (limit, 1), 'points'),
                 ha='right',
-                va='bottom',
+                va='baseline',
                 zorder=1,
                 arrowprops=dict(
                     arrowstyle='-',
@@ -494,12 +494,12 @@ def plot_time(
                 label(step),
                 xy=(0, limit),
                 xycoords=trans_y,
-                xytext=(6 + i * 12, 0),
+                xytext=(6 + i * 12 + plt.rcParams['font.size'], 0),
                 textcoords=text.OffsetFrom(trans_y, (1, limit), 'points'),
                 rotation=90,
                 rotation_mode='anchor',
                 ha='right',
-                va='top',
+                va='baseline',
                 zorder=1,
                 arrowprops=dict(
                     arrowstyle='-',
@@ -653,8 +653,8 @@ def plot_lines(
                 bbox=dict(boxstyle='square', fc=('white', .6), ls=''),
                 rotation=90,
                 rotation_mode='anchor',
-                transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
-                va='top',
+                transform=transforms.offset_copy(ax.transData, units='dots', x=+4 + plt.rcParams['font.size'], y=+4),
+                va='baseline',
             )
 
         for step, limit in zip(steps_y, limits_y):
@@ -664,8 +664,8 @@ def plot_lines(
                 y=limit,
                 s=label(step),
                 bbox=dict(boxstyle='square', fc=('white', .6), ls=''),
-                transform=transforms.offset_copy(ax.transData, units='dots', x=+5, y=+5),
-                va='bottom',
+                transform=transforms.offset_copy(ax.transData, units='dots', x=+4, y=+6.5),
+                va='baseline',
             )
 
         ax.plot(
