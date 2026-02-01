@@ -124,6 +124,11 @@ def label(step: str) -> str:
         .replace('t reduced', r'$T$-reduced $\varphi$')
         .replace('t extended', r'$T$-extended $\varphi$')
         .replace(r'$\varphi$ $\varphi$', r'$\varphi$')
+        .replace('exists', r'$\exists$')
+        .replace(' x', r' $\mathbf{B}$')
+        .replace(' A', r' $\mathbf{A}$')
+        .replace('1st', r'$1^{st}$')
+        .replace('2nd', r'$2^{nd}$')
     )
 
 
