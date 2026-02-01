@@ -67,7 +67,7 @@ rule all:
         ),
         expand("assets/plots/{pattern}/{type}",
             pattern=[
-                "exists",
+                "exists_x",
                 "decdnnf_n"
             ],
             type=[
