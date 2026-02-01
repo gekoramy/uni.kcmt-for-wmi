@@ -51,15 +51,12 @@ def wmibench_synthetic_pa() -> list[str]:
 
 rule all:
     input:
-        expand("assets/plots/{type}",
+        expand("assets/plots/*/{type}",
             type=[
                 "models vs npolys",
                 "distinct_by_A",
                 "distinct_by_x",
                 "enumerating",
-                "models to npolys",
-                "models to distinct_by_A",
-                "models to distinct_by_x",
                 "models",
                 "npolys",
                 "nuniquepolys to npolys",
@@ -67,17 +64,26 @@ rule all:
                 "survival",
                 "time",
             ]
+        ),
+        expand("assets/plots/{pattern}/{type}",
+            pattern=[
+                "exists",
+                "decdnnf_n"
+            ],
+            type=[
+                "models to npolys",
+                "models to distinct_by_A",
+                "models to distinct_by_x",
+            ]
         )
 
 
 rule plots:
     threads: 1
-    resources:
-        mem="20GB"
     input:
         "assets/aggregate.csv"
     output:
-        directory("assets/plots/{type}"),
+        directory("assets/plots/{pattern}/{type}"),
     params:
         script="src.plot"
     shell:
@@ -87,6 +93,7 @@ rule plots:
           --timeout_compilator {config[timeout][compilator]} \
           --timeout_enumerator {config[timeout][enumerator]} \
           --csv {input} \
+          --pattern {wildcards.pattern:q} \
           --type {wildcards.type:q} \
           --folder {output:q}
         """

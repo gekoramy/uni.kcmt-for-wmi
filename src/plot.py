@@ -937,9 +937,22 @@ def main() -> None:
     parser.add_argument('--timeout_enumerator', type=int, required=True)
     parser.add_argument('--timeout_compilator', type=int, required=True)
     parser.add_argument('--timeout_tlemmas', type=int, required=True)
+    parser.add_argument('--pattern', type=str, required=False, default='*')
     parser.add_argument('--type', type=str, required=True)
     parser.add_argument('--folder', type=Path, required=True)
     args: argparse.Namespace = parser.parse_args()
+
+    global enumerator2steps
+    match args.pattern:
+        case '*':
+            pass
+
+        case pattern:
+            enumerator2steps = OrderedDict(
+                (k, v)
+                for k, v in enumerator2steps.items()
+                if pattern in k or 'sae' == k
+            )
 
     df: pl.DataFrame = pl.read_csv(
         args.csv,
