@@ -305,7 +305,6 @@ def plot(
     )
     minor = minor[(tmin <= minor) & (minor <= tmax)]
 
-    ax: plt.Axes
     for (col_x, enum_x), (col_y, enum_y) in it.combinations(columns_n_enumerators, 2):
 
         fig: plt.Figure
@@ -585,8 +584,6 @@ def plot_lines(
         df: pl.DataFrame,
         columns_n_enumerators: list[tuple[tuple[str, str], str]],
 ) -> t.Generator[tuple[str, plt.Figure]]:
-    padding: float = 2
-
     columns: set[str] = {
         col
         for cols, _ in columns_n_enumerators
@@ -598,13 +595,27 @@ def plot_lines(
         .min_horizontal()
         .min()
     )
-    minimum = 0 if minimum < padding else minimum / padding
+    minimum = 0.0 if minimum < 10 else minimum
 
     maximum: float = (
         df.select(columns)
         .max_horizontal()
         .max()
     )
+
+    log_width: float = math.log10(max(1.0, maximum)) - math.log10(max(1.0, minimum))
+    padding: float = 10 ** (max(1.0, log_width) / 10)
+
+    cmap = pypalettes.load_cmap('Sunset2')
+    tmin, tmax = max(1.0, minimum), maximum * padding
+    major: np.ndarray[tuple[int], np.dtype[np.float64]] = (
+        ticker.LogLocator(base=10).tick_values(tmin, tmax)
+    )
+    major = major[(tmin <= major) & (major <= tmax)]
+    minor: np.ndarray[tuple[int], np.dtype[np.float64]] = (
+        ticker.LogLocator(base=10, subs=np.arange(2, 10, 2)).tick_values(tmin, tmax)
+    )
+    minor = minor[(tmin <= minor) & (minor <= tmax)]
 
     for (cols_x, enum_x), (cols_y, enum_y) in it.combinations(columns_n_enumerators, 2):
 
@@ -627,6 +638,11 @@ def plot_lines(
 
         ax.set_xlim(minimum, limits_x[-1])
         ax.set_ylim(minimum, limits_y[-1])
+        ax.xaxis.set_major_locator(ticker.FixedLocator(major))
+        ax.yaxis.set_major_locator(ticker.FixedLocator(major))
+        ax.xaxis.set_minor_locator(ticker.FixedLocator(minor))
+        ax.yaxis.set_minor_locator(ticker.FixedLocator(minor))
+        ax.grid(visible=True, which='both', linewidth=.1)
 
         for step, limit in zip(steps_x, limits_x):
             ax.axvline(x=limit, color='black', linestyle='--', linewidth=1)
@@ -673,28 +689,31 @@ def plot_lines(
             )
         )
 
-        src_rm = np.zeros(len(df), dtype=np.bool)
-        trg_rm = np.zeros(len(df), dtype=np.bool)
+        src_rm_x = np.zeros(len(df), dtype=np.bool)
+        src_rm_y = np.zeros(len(df), dtype=np.bool)
+
+        trg_rm_x = np.zeros(len(df), dtype=np.bool)
+        trg_rm_y = np.zeros(len(df), dtype=np.bool)
 
         src_x = data.get_column(f'{cols_x[0]}').to_numpy(writable=True)
         trg_x = data.get_column(f'{cols_x[1]}').to_numpy(writable=True)
         for i, step, limit in zip(it.count(), steps_x, limits_x):
             mask = data.get_column(f'tout_{step}').to_numpy()
             if i <= len(steps_x) - 2:
-                src_rm |= mask
+                src_rm_x |= mask
                 src_x[mask] = limit
             trg_x[mask] = limit
-            trg_rm |= mask
+            trg_rm_x |= mask
 
         src_y = data.get_column(f'{cols_y[0]}').to_numpy(writable=True)
         trg_y = data.get_column(f'{cols_y[1]}').to_numpy(writable=True)
         for i, step, limit in zip(it.count(), steps_y, limits_y):
             mask = data.get_column(f'tout_{step}').to_numpy()
             if i <= len(steps_y) - 2:
-                src_rm |= mask
+                src_rm_y |= mask
                 src_y[mask] = limit
             trg_y[mask] = limit
-            trg_rm |= mask
+            trg_rm_y |= mask
 
         ax.quiver(
             src_x,
@@ -705,27 +724,33 @@ def plot_lines(
             scale_units='xy',
             scale=1,
             alpha=0.5,
-            color='C0',
+            color=cmap(0),
         )
 
-        ax.scatter(
-            x=src_x[src_rm],
-            y=src_y[src_rm],
-            color='C0',
-            alpha=.5,
-            marker='x'
-        )
+        for x, y, rm_x, rm_y in [(src_x, src_y, src_rm_x, src_rm_y), (trg_x, trg_y, trg_rm_x, trg_rm_y)]:
+            xy = np.column_stack((x, y))
 
-        ax.scatter(
-            x=trg_x[trg_rm],
-            y=trg_y[trg_rm],
-            color='C0',
-            alpha=.5,
-            marker='x'
-        )
+            unique_timeout_x, counts_timeout_x = np.unique(xy[rm_x & ~rm_y], axis=0, return_counts=True)
+            unique_timeout_y, counts_timeout_y = np.unique(xy[~rm_x & rm_y], axis=0, return_counts=True)
+            unique_timeout, counts_timeout = np.unique(xy[rm_x & rm_y], axis=0, return_counts=True)
 
-        ax.set_xlabel(enum_x)
-        ax.set_ylabel(enum_y)
+            scatters: list[plt.PathCollection] = [
+                ax.scatter(
+                    x=xy[:, 0],
+                    y=xy[:, 1],
+                    s=s * 32,
+                    zorder=3,
+                    **kwargs,
+                )
+                for xy, s, kwargs in [
+                    (unique_timeout_x, counts_timeout_x * 2, dict(marker='3', color=cmap(0))),
+                    (unique_timeout_y, counts_timeout_y * 2, dict(marker='1', color=cmap(0))),
+                    (unique_timeout, counts_timeout, dict(marker='x', color=cmap(0))),
+                ]
+            ]
+
+        ax.set_xlabel(label(enum_x))
+        ax.set_ylabel(label(enum_y))
         ax.set_aspect('equal')
 
         fig.tight_layout()
