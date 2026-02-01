@@ -51,47 +51,44 @@ def wmibench_synthetic_pa() -> list[str]:
 
 rule all:
     input:
-        expand("assets/plots/{column}.vs.{suffix}",
-            column=["time", "enumerating", "npolys", "nuniquepolys", "nuniquepolys to npolys", "survival",
-                    "distinct_by_x", "distinct_by_A"],
-            suffix=["pdf", "png"]
-        ),
-        expand("assets/plots/{column}.only-decdnnf_n.{suffix}",
-            column=["models to npolys", "models", "compare models vs npolys"],
-            suffix=["pdf", "png"]
-        ),
-        expand("assets/plots/{column}.only-exists.{suffix}",
-            column=["models", "models to npolys", "models to nuniquepolys", "models to distinct_by_x",
-                    "models to distinct_by_A", "inspection-x", "inspection-A"],
-            suffix=["pdf", "png"]
-        ),
-        expand("assets/plots/{column}.steps.{suffix}",
-            column=["s", "max_rss"],
-            suffix=["pdf", "png"]
+        expand("assets/plots/{type}",
+            type=[
+                "models vs npolys",
+                "distinct_by_A",
+                "distinct_by_x",
+                "enumerating",
+                "models to npolys",
+                "models to distinct_by_A",
+                "models to distinct_by_x",
+                "models",
+                "npolys",
+                "nuniquepolys to npolys",
+                "nuniquepolys",
+                "survival",
+                "time",
+            ]
         )
 
 
-rule plot:
+rule plots:
     threads: 1
     resources:
         mem="20GB"
     input:
         "assets/aggregate.csv"
     output:
-        "assets/plots/{column}.{type}.pdf",
-        "assets/plots/{column}.{type}.png"
+        directory("assets/plots/{type}"),
     params:
         script="src.plot"
     shell:
         """
         python -m {params.script} \
-          --column {wildcards.column:q} \
-          --type {wildcards.type} \
           --timeout_tlemmas {config[timeout][tlemmas]} \
           --timeout_compilator {config[timeout][compilator]} \
           --timeout_enumerator {config[timeout][enumerator]} \
           --csv {input} \
-          --output {output:q}
+          --type {wildcards.type:q} \
+          --folder {output:q}
         """
 
 

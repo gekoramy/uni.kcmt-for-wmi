@@ -96,6 +96,10 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
 )
 
 
+def cm(inches: float) -> float:
+    return inches * 1 / 2.54
+
+
 def axes(input: plt.Axes | np.ndarray) -> t.Iterator[plt.Axes]:
     if isinstance(input, plt.Axes):
         yield input
@@ -135,7 +139,7 @@ def label(step: str) -> str:
 def compare_columns(
         df: pl.DataFrame,
         columns_n_enumerators: list[tuple[tuple[str, str], str]],
-) -> plt.Figure:
+) -> t.Generator[tuple[str, plt.Figure]]:
     minimum: float = (
         df.select(
             pl.col(column)
@@ -160,11 +164,6 @@ def compare_columns(
     log_width: float = math.log10(max(1.0, maximum[0])) - math.log10(max(1.0, minimum))
     padding: float = 10 ** (max(1.0, log_width) / 10)
 
-    tot: int = len(columns_n_enumerators)
-    nrows: int = 3
-    ncols: int = math.ceil(tot / nrows)
-    fig, axs = plt.subplots(nrows, ncols, figsize=(8 * ncols, 8 * nrows))
-
     cmap = pypalettes.load_cmap('Sunset2')
     tmin, tmax = max(1.0, minimum), maximum[0] * padding
     major: np.ndarray[tuple[int], np.dtype[np.float64]] = ticker.LogLocator(base=10).tick_values(tmin, tmax)
@@ -174,11 +173,12 @@ def compare_columns(
     )
     minor = minor[(tmin <= minor) & (minor <= tmax)]
 
-    ax: plt.Axes
-    for ((col_x, col_y), enum), ax in zip(
-            columns_n_enumerators,
-            axes(axs),
-    ):
+    for (col_x, col_y), enum in columns_n_enumerators:
+
+        fig: plt.Figure
+        ax: plt.Axes
+        fig, ax = plt.subplots(1, 1, figsize=(cm(15), cm(15)))
+
         steps_x: list[str] = enumerator2steps[enum]
         limits_x: list[float] = list(it.accumulate(steps_x, lambda acc, _: acc * padding, initial=maximum[0] * padding))
 
@@ -250,7 +250,7 @@ def compare_columns(
             ax.scatter(
                 x=xy[:, 0],
                 y=xy[:, 1],
-                s=s * 80,
+                s=s * 32,
                 zorder=3,
                 **kwargs,
             )
@@ -264,15 +264,14 @@ def compare_columns(
         ax.set_ylabel(label(col_y))
         ax.set_aspect('equal')
 
-    fig.tight_layout()
-    return fig
+        fig.tight_layout()
+        yield enum, fig
 
 
 def plot(
         df: pl.DataFrame,
-        title: str,
         columns_n_enumerators: list[tuple[str, str]] | None = None,
-) -> plt.Figure:
+) -> t.Generator[tuple[str, plt.Figure]]:
     minimum: float = (
         df.select(
             pl.col(column)
@@ -295,11 +294,6 @@ def plot(
     log_width: float = math.log10(max(1.0, maximum)) - math.log10(max(1.0, minimum))
     padding: float = 10 ** (max(1.0, log_width) / 10)
 
-    tot: int = math.comb(len(columns_n_enumerators), 2)
-    nrows: int = 3
-    ncols: int = math.ceil(tot / nrows)
-    fig, axs = plt.subplots(nrows, ncols, figsize=(8 * ncols, 8 * nrows))
-
     cmap = pypalettes.load_cmap('Sunset2')
     tmin, tmax = max(1.0, minimum), maximum * padding
     major: np.ndarray[tuple[int], np.dtype[np.float64]] = (
@@ -312,10 +306,12 @@ def plot(
     minor = minor[(tmin <= minor) & (minor <= tmax)]
 
     ax: plt.Axes
-    for ((col_x, enum_x), (col_y, enum_y)), ax in zip(
-            it.combinations(columns_n_enumerators, 2),
-            axes(axs),
-    ):
+    for (col_x, enum_x), (col_y, enum_y) in it.combinations(columns_n_enumerators, 2):
+
+        fig: plt.Figure
+        ax: plt.Axes
+        fig, ax = plt.subplots(1, 1, figsize=(cm(15), cm(15)))
+
         steps_x: list[str] = enumerator2steps[enum_x]
         steps_y: list[str] = enumerator2steps[enum_y]
 
@@ -409,14 +405,14 @@ def plot(
             ax.scatter(
                 x=xy[:, 0],
                 y=xy[:, 1],
-                s=s * 80,
+                s=s * 32,
                 zorder=3,
                 **kwargs,
             )
             for xy, s, kwargs in [
                 (unique_regular, counts_regular, dict(marker='o', edgecolors='none', facecolors=cmap(0), alpha=.6)),
-                (unique_timeout_x, counts_timeout_x * 1.5, dict(marker='3', color=cmap(0))),
-                (unique_timeout_y, counts_timeout_y * 1.5, dict(marker='1', color=cmap(0))),
+                (unique_timeout_x, counts_timeout_x * 2, dict(marker='3', color=cmap(0))),
+                (unique_timeout_y, counts_timeout_y * 2, dict(marker='1', color=cmap(0))),
                 (unique_timeout, counts_timeout, dict(marker='x', color=cmap(0))),
             ]
         ]
@@ -425,16 +421,15 @@ def plot(
         ax.set_ylabel(label(enum_y))
         ax.set_aspect('equal')
 
-    fig.suptitle(title)
-    fig.tight_layout()
-    return fig
+        fig.tight_layout()
+        yield f'{enum_x}_vs_{enum_y}', fig
 
 
 def plot_time(
         df: pl.DataFrame,
         timeout: Timeout,
         expression_n_enumerator: list[tuple[pl.Expr, str]],
-) -> plt.Figure:
+) -> t.Generator[tuple[str, plt.Figure]]:
     padding: float = 1.4
     minimum: float = (
         df.select(
@@ -446,18 +441,14 @@ def plot_time(
     )
     minimum = 0 if minimum < padding else minimum / padding
 
-    tot: int = math.comb(len(enumerator2steps), 2)
-    nrows: int = 3
-    ncols: int = math.ceil(tot / nrows)
-    fig, axs = plt.subplots(nrows, ncols, figsize=(8 * ncols, 8 * nrows))
-
     cmap = pypalettes.load_cmap('Sunset2')
 
-    ax: plt.Axes
-    for ((expression_x, enum_x), (expression_y, enum_y)), ax in zip(
-            it.combinations(expression_n_enumerator, 2),
-            axes(axs),
-    ):
+    for (expression_x, enum_x), (expression_y, enum_y) in it.combinations(expression_n_enumerator, 2):
+
+        fig: plt.Figure
+        ax: plt.Axes
+        fig, ax = plt.subplots(1, 1, figsize=(cm(15), cm(15)))
+
         steps_x = enumerator2steps[enum_x]
         steps_y = enumerator2steps[enum_y]
 
@@ -586,15 +577,14 @@ def plot_time(
         ax.set_ylabel(f'{label(enum_y)} [$s$]')
         ax.set_aspect('equal')
 
-    fig.tight_layout()
-    return fig
+        fig.tight_layout()
+        yield f'{enum_x}_vs_{enum_y}', fig
 
 
 def plot_lines(
         df: pl.DataFrame,
-        title: str,
         columns_n_enumerators: list[tuple[tuple[str, str], str]],
-) -> plt.Figure:
+) -> t.Generator[tuple[str, plt.Figure]]:
     padding: float = 2
 
     columns: set[str] = {
@@ -616,16 +606,12 @@ def plot_lines(
         .max()
     )
 
-    tot: int = math.comb(len(columns_n_enumerators), 2)
-    nrows: int = 3
-    ncols: int = math.ceil(tot / nrows)
-    fig, axs = plt.subplots(nrows, ncols, figsize=(8 * ncols, 8 * nrows))
+    for (cols_x, enum_x), (cols_y, enum_y) in it.combinations(columns_n_enumerators, 2):
 
-    ax: plt.Axes
-    for ((cols_x, enum_x), (cols_y, enum_y)), ax in zip(
-            it.combinations(columns_n_enumerators, 2),
-            axes(axs),
-    ):
+        fig: plt.Figure
+        ax: plt.Axes
+        fig, ax = plt.subplots(1, 1, figsize=(cm(15), cm(15)))
+
         steps_x: list[str] = enumerator2steps[enum_x]
         steps_y: list[str] = enumerator2steps[enum_y]
 
@@ -742,28 +728,27 @@ def plot_lines(
         ax.set_ylabel(enum_y)
         ax.set_aspect('equal')
 
-    fig.suptitle(title)
-    fig.tight_layout()
-    return fig
+        fig.tight_layout()
+        yield f'{enum_x}_vs_{enum_y}', fig
 
 
 def survival(
         df: pl.DataFrame,
-) -> plt.Figure:
-    tot: int = len(enumerator2steps)
-    nrows: int = 1
-    ncols: int = math.ceil(tot / nrows)
-    fig, axs = plt.subplots(
-        nrows,
-        ncols,
-        width_ratios=[1 + len(steps) for steps in enumerator2steps.values()],
-        figsize=(8 * ncols, 8 * nrows),
-        sharey=True,
-    )
-
+        enums: list[str] | None = None,
+) -> t.Generator[tuple[str, plt.Figure]]:
+    enums = enums if enums else enumerator2steps.keys()
     cmap = pypalettes.load_cmap('Sunset2')
-    ax: plt.Axes
-    for ax, (enumerator, steps) in zip(axs, enumerator2steps.items()):
+
+    for enumerator in enums:
+
+        fig: plt.Figure
+        ax: plt.Axes
+        fig, ax = plt.subplots(
+            1, 1,
+            figsize=(cm(3 + 2 * len(enumerator2steps[enumerator])), cm(15)),
+        )
+
+        steps: list[str] = enumerator2steps[enumerator]
 
         ax.grid(True, 'major', axis='x')
         ax.grid(True, 'both', axis='y')
@@ -806,9 +791,8 @@ def survival(
                 va='bottom',
             )
 
-    fig.suptitle('survival')
-    fig.tight_layout()
-    return fig
+        fig.tight_layout()
+        yield enumerator, fig
 
 
 def foreach_step(
@@ -950,12 +934,11 @@ def inspection(
 def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument('--csv', type=utils.file, required=True)
-    parser.add_argument('--column', type=str, required=True)
-    parser.add_argument('--output', type=Path, required=True, nargs='+')
     parser.add_argument('--timeout_enumerator', type=int, required=True)
     parser.add_argument('--timeout_compilator', type=int, required=True)
     parser.add_argument('--timeout_tlemmas', type=int, required=True)
-    parser.add_argument('--type', type=str, required=False)
+    parser.add_argument('--type', type=str, required=True)
+    parser.add_argument('--folder', type=Path, required=True)
     args: argparse.Namespace = parser.parse_args()
 
     df: pl.DataFrame = pl.read_csv(
@@ -975,163 +958,69 @@ def main() -> None:
         tlemmas=timedelta(minutes=args.timeout_tlemmas),
     )
 
-    fig: plt.Figure
+    folder: Path = args.folder
+    folder.mkdir(exist_ok=True)
+
     match args.type:
-        case 'steps':
-            fig = foreach_step(df, args.column)
+        case 'npolys' | 'survivors' | 'models' | 'distinct_by_x' | 'distinct_by_A':
+            for name, fig in plot(
+                    df,
+                    [(f'{args.type}_{enum}', enum) for enum in enumerator2steps.keys()]
+            ):
+                fig.savefig(args.folder / f'{name}.pdf')
+                plt.close(fig)
 
-        case 'only-decdnnf_n':
-            match args.column:
-                case 'models':
-                    fig = plot(
-                        df,
-                        'models',
-                        [
-                            (f'{args.column}_{enum}', enum)
-                            for enum in enumerator2steps.keys()
-                            if re.search(r'decdnnf_n', enum)
-                        ]
-                    )
+        case 'models to npolys' | 'models to nuniquepolys' | 'nuniquepolys to npolys' | 'models to distinct_by_x' | 'models to distinct_by_A':
+            src, trg = args.type.split(' to ')
+            for name, fig in plot_lines(
+                    df,
+                    [((f'{src}_{enum}', f'{trg}_{enum}'), enum) for enum in enumerator2steps.keys()]
+            ):
+                fig.savefig(args.folder / f'{name}.pdf')
+                plt.close(fig)
 
-                case 'models to npolys':
-                    fig = plot_lines(
-                        df,
-                        'models → npolys',
-                        [
-                            ((f'models_{enum}', f'npolys_{enum}'), enum)
-                            for enum in enumerator2steps.keys()
-                            if re.search(r'sae|decdnnf_n', enum)
+        case 'time':
+            for name, fig in plot_time(
+                    df,
+                    timeout,
+                    [
+                        (pl.sum_horizontal(pl.col(f's_{step}') for step in steps), enum)
+                        for enum, steps in enumerator2steps.items()
+                    ]
+            ):
+                fig.savefig(args.folder / f'{name}.pdf')
+                plt.close(fig)
+
+        case 'enumerating':
+            for name, fig in plot_time(
+                    df,
+                    timeout,
+                    [
+                        *[
+                            (pl.sum_horizontal(pl.col(f's_{step}') for step in enumerator2steps[enum]), enum)
+                            for enum in ['sae']
                         ],
-                    )
-
-                case 'compare models vs npolys':
-                    fig = compare_columns(
-                        df,
-                        [
-                            ((f'npolys_{enum}', f'models_{enum}'), enum)
-                            for enum in enumerator2steps.keys()
-                            if re.search(r'sae|decdnnf_n', enum)
-                        ],
-                    )
-
-        case 'only-exists':
-            match args.column:
-                case 'models to npolys':
-                    fig = plot_lines(
-                        df,
-                        'models → npolys',
-                        [
-                            ((f'models_{enum}', f'npolys_{enum}'), enum)
-                            for enum in enumerator2steps.keys()
-                            if re.search(r'sae|exists', enum)
-                        ],
-                    )
-
-                case 'models to nuniquepolys':
-                    fig = plot_lines(
-                        df,
-                        'models → nuniquepolys',
-                        [
-                            ((f'models_{enum}', f'nuniquepolys_{enum}'), enum)
-                            for enum in enumerator2steps.keys()
-                            if re.search(r'sae|exists', enum)
-                        ]
-                    )
-
-                case 'models to distinct_by_x' | 'models to distinct_by_A':
-                    by: t.Literal['x', 'A'] = args.column[-1]
-                    fig = plot_lines(
-                        df,
-                        f'models → distinct_by_{by}',
-                        [
-                            ((f'models_{enum}', f'distinct_by_{by}_{enum}'), enum)
-                            for enum in enumerator2steps.keys()
-                            if re.search(r'sae|exists', enum)
-                        ],
-                    )
-
-                case 'models':
-                    fig = plot(
-                        df,
-                        'models',
-                        [
-                            (f'{args.column}_{enum}', enum)
-                            for enum in enumerator2steps.keys()
-                            if re.search(r'sae|exists', enum)
-                        ]
-                    )
-
-                case 'inspection-x':
-                    fig = inspection(df, 'x')
-
-                case 'inspection-A':
-                    fig = inspection(df, 'A')
-
-        case _:
-            match args.column:
-                case 'time':
-                    fig = plot_time(
-                        df,
-                        timeout,
-                        [
-                            (pl.sum_horizontal(pl.col(f's_{step}') for step in steps), enum)
+                        *[
+                            (pl.sum_horizontal(pl.col(f's_{step}') for step in steps if 'decdnnf' in step), enum)
                             for enum, steps in enumerator2steps.items()
-                        ]
-                    )
-
-                case 'enumerating':
-                    fig = plot_time(
-                        df,
-                        timeout,
-                        [
-                            *[
-                                (pl.sum_horizontal(pl.col(f's_{step}') for step in enumerator2steps[enum]), enum)
-                                for enum in ['sae']
-                            ],
-                            *[
-                                (pl.sum_horizontal(pl.col(f's_{step}') for step in steps if 'decdnnf' in step), enum)
-                                for enum, steps in enumerator2steps.items()
-                                if 'decdnnf' in enum
-                            ],
-                        ]
-                    )
-
-                case 'nuniquepolys to npolys':
-                    fig = plot_lines(
-                        df,
-                        'nuniquepolys → npolys',
-                        [
-                            ((f'nuniquepolys_{enum}', f'npolys_{enum}'), enum)
-                            for enum in enumerator2steps.keys()
+                            if 'decdnnf' in enum
                         ],
-                    )
+                    ]
+            ):
+                fig.savefig(args.folder / f'{name}.pdf')
+                plt.close(fig)
 
-                case 'survival':
-                    fig = survival(df)
+        case 'survival':
+            for name, fig in survival(df):
+                fig.savefig(args.folder / f'{name}.pdf')
+                plt.close(fig)
 
-                case 'distinct_by_x' | 'distinct_by_A':
-                    by: t.Literal['x', 'A'] = args.column[-1]
-                    fig = plot(
-                        df,
-                        'distinct_by',
-                        [
-                            (f'distinct_by_{by}_{enum}', enum)
-                            for enum, _ in enumerator2steps.items()
-                        ]
-                    )
-
-                case column:
-                    fig = plot(
-                        df,
-                        column,
-                        [
-                            (f'{column}_{enum}', enum)
-                            for enum, steps in enumerator2steps.items()
-                        ],
-                    )
-
-    for out in args.output:
-        fig.savefig(out)
+        case 'models vs npolys':
+            y, x = args.type.split(' vs ')
+            for name, fig in compare_columns(df, [((f'{x}_{enum}', f'{y}_{enum}'), enum) for enum in
+                                                  enumerator2steps.keys()]):
+                fig.savefig(args.folder / f'{name}.pdf')
+                plt.close(fig)
 
 
 if __name__ == '__main__':
