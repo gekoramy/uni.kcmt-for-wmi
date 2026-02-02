@@ -1119,7 +1119,7 @@ def main() -> None:
     folder.mkdir(exist_ok=True)
 
     match args.type:
-        case 'npolys' | 'models' | 'distinct_by_x' | 'distinct_by_A':
+        case 'npolys' | 'models' | 'distinct_by_x' | 'distinct_by_A' | 'nuniquepolys':
             for name, fig in plot(
                     df,
                     [(f'{args.type}_{enum}', enum) for enum in enumerator2steps.keys()]
