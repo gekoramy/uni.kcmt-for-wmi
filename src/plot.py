@@ -12,6 +12,7 @@ import numpy as np
 import polars as pl
 import pypalettes
 from matplotlib import pyplot as plt, transforms, ticker, colors, text
+from scipy.stats import gaussian_kde
 
 from src import utils
 
@@ -885,6 +886,114 @@ def foreach_step(
     return fig
 
 
+def ridgeplot(
+        df: pl.DataFrame,
+        column: str,
+) -> t.Generator[tuple[str, plt.Figure]]:
+    cmap: colors.Colormap = plt.get_cmap('tab20b')
+
+    maximum: float = (
+        df.select({
+            f'{column}_{step}'
+            for steps in enumerator2steps.values()
+            for step in steps
+        })
+        .max_horizontal()
+        .max()
+    )
+
+    for (enumerator, steps) in enumerator2steps.items():
+        fig: plt.Figure
+        fig, axs = plt.subplots(
+            nrows=len(steps),
+            figsize=(cm(15), cm(4 + 2 * len(steps))),
+            height_ratios=[1] * len(steps),
+            sharex=True,
+        )
+
+        data: pl.DataFrame = (
+            df.with_columns(
+                *[
+                    pl.col(f'stderr_{step}').fill_null('').str.contains('timeout').alias(step)
+                    for step in steps
+                ],
+            )
+            .select(
+                *[
+                    pl.col(f'{column}_{step}')
+                    for step in steps
+                ],
+                *[
+                    pl.any_horizontal(steps[:i + 1]).alias(step)
+                    for i, step in enumerate(steps)
+                ],
+            )
+        )
+
+        ax: plt.Axes
+        for i, (ax, step) in enumerate(zip(axes(axs), steps)):
+            ax.patch.set_alpha(0)
+            ax.xaxis.set_minor_locator(ticker.LogLocator(base=10, subs=np.arange(2, 10, 2)))
+            ax.xaxis.grid(which='both', linewidth=.1)
+            ax.set_xscale('log')
+            ax.set_xlim(1e-1, maximum)
+            ax.set_ylim(0, 1)
+            ax.set_yticks([])
+            ax.tick_params(
+                axis='both',
+                which='both',
+                left=False,
+                right=False,
+                bottom=i == len(steps) - 1,
+                top=False,
+            )
+
+            fig.text(
+                x=0,
+                y=0,
+                s=label(step),
+                bbox=dict(boxstyle='square', fc=('white', .8), ls=''),
+                transform=transforms.offset_copy(ax.transAxes, units='dots', x=10, y=10),
+                va='bottom',
+                zorder=9,
+            )
+
+            for s in ["top", "right", "left", "bottom"]:
+                ax.spines[s].set_visible(False)
+
+            mask: np.ndarray[tuple[int], np.dtype[np.bool]] = data.get_column(step).to_numpy()
+            xs: np.ndarray[tuple[int], np.dtype[np.float64]] = data.get_column(f'{column}_{step}').to_numpy()
+
+            valid = xs[~mask]
+
+            if len(valid) < 2:
+                continue
+
+            log_valid = np.log10(valid)
+            kde = gaussian_kde(log_valid)
+
+            x_grid_log = np.linspace(log_valid.min(), log_valid.max(), 100)
+            y_grid = kde(x_grid_log)
+
+            if y_grid.max() > 0:
+                y_grid = y_grid / y_grid.max() * 0.9
+
+            x_grid = 10 ** x_grid_log
+
+            ax.plot(x_grid, y_grid, color=cmap(i))
+            ax.fill_between(x_grid, 0, y_grid, color=cmap(i), alpha=0.5)
+
+        class LogSecondsFormatter(ticker.LogFormatterMathtext):
+            def __call__(self, x, pos=None):
+                return fr'{super().__call__(x, pos)}$s$'
+
+        ax.xaxis.set_major_formatter(LogSecondsFormatter())
+
+        fig.tight_layout()
+        fig.subplots_adjust(hspace=-0.5)
+        yield enumerator, fig
+
+
 def inspection(
         df: pl.DataFrame,
         qo: t.Literal['x', 'A'],
@@ -1000,7 +1109,7 @@ def main() -> None:
     folder.mkdir(exist_ok=True)
 
     match args.type:
-        case 'npolys' | 'survivors' | 'models' | 'distinct_by_x' | 'distinct_by_A':
+        case 'npolys' | 'models' | 'distinct_by_x' | 'distinct_by_A':
             for name, fig in plot(
                     df,
                     [(f'{args.type}_{enum}', enum) for enum in enumerator2steps.keys()]
@@ -1059,6 +1168,15 @@ def main() -> None:
                                                   enumerator2steps.keys()]):
                 fig.savefig(args.folder / f'{name}.pdf')
                 plt.close(fig)
+
+        case 'ridgeplot_s':
+            column = args.type.removeprefix('ridgeplot_')
+            for name, fig in ridgeplot(df, column):
+                fig.savefig(args.folder / f'{name}.pdf')
+                plt.close(fig)
+
+        case _:
+            raise RuntimeError('?')
 
 
 if __name__ == '__main__':

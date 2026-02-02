@@ -63,6 +63,7 @@ rule all:
                 "nuniquepolys",
                 "survival",
                 "time",
+                "ridgeplot_s",
             ]
         ),
         expand("assets/plots/{pattern}/{type}",
