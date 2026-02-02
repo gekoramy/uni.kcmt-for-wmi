@@ -12,16 +12,16 @@ from pysmt.solvers import msat
 
 from src import utils
 from src.decdnnf import decdnnf
-from src.tddnnf import with_tlemmas
+from src.tddnnf import abstraction
 
-_i2atom: with_tlemmas.i2atom
+_i2atom: abstraction.i2atom
 _solver: msat.MathSAT5Solver
 
 
 def _init_worker(i2atom: Path) -> None:
     global _i2atom, _solver
     env: Environment = get_env()
-    _i2atom = with_tlemmas.read_mapping(env=env, mapping=i2atom)
+    _i2atom = abstraction.read_mapping(env=env, mapping=i2atom)
     _solver = msat.MathSAT5Solver(environment=env, logic=LRA)
 
 
