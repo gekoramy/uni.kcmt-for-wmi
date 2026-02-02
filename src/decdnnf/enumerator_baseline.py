@@ -14,19 +14,17 @@ from src.tddnnf import abstraction
 class Arguments:
     cores: int
     models: Path
-    mapping: Path
+    mapping: abstraction.i2atom
 
 
 def enum(
         env: Environment,
         args: Arguments,
 ) -> t.Generator[dict[bool, list[FNode]]]:
-    mapping: abstraction.i2atom = abstraction.read_mapping(env, args.mapping)
-
     with gzip.open(args.models, 'rt', encoding='utf-8') as f:
         mus: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
 
     yield from (
-        abstraction.convert(mapping, mu)
+        abstraction.convert(args.mapping, mu)
         for mu in mus
     )

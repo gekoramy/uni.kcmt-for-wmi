@@ -32,7 +32,10 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
         'sae_with_tlemmas': [
             'tlemmas_phi',
             'sae_with_tlemmas'
-        ]
+        ],
+        'weighted_sae': [
+            'weighted_sae'
+        ],
     },
     **{
         f'wmi_decdnnf_{compiler}': [
@@ -94,6 +97,13 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
         ]
         for compiler in ['d4', 'sdd']
     },
+    **{
+        f'wmi_decdnnf_n_mathsat_d4_phi_n_skeleton': [
+            f'tddnnf_d4_phi_n_skeleton',
+            f'decdnnf_n_mathsat_d4_phi_n_skeleton',
+            f'wmi_decdnnf_n_mathsat_d4_phi_n_skeleton',
+        ],
+    }
 )
 
 

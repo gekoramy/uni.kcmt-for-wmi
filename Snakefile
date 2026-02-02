@@ -171,6 +171,10 @@ rule aggregate_density:
             *["assets/tddnnf_exists_A/sdd/{type}/{density}.t_reduced_phi." + suffix for suffix in ["err", "steps"]],
             "assets/benchmarks/tddnnf_exists_A/sdd/{type}/{density}.t_reduced_phi.jsonl"
         ],
+        tddnnf_d4_phi_n_skeleton=[
+            "assets/weighted_tddnnf/d4/{type}/{density}.phi_n_skeleton.err",
+            "assets/benchmarks/weighted_tddnnf/d4/{type}/{density}.phi_n_skeleton.jsonl"
+        ],
         decdnnf_d4_t_reduced=[
             "assets/decdnnf/tddnnf/d4/{type}/{density}.t_reduced_phi.err",
             "assets/benchmarks/decdnnf/tddnnf/d4/{type}/{density}.t_reduced_phi.jsonl"
@@ -212,6 +216,10 @@ rule aggregate_density:
             ]
             for compiler in ["d4", "sdd"]
         },
+        decdnnf_n_mathsat_d4_phi_n_skeleton=[
+            "assets/weighted_decdnnf_n_mathsat/d4/{type}/{density}.err",
+            "assets/benchmarks/weighted_decdnnf_n_mathsat/d4/{type}/{density}.jsonl"
+        ],
         sae=[
             *["assets/wmi/sae/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
             "assets/benchmarks/sae/noop/{type}/{density}.jsonl"
@@ -219,6 +227,10 @@ rule aggregate_density:
         sae_with_tlemmas=[
             *["assets/wmi/sae/noop/{type}/{density}.with-tlemmas." + suffix for suffix in ["out", "err", "steps"]],
             "assets/benchmarks/sae/noop/{type}/{density}.with-tlemmas.jsonl"
+        ],
+        weighted_sae=[
+            *["assets/wmi/weighted_sae/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/benchmarks/weighted_sae/noop/{type}/{density}.jsonl"
         ],
         wmi_decdnnf_d4=[
             *["assets/wmi/decdnnf/tddnnf/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
@@ -267,6 +279,11 @@ rule aggregate_density:
             ]
             for compiler in ["d4", "sdd"]
         },
+        wmi_decdnnf_n_mathsat_d4_phi_n_skeleton=[
+            *[f"assets/wmi/weighted_decdnnf_n_mathsat/d4/noop/{{type}}/{{density}}.{suffix}" for suffix in ["out", "err", "steps"]],
+            f"assets/weighted_tddnnf/d4/{{type}}/{{density}}.phi_n_skeleton.min-nnf",
+            "assets/benchmarks/wmi/weighted_decdnnf_n_mathsat/d4/noop/{type}/{density}.jsonl"
+        ],
     output:
         "assets/aggregates/{type}/{density}.csv"
     script:
@@ -413,6 +430,30 @@ rule compose_phi_with_tlemmas:
         """
 
 
+rule compose_phi_with_skeleton:
+    threads: 1
+    input:
+        density="assets/densities/{type}/{density}.json"
+    output:
+        mapping=r"assets/phi_with_skeleton/{type}/{density}.mapping",
+        phi_n_skeleton=r"assets/phi_with_skeleton/{type}/{density}.phi_n_skeleton.smt2",
+    log:
+        steps=r"assets/phi_with_skeleton/{type}/{density}.steps",
+        err=r"assets/phi_with_skeleton/{type}/{density}.err"
+    params:
+        script="src.tddnnf.with_skeleton"
+    benchmark:
+        r"assets/benchmarks/phi_with_skeleton/{type}/{density}.jsonl"
+    shell:
+        """
+        python -m {params.script} \
+          --steps {log.steps} \
+          --density {input.density} \
+          --mapping {output.mapping} \
+          --phi_n_skeleton {output.phi_n_skeleton}
+        """
+
+
 rule densities_with_tlemmas:
     threads: 1
     input:
@@ -456,6 +497,28 @@ rule smtlib_to_bcs12:
         """
 
 
+rule weighted_smtlib_to_bcs12:
+    threads: 1
+    input:
+        phi_n_skeleton="assets/phi_with_skeleton/{type}/{density}.phi_n_skeleton.smt2",
+        mapping="assets/phi_with_skeleton/{type}/{density}.mapping",
+    output:
+        bcs12=r"assets/weighted_tddnnf/d4/{type}/{density}.phi_n_skeleton.bc"
+    params:
+        script="src.tddnnf.smtlib_to_bcs12"
+    shell:
+        """
+        if [[ -s {input.phi_n_skeleton:q} ]]; then
+          python -m {params.script} \
+            --smtlib {input.phi_n_skeleton} \
+            --mapping {input.mapping} \
+            --bcs12 {output.bcs12}
+        fi
+
+        touch {output}
+        """
+
+
 rule bcs12_projected:
     threads: 1
     input:
@@ -488,11 +551,11 @@ rule compile_tddnnf_with_d4:
     input:
         bcs12="assets/{tddnnf}/d4/{type}/{density}.{phi}.bc"
     output:
-        nnf="assets/{tddnnf}/d4/{type}/{density}.{phi}.to-fix-nnf"
+        nnf=r"assets/{tddnnf}/d4/{type}/{density}.{phi,\w+}.to-fix-nnf"
     log:
-        err="assets/{tddnnf}/d4/{type}/{density}.{phi}.err"
+        err=r"assets/{tddnnf}/d4/{type}/{density}.{phi,\w+}.err"
     benchmark:
-        "assets/benchmarks/{tddnnf}/d4/{type}/{density}.{phi}.jsonl"
+        r"assets/benchmarks/{tddnnf}/d4/{type}/{density}.{phi,\w+}.jsonl"
     shell:
         """
         if [[ -s {input.bcs12:q} ]]; then
@@ -813,8 +876,42 @@ rule decdnnf_n_mathsat:
         """
 
 
+rule weighted_decdnnf_n_mathsat:
+    threads: 26
+    resources:
+        mem="20GB",
+        disk="50GB"
+    input:
+        mapping="assets/phi_with_skeleton/{type}/{density}.mapping",
+        phi="assets/weighted_tddnnf/d4/{type}/{density}.phi_n_skeleton.min-nnf"
+    output:
+        temp("assets/weighted_decdnnf_n_mathsat/d4/{type}/{density}.models")
+    log:
+        "assets/weighted_decdnnf_n_mathsat/d4/{type}/{density}.err"
+    benchmark:
+        "assets/benchmarks/weighted_decdnnf_n_mathsat/d4/{type}/{density}.jsonl"
+    params:
+        "src.decdnnf.decdnnf_n_mathsat"
+    shell:
+        """
+        if [[ -s {input.mapping:q} ]]; then
+          timeout --verbose {config[timeout][enumerator]}m \
+            python -m {params} \
+            --cores {threads} \
+            --output {output} \
+            --mapping {input.mapping} \
+            --phi {input.phi} \
+            2> {log} \
+            || touch {output}
+        fi
+
+        touch {output}
+        """
+
+
 rule compute_wmi_with_sae:
-    threads: 13
+    threads:
+        lambda wildcards: 1 if wildcards.int == "noop" else 13
     resources:
         mem="20GB"
     input:
@@ -833,6 +930,44 @@ rule compute_wmi_with_sae:
         if [[ -s {input:q} ]]; then
           timeout --verbose {config[timeout][enumerator]}m \
             python -m {params.script} \
+            --density {input} \
+            --integrator {wildcards.int} \
+            --parallel \
+            --cached \
+            --steps {log.steps} \
+            --cores {threads} \
+            sae \
+            1> {output.wmi} \
+            2> {log.err} \
+            || touch {output}
+        fi
+
+        touch {output}
+        """
+
+
+rule compute_wmi_with_weighted_sae:
+    threads:
+        lambda wildcards: 1 if wildcards.int == "noop" else 13
+    resources:
+        mem="20GB"
+    input:
+        "assets/densities/{type}/{density}.json"
+    output:
+        wmi="assets/wmi/weighted_sae/{int,noop|latte}/{type}/{density}.out",
+    log:
+        steps="assets/wmi/weighted_sae/{int,noop|latte}/{type}/{density}.steps",
+        err="assets/wmi/weighted_sae/{int,noop|latte}/{type}/{density}.err"
+    benchmark:
+        "assets/benchmarks/weighted_sae/{int,noop|latte}/{type}/{density}.jsonl"
+    params:
+        script="src.wmi"
+    shell:
+        """
+        if [[ -s {input:q} ]]; then
+          timeout --verbose {config[timeout][enumerator]}m \
+            python -m {params.script} \
+            --weighted \
             --density {input} \
             --integrator {wildcards.int} \
             --parallel \
@@ -872,6 +1007,48 @@ rule compute_wmi_with_decdnnf:
         if [[ -s {input.models:q} ]]; then
           timeout --verbose {config[timeout][enumerator]}m \
             python -m {params.script} \
+            --density {input.density} \
+            --integrator {wildcards.int} \
+            --parallel \
+            --cached \
+            --steps {log.steps} \
+            --cores {threads} \
+            decdnnf \
+            --models {input.models} \
+            --mapping {input.mapping} \
+            1> {output.wmi} \
+            2> {log.err} \
+            || touch {output}
+        fi
+
+        touch {output}
+        """
+
+
+rule compute_wmi_with_weighted_decdnnf:
+    threads:
+        lambda wildcards: 1 if wildcards.int == "noop" else 13
+    resources:
+        mem=lambda wildcards: None if wildcards.int == "noop" else "20GB"
+    input:
+        density="assets/densities/{type}/{density}.json",
+        mapping="assets/phi_with_skeleton/{type}/{density}.mapping",
+        models="assets/{decdnnf}/{type}/{density}.models.gz"
+    output:
+        wmi=r"assets/wmi/{decdnnf,weighted_decdnnf_n_mathsat/d4}/{int,noop|latte}/{type}/{density}.out"
+    log:
+        steps=r"assets/wmi/{decdnnf,weighted_decdnnf_n_mathsat/d4}/{int}/{type}/{density}.steps",
+        err=r"assets/wmi/{decdnnf,weighted_decdnnf_n_mathsat/d4}/{int}/{type}/{density}.err"
+    benchmark:
+        r"assets/benchmarks/wmi/{decdnnf,weighted_decdnnf_n_mathsat/d4}/{int}/{type}/{density}.jsonl"
+    params:
+        script="src.wmi"
+    shell:
+        """
+        if [[ -s {input.models:q} ]]; then
+          timeout --verbose {config[timeout][enumerator]}m \
+            python -m {params.script} \
+            --weighted \
             --density {input.density} \
             --integrator {wildcards.int} \
             --parallel \

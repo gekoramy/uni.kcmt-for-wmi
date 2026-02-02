@@ -14,6 +14,7 @@ from pysmt.environment import Environment, get_env
 from pysmt.fnode import FNode
 from wmpy.cli.density import Density
 from wmpy.core.polynomial import PolynomialParser
+from wmpy.core.utils import LiteralNormalizer
 from wmpy.core.weights import Weights
 from wmpy.enumeration import Enumerator
 from wmpy.integration import Integrator, LattEIntegrator, ParallelWrapper, CacheWrapper
@@ -21,6 +22,7 @@ from wmpy.integration import Integrator, LattEIntegrator, ParallelWrapper, Cache
 import src.decdnnf.enumerator_baseline as decdnnf_baseline
 from src import utils
 from src.sae import sae
+from src.tddnnf import abstraction
 from src.wmpy import custom
 
 
@@ -36,12 +38,12 @@ class FnEnumerator:
             self,
             env: Environment,
             support: FNode,
-            weight: FNode | None,
+            weight: FNode,
             fun: t.Callable[[Environment, Domain, FNode], t.Iterable[tuple[dict[FNode, bool], int]]]
     ):
         self.env = env
         self.support = support
-        self.weights = Weights(weight or self.env.formula_manager.Real(1), env)
+        self.weights = Weights(weight, env)
         self.fun = fun
 
     def enumerate(self, phi: FNode) -> t.Iterable[tuple[dict[FNode, bool], int]]:
@@ -147,6 +149,7 @@ def main() -> None:
         parser.add_argument('--cached', action='store_true')
         parser.add_argument('--density', type=utils.file, required=True)
         parser.add_argument('--cores', type=int, required=True)
+        parser.add_argument('--weighted', action='store_true')
 
         with utils.use(parser.add_subparsers(dest='enumerator', required=True)) as sub:
             sub.add_parser('sae')
@@ -161,26 +164,44 @@ def main() -> None:
 
     env: Environment = get_env()
     density: Density = utils.read_density(args.density)
+    weights: FNode = density.weights if args.weighted else smt.Real(1)
 
     enumerator: Enumerator
     match args.enumerator:
         case 'sae':
-            enumerator = sae.SAEnumerator(density.support, smt.Real(1), env)
+            enumerator = sae.SAEnumerator(density.support, weights, env)
 
         case 'decdnnf':
+
+            mapping: abstraction.i2atom = abstraction.read_mapping(env, args.mapping)
+
             ta: t.Callable[[], t.Generator[dict[bool, list[FNode]]]] = lambda: decdnnf_baseline.enum(
                 env,
                 decdnnf_baseline.Arguments(
                     cores=args.cores,
                     models=args.models,
-                    mapping=args.mapping
+                    mapping=mapping
                 )
             )
+
+            normalizer: LiteralNormalizer = LiteralNormalizer(env=env)
 
             enumerator = FnEnumerator(
                 env,
                 density.support,
-                smt.Real(1),
+                weights.substitute(subs={
+                    atom: smt.Not(original) if negate else original
+                    for atom in Weights(weights, env).get_atoms()
+                    if not atom.is_symbol(smt.BOOL)
+                    for original, negate in [normalizer.normalize(atom, remember_alias=True)]
+                    if atom != original
+                }).substitute(subs={
+                    original: smt.Not(atom) if negate else atom
+                    for _, atom in abstraction.entries(mapping)
+                    if not atom.is_symbol(smt.BOOL)
+                    for original, negate in [normalizer.normalize(atom, remember_alias=False)]
+                    if atom != original
+                }),
                 ft.partial(enum, lambda _1, _2: ta())
             )
 
