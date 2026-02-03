@@ -18,7 +18,6 @@ class Arguments:
 
 
 def enum(
-        env: Environment,
         args: Arguments,
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with gzip.open(args.models, 'rt', encoding='utf-8') as f:

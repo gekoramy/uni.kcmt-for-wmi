@@ -176,7 +176,6 @@ def main() -> None:
             mapping: abstraction.i2atom = abstraction.read_mapping(env, args.mapping)
 
             ta: t.Callable[[], t.Generator[dict[bool, list[FNode]]]] = lambda: decdnnf_baseline.enum(
-                env,
                 decdnnf_baseline.Arguments(
                     cores=args.cores,
                     models=args.models,
