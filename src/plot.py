@@ -172,17 +172,10 @@ def compare_columns(
         for ix in range(2)
     )
 
-    log_width: float = math.log10(max(1.0, maximum[0])) - math.log10(max(1.0, minimum))
-    padding: float = 10 ** (max(1.0, log_width) / 10)
+    padding: float = 1.4
+    delta: float = plt.rcParams['font.size'] + 6
 
     cmap = pypalettes.load_cmap('Sunset2')
-    tmin, tmax = max(1.0, minimum), maximum[0] * padding
-    major: np.ndarray[tuple[int], np.dtype[np.float64]] = ticker.LogLocator(base=10).tick_values(tmin, tmax)
-    major = major[(tmin <= major) & (major <= tmax)]
-    minor: np.ndarray[tuple[int], np.dtype[np.float64]] = (
-        ticker.LogLocator(base=10, subs=np.arange(2, 12, 2)).tick_values(tmin, tmax)
-    )
-    minor = minor[(tmin <= minor) & (minor <= tmax)]
 
     for (col_x, col_y), enum in columns_n_enumerators:
 
@@ -191,7 +184,7 @@ def compare_columns(
         fig, ax = plt.subplots(1, 1, figsize=(cm(15), cm(15)))
 
         steps_x: list[str] = enumerator2steps[enum]
-        limits_x: list[float] = list(it.accumulate(steps_x, lambda acc, _: acc * padding, initial=maximum[0] * padding))
+        limits_x: list[int] = list(it.accumulate(steps_x, lambda acc, _: acc + delta, initial=delta))
 
         if minimum <= 1:
             ax.set_xscale('symlog', linthresh=1, linscale=.25)
@@ -200,30 +193,36 @@ def compare_columns(
             ax.set_xscale('log')
             ax.set_yscale('log')
 
-        ax.set_xlim(minimum, limits_x[-1])
+        ax.set_xlim(minimum, maximum[0] * padding)
         ax.set_ylim(minimum, maximum[1] * padding)
-        ax.xaxis.set_major_locator(ticker.FixedLocator(major))
+        ax.xaxis.set_major_locator(ticker.SymmetricalLogLocator(base=10, linthresh=1))
         ax.yaxis.set_major_locator(ticker.SymmetricalLogLocator(base=10, linthresh=1))
-        ax.xaxis.set_minor_locator(ticker.FixedLocator(minor))
+        ax.xaxis.set_minor_locator(ticker.SymmetricalLogLocator(base=10, subs=np.arange(2, 10, 2), linthresh=1))
         ax.yaxis.set_minor_locator(ticker.SymmetricalLogLocator(base=10, subs=np.arange(2, 10, 2), linthresh=1))
         ax.grid(visible=True, which='both', linewidth=.1)
 
         for step, limit in zip(steps_x, limits_x):
-            ax.axvline(x=limit, color='black', linestyle='--', linewidth=1)
+            ax.plot(
+                [1, 1], [0, 1],
+                color='black',
+                linestyle='--',
+                linewidth=1,
+                clip_on=False,
+                transform=transforms.offset_copy(ax.transAxes, units='dots', x=+limit),
+            )
             ax.text(
-                x=limit,
-                y=minimum,
+                x=1, y=0,
                 s=label(step),
-                bbox=dict(boxstyle='square', fc=('white', .6), ls=''),
                 rotation=90,
                 rotation_mode='anchor',
-                transform=transforms.offset_copy(ax.transData, units='dots', x=+4 + plt.rcParams['font.size'], y=+4),
+                transform=transforms.offset_copy(ax.transAxes, units='dots', x=+limit - 4.5),
                 va='baseline',
+                clip_on=False,
             )
 
         ax.plot(
-            (minimum, max(limits_x)),
-            (minimum, max(limits_x)),
+            (minimum, max(maximum) * padding),
+            (minimum, max(maximum) * padding),
             color='darkgrey',
             linestyle=':',
             linewidth=1,
@@ -267,7 +266,19 @@ def compare_columns(
             )
             for xy, s, kwargs in [
                 (unique_regular, counts_regular, dict(marker='o', edgecolors='none', facecolors=cmap(0), alpha=.6)),
-                (unique_timeout, counts_timeout, dict(marker='x', color=cmap(0))),
+                *(
+                    (np.array([[1, y]]), s, dict(
+                        marker='x',
+                        color=cmap(0),
+                        transform=transforms.offset_copy(
+                            trans=transforms.blended_transform_factory(ax.transAxes, ax.transData),
+                            units='dots',
+                            x=+x
+                        ),
+                        clip_on=False,
+                    ))
+                    for [x, y], s in zip(unique_timeout, counts_timeout)
+                )
             ]
         ]
 
@@ -302,31 +313,22 @@ def plot(
         .max()
     )
 
-    log_width: float = math.log10(max(1.0, maximum)) - math.log10(max(1.0, minimum))
-    padding: float = 10 ** (max(1.0, log_width) / 10)
+    padding: float = 1.4
+    delta: float = plt.rcParams['font.size'] + 6
 
     cmap = pypalettes.load_cmap('Sunset2')
-    tmin, tmax = max(1.0, minimum), maximum * padding
-    major: np.ndarray[tuple[int], np.dtype[np.float64]] = (
-        ticker.LogLocator(base=10).tick_values(tmin, tmax)
-    )
-    major = major[(tmin <= major) & (major <= tmax)]
-    minor: np.ndarray[tuple[int], np.dtype[np.float64]] = (
-        ticker.LogLocator(base=10, subs=np.arange(2, 10, 2)).tick_values(tmin, tmax)
-    )
-    minor = minor[(tmin <= minor) & (minor <= tmax)]
 
     for (col_x, enum_x), (col_y, enum_y) in it.combinations(columns_n_enumerators, 2):
 
         fig: plt.Figure
         ax: plt.Axes
-        fig, ax = plt.subplots(1, 1, figsize=(cm(15), cm(15)))
+        fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(cm(15), cm(15)))
 
         steps_x: list[str] = enumerator2steps[enum_x]
         steps_y: list[str] = enumerator2steps[enum_y]
 
-        limits_x: list[float] = list(it.accumulate(steps_x, lambda acc, _: acc * padding, initial=maximum * padding))
-        limits_y: list[float] = list(it.accumulate(steps_y, lambda acc, _: acc * padding, initial=maximum * padding))
+        limits_x: list[float] = list(it.accumulate(steps_x, lambda acc, _: acc + delta, initial=delta))
+        limits_y: list[float] = list(it.accumulate(steps_y, lambda acc, _: acc + delta, initial=delta))
 
         if minimum <= 1:
             ax.set_xscale('symlog', linthresh=1, linscale=.25)
@@ -335,41 +337,69 @@ def plot(
             ax.set_xscale('log')
             ax.set_yscale('log')
 
-        ax.set_xlim(minimum, limits_x[-1])
-        ax.set_ylim(minimum, limits_y[-1])
-        ax.xaxis.set_major_locator(ticker.FixedLocator(major))
-        ax.yaxis.set_major_locator(ticker.FixedLocator(major))
-        ax.xaxis.set_minor_locator(ticker.FixedLocator(minor))
-        ax.yaxis.set_minor_locator(ticker.FixedLocator(minor))
+        ax.set_xlim(minimum, maximum * padding)
+        ax.set_ylim(minimum, maximum * padding)
+        ax.xaxis.set_major_locator(ticker.SymmetricalLogLocator(base=10, linthresh=1))
+        ax.yaxis.set_major_locator(ticker.SymmetricalLogLocator(base=10, linthresh=1))
+        ax.xaxis.set_minor_locator(ticker.SymmetricalLogLocator(base=10, subs=np.arange(2, 10, 2), linthresh=1))
+        ax.yaxis.set_minor_locator(ticker.SymmetricalLogLocator(base=10, subs=np.arange(2, 10, 2), linthresh=1))
         ax.grid(visible=True, which='both', linewidth=.1)
 
         for step, limit in zip(steps_x, limits_x):
-            ax.axvline(x=limit, color='black', linestyle='--', linewidth=1)
+            ax.annotate(
+                '',
+                xy=(1, 0),
+                xycoords=transforms.offset_copy(ax.transAxes, units='dots', x=+limit),
+                xytext=(1, 1),
+                textcoords=transforms.offset_copy(ax.transAxes, units='dots', x=+limit, y=limits_y[-1]),
+                arrowprops=dict(
+                    arrowstyle='-',
+                    color='black',
+                    linestyle='--',
+                    linewidth=1,
+                ),
+            )
             ax.text(
-                x=limit,
-                y=minimum,
+                x=1, y=0,
                 s=label(step),
-                bbox=dict(boxstyle='square', fc=('white', .6), ls=''),
                 rotation=90,
                 rotation_mode='anchor',
-                transform=transforms.offset_copy(ax.transData, units='dots', x=+4 + plt.rcParams['font.size'], y=+4),
+                transform=transforms.offset_copy(ax.transAxes, units='dots', x=+limit - 4.5),
+                va='baseline',
+                clip_on=False,
+            )
+
+        for step, (text, limit) in zip(steps_y, it.pairwise([0] + limits_y)):
+            ax.annotate(
+                '',
+                xy=(0, 1),
+                xycoords=transforms.offset_copy(ax.transAxes, units='dots', y=+limit),
+                xytext=(1, 1),
+                textcoords=transforms.offset_copy(ax.transAxes, units='dots', y=+limit, x=limits_x[-1]),
+                arrowprops=dict(
+                    arrowstyle='-',
+                    color='black',
+                    linestyle='--',
+                    linewidth=1,
+                ),
+            )
+            ax.text(
+                x=0, y=1,
+                s=label(step),
+                transform=transforms.offset_copy(ax.transAxes, units='dots', y=text + 4.5),
                 va='baseline',
             )
 
-        for step, limit in zip(steps_y, limits_y):
-            ax.axhline(y=limit, color='black', linestyle='--', linewidth=1)
-            ax.text(
-                x=minimum,
-                y=limit,
-                s=label(step),
-                bbox=dict(boxstyle='square', fc=('white', .6), ls=''),
-                transform=transforms.offset_copy(ax.transData, units='dots', x=+4, y=+6.5),
-                va='baseline',
-            )
+        ax.text(
+            x=1, y=1,
+            s='.',
+            transform=transforms.offset_copy(ax.transAxes, units='dots', x=+limits_x[-1], y=+limits_y[-1]),
+            color='white',
+        )
 
         ax.plot(
-            (minimum, max(*limits_x, *limits_y)),
-            (minimum, max(*limits_x, *limits_y)),
+            (minimum, maximum * padding),
+            (minimum, maximum * padding),
             color='darkgrey',
             linestyle=':',
             linewidth=1,
@@ -421,9 +451,46 @@ def plot(
             )
             for xy, s, kwargs in [
                 (unique_regular, counts_regular, dict(marker='o', edgecolors='none', facecolors=cmap(0), alpha=.6)),
-                (unique_timeout_x, counts_timeout_x * 2, dict(marker='3', color=cmap(0))),
-                (unique_timeout_y, counts_timeout_y * 2, dict(marker='1', color=cmap(0))),
-                (unique_timeout, counts_timeout, dict(marker='x', color=cmap(0))),
+                *(
+                    (np.array([[1, y]]), s, dict(
+                        marker='3',
+                        color=cmap(0),
+                        transform=transforms.offset_copy(
+                            trans=transforms.blended_transform_factory(ax.transAxes, ax.transData),
+                            units='dots',
+                            x=+x
+                        ),
+                        clip_on=False,
+                    ))
+                    for [x, y], s in zip(unique_timeout_x, counts_timeout_x * 2)
+                ),
+                *(
+                    (np.array([[x, 1]]), s, dict(
+                        marker='1',
+                        color=cmap(0),
+                        transform=transforms.offset_copy(
+                            trans=transforms.blended_transform_factory(ax.transData, ax.transAxes),
+                            units='dots',
+                            y=+y
+                        ),
+                        clip_on=False,
+                    ))
+                    for [x, y], s in zip(unique_timeout_y, counts_timeout_y * 2)
+                ),
+                *(
+                    (np.array([[1, 1]]), s, dict(
+                        marker='x',
+                        color=cmap(0),
+                        transform=transforms.offset_copy(
+                            trans=transforms.blended_transform_factory(ax.transAxes, ax.transAxes),
+                            units='dots',
+                            x=+x,
+                            y=+y
+                        ),
+                        clip_on=False,
+                    ))
+                    for [x, y], s in zip(unique_timeout, counts_timeout)
+                )
             ]
         ]
 
@@ -431,7 +498,6 @@ def plot(
         ax.set_ylabel(label(enum_y))
         ax.set_aspect('equal')
 
-        fig.tight_layout()
         yield f'{enum_x}_vs_{enum_y}', fig
 
 
