@@ -1154,8 +1154,9 @@ def main() -> None:
                     timeout,
                     [
                         *[
-                            (pl.sum_horizontal(pl.col(f's_{step}') for step in enumerator2steps[enum]), enum)
-                            for enum in ['sae']
+                            (pl.col(f's_{steps[-1]}'), enum)
+                            for enum, steps in enumerator2steps.items()
+                            if 'sae' in enum
                         ],
                         *[
                             (pl.sum_horizontal(pl.col(f's_{step}') for step in steps if 'decdnnf' in step), enum)
