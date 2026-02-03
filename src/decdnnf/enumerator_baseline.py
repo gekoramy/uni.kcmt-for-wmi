@@ -3,7 +3,6 @@ import typing as t
 from dataclasses import dataclass
 from pathlib import Path
 
-from pysmt.environment import Environment
 from pysmt.fnode import FNode
 
 from src.decdnnf import decdnnf
@@ -21,9 +20,7 @@ def enum(
         args: Arguments,
 ) -> t.Generator[dict[bool, list[FNode]]]:
     with gzip.open(args.models, 'rt', encoding='utf-8') as f:
-        mus: list[dict[bool, list[int]]] = list(decdnnf.parse(f))
-
-    yield from (
-        abstraction.convert(args.mapping, mu)
-        for mu in mus
-    )
+        yield from (
+            abstraction.convert(args.mapping, mu)
+            for mu in decdnnf.parse(f)
+        )
