@@ -702,7 +702,7 @@ rule compress_models:
     input:
         "assets/{models}.models"
     output:
-        temp("assets/{models}.models.gz")
+        "assets/{models}.models.gz"
     shell:
         """
         if [[ -s {input:q} ]]; then
