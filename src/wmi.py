@@ -177,7 +177,6 @@ def main() -> None:
 
             ta: t.Callable[[], t.Generator[dict[bool, list[FNode]]]] = lambda: decdnnf_baseline.enum(
                 decdnnf_baseline.Arguments(
-                    cores=args.cores,
                     models=args.models,
                     mapping=mapping
                 )

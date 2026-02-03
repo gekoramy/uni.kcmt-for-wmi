@@ -11,7 +11,6 @@ from src.tddnnf import abstraction
 
 @dataclass(frozen=True)
 class Arguments:
-    cores: int
     models: Path
     mapping: abstraction.i2atom
 
