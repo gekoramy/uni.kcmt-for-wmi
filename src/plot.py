@@ -181,7 +181,7 @@ def compare_columns(
 
         fig: plt.Figure
         ax: plt.Axes
-        fig, ax = plt.subplots(1, 1, figsize=(cm(15), cm(15)))
+        fig, ax = plt.subplots(1, 1, figsize=(cm(15), cm(20)))
 
         steps_x: list[str] = enumerator2steps[enum]
         limits_x: list[int] = list(it.accumulate(steps_x, lambda acc, _: acc + delta, initial=delta))
