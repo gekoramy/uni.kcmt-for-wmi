@@ -186,22 +186,32 @@ def main() -> None:
 
             normalizer: LiteralNormalizer = LiteralNormalizer(env=env)
 
+            with utils.log('normalizing weights'):
+                normalized_weights: FNode = ft.reduce(
+                    lambda fnode, subs: env.substituter.substitute(fnode, subs) if subs else fnode,
+                    [
+                        {
+                            atom: smt.Not(canonical) if negate else canonical
+                            for atom in Weights(weights, env).get_atoms()
+                            if not atom.is_symbol(smt.BOOL)
+                            for canonical, negate in [normalizer.normalize(atom, remember_alias=True)]
+                            if atom != canonical
+                        },
+                        {
+                            canonical: smt.Not(atom) if negate else atom
+                            for _, atom in abstraction.entries(mapping)
+                            if not atom.is_symbol(smt.BOOL)
+                            for canonical, negate in [normalizer.normalize(atom, remember_alias=False)]
+                            if atom != canonical
+                        },
+                    ],
+                    weights,
+                )
+
             enumerator = FnEnumerator(
                 env,
                 density.support,
-                weights.substitute(subs={
-                    atom: smt.Not(original) if negate else original
-                    for atom in Weights(weights, env).get_atoms()
-                    if not atom.is_symbol(smt.BOOL)
-                    for original, negate in [normalizer.normalize(atom, remember_alias=True)]
-                    if atom != original
-                }).substitute(subs={
-                    original: smt.Not(atom) if negate else atom
-                    for _, atom in abstraction.entries(mapping)
-                    if not atom.is_symbol(smt.BOOL)
-                    for original, negate in [normalizer.normalize(atom, remember_alias=False)]
-                    if atom != original
-                }),
+                normalized_weights,
                 ft.partial(enum, lambda _1, _2: ta())
             )
 
