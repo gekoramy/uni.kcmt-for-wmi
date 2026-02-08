@@ -181,7 +181,7 @@ def compare_columns(
 
         fig: plt.Figure
         ax: plt.Axes
-        fig, ax = plt.subplots(1, 1, figsize=(cm(15), cm(20)))
+        fig, ax = plt.subplots(1, 1, figsize=(cm(20), cm(15)))
 
         steps_x: list[str] = enumerator2steps[enum]
         limits_x: list[int] = list(it.accumulate(steps_x, lambda acc, _: acc + delta, initial=delta))
@@ -201,21 +201,19 @@ def compare_columns(
         ax.yaxis.set_minor_locator(ticker.SymmetricalLogLocator(base=10, subs=np.arange(2, 10, 2), linthresh=1))
         ax.grid(visible=True, which='both', linewidth=.1)
 
-        for step, limit in zip(steps_x, limits_x):
+        for step, (text, limit) in zip(steps_x, it.pairwise([0] + limits_x)):
             ax.plot(
-                [1, 1], [0, 1],
+                [1, 0], [1, 1],
                 color='black',
                 linestyle='--',
                 linewidth=1,
                 clip_on=False,
-                transform=transforms.offset_copy(ax.transAxes, units='dots', x=+limit),
+                transform=transforms.offset_copy(ax.transAxes, units='dots', y=+limit),
             )
             ax.text(
-                x=1, y=0,
+                x=0, y=1,
                 s=label(step),
-                rotation=90,
-                rotation_mode='anchor',
-                transform=transforms.offset_copy(ax.transAxes, units='dots', x=+limit - 4.5),
+                transform=transforms.offset_copy(ax.transAxes, units='dots', y=text + 4.5),
                 va='baseline',
                 clip_on=False,
             )
@@ -246,7 +244,7 @@ def compare_columns(
         for step, limit in zip(steps_x, limits_x):
             mask = data.get_column(f'tout_{step}').to_numpy()
             rm |= mask
-            xs[mask] = limit
+            ys[mask] = limit
 
         xy = np.column_stack((xs, ys))
 
@@ -267,13 +265,13 @@ def compare_columns(
             for xy, s, kwargs in [
                 (unique_regular, counts_regular, dict(marker='o', edgecolors='none', facecolors=cmap(0), alpha=.6)),
                 *(
-                    (np.array([[1, y]]), s, dict(
+                    (np.array([[x, 1]]), s, dict(
                         marker='x',
                         color=cmap(0),
                         transform=transforms.offset_copy(
-                            trans=transforms.blended_transform_factory(ax.transAxes, ax.transData),
+                            trans=transforms.blended_transform_factory(ax.transData, ax.transAxes),
                             units='dots',
-                            x=+x
+                            y=+y
                         ),
                         clip_on=False,
                     ))
@@ -282,8 +280,8 @@ def compare_columns(
             ]
         ]
 
-        ax.set_xlabel(label(col_x))
-        ax.set_ylabel(label(col_y))
+        ax.set_xlabel(label(col_x.removesuffix(enum)))
+        ax.set_ylabel(label(col_y.removesuffix(enum)))
         ax.set_aspect('equal')
 
         fig.tight_layout()
@@ -1240,7 +1238,7 @@ def main() -> None:
                 plt.close(fig)
 
         case 'models vs npolys':
-            y, x = args.type.split(' vs ')
+            x, y = args.type.split(' vs ')
             for name, fig in compare_columns(df, [((f'{x}_{enum}', f'{y}_{enum}'), enum) for enum in
                                                   enumerator2steps.keys()]):
                 fig.savefig(args.folder / f'{name}.pdf')
