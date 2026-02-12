@@ -11,7 +11,7 @@ import math
 import numpy as np
 import polars as pl
 import pypalettes
-from matplotlib import pyplot as plt, transforms, ticker, colors, text
+from matplotlib import pyplot as plt, transforms, ticker, colors, text, patches
 from scipy.stats import gaussian_kde
 
 from src import utils
@@ -119,14 +119,14 @@ def axes(input: plt.Axes | np.ndarray) -> t.Iterator[plt.Axes]:
 
 
 def from_step(timeout: Timeout, step: str):
+    if 'decdnnf' in step or 'sae' in step:
+        return timeout.enumerator
+
     if 'tlemmas' in step:
         return timeout.tlemmas
 
     if 'tddnnf' in step:
         return timeout.compilator
-
-    if 'decdnnf' in step or 'sae' in step:
-        return timeout.enumerator
 
     raise RuntimeError(f'unable to infer timeout from step name: {step}')
 
@@ -963,18 +963,21 @@ def foreach_step(
 def ridgeplot(
         df: pl.DataFrame,
         column: str,
+        timeout: Timeout
 ) -> t.Generator[tuple[str, plt.Figure]]:
     cmap: colors.Colormap = plt.get_cmap('tab20b')
 
-    maximum: float = (
-        df.select({
-            f'{column}_{step}'
-            for steps in enumerator2steps.values()
-            for step in steps
-        })
-        .max_horizontal()
-        .max()
-    )
+    # maximum: float = (
+    #     df.select({
+    #         f'{column}_{step}'
+    #         for steps in enumerator2steps.values()
+    #         for step in steps
+    #     })
+    #     .max_horizontal()
+    #     .max()
+    # )
+
+    maximum: timedelta = max(*dataclasses.astuple(timeout))
 
     for (enumerator, steps) in enumerator2steps.items():
         fig: plt.Figure
@@ -986,19 +989,19 @@ def ridgeplot(
         )
 
         data: pl.DataFrame = (
-            df.with_columns(
-                *[
-                    pl.col(f'stderr_{step}').fill_null('').str.contains('timeout').alias(step)
-                    for step in steps
-                ],
-            )
-            .select(
+            df.select(
                 *[
                     pl.col(f'{column}_{step}')
                     for step in steps
                 ],
                 *[
-                    pl.any_horizontal(steps[:i + 1]).alias(step)
+                    pl.col(f'stderr_{step}').fill_null('').str.contains('timeout').alias(step)
+                    for step in steps
+                ],
+            )
+            .with_columns(
+                *[
+                    pl.any_horizontal(steps[:i + 1]).alias(f'tot_{step}')
                     for i, step in enumerate(steps)
                 ],
             )
@@ -1010,7 +1013,7 @@ def ridgeplot(
             ax.xaxis.set_minor_locator(ticker.LogLocator(base=10, subs=np.arange(2, 10, 2)))
             ax.xaxis.grid(which='both', linewidth=.1)
             ax.set_xscale('log')
-            ax.set_xlim(1e-1, maximum)
+            ax.set_xlim(1e-1, maximum.total_seconds() * 1.4)
             ax.set_ylim(0, 1)
             ax.set_yticks([])
             ax.tick_params(
@@ -1035,10 +1038,12 @@ def ridgeplot(
             for s in ["top", "right", "left", "bottom"]:
                 ax.spines[s].set_visible(False)
 
-            mask: np.ndarray[tuple[int], np.dtype[np.bool]] = data.get_column(step).to_numpy()
-            xs: np.ndarray[tuple[int], np.dtype[np.float64]] = data.get_column(f'{column}_{step}').to_numpy()
+            cur_tout: np.ndarray[tuple[int], np.dtype[np.bool]] = data.get_column(step).to_numpy()
+            tot_tout: np.ndarray[tuple[int], np.dtype[np.bool]] = data.get_column(f"tot_{step}").to_numpy()
+            xs: np.ndarray[tuple[int], np.dtype[np.float64]] = data.get_column(f'{column}_{step}').to_numpy(writable=True)
 
-            valid = xs[~mask]
+            xs[cur_tout] = from_step(timeout, step).total_seconds()
+            valid = xs[~tot_tout | cur_tout]
 
             if len(valid) < 2:
                 continue
@@ -1062,6 +1067,26 @@ def ridgeplot(
                 return fr'{super().__call__(x, pos)}$s$'
 
         ax.xaxis.set_major_formatter(LogSecondsFormatter())
+
+        touts: set[timedelta] = {
+            from_step(timeout, step)
+            for step in steps
+        }
+
+        axs_list = list(axes(axs))
+        ax_top, ax_bottom = axs_list[0], axs_list[-1]
+
+        for tout in touts:
+            x = tout.total_seconds()
+            fig.add_artist(patches.ConnectionPatch(
+                xyA=(x, 0),
+                coordsA=transforms.blended_transform_factory(ax_bottom.transData, ax_bottom.transAxes),
+                xyB=(x, 1),
+                coordsB=transforms.blended_transform_factory(ax_top.transData, ax_top.transAxes),
+                color='black',
+                linestyle='--',
+                linewidth=1,
+            ))
 
         fig.tight_layout()
         fig.subplots_adjust(hspace=-0.5)
@@ -1246,7 +1271,7 @@ def main() -> None:
 
         case 'ridgeplot_s':
             column = args.type.removeprefix('ridgeplot_')
-            for name, fig in ridgeplot(df, column):
+            for name, fig in ridgeplot(df, column, timeout):
                 fig.savefig(args.folder / f'{name}.pdf')
                 plt.close(fig)
 
