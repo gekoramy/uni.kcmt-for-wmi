@@ -11,7 +11,7 @@ import math
 import numpy as np
 import polars as pl
 import pypalettes
-from matplotlib import pyplot as plt, transforms, ticker, colors, text, patches
+from matplotlib import pyplot as plt, transforms, ticker, colors, patches
 from scipy.stats import gaussian_kde
 
 from src import utils
@@ -524,7 +524,7 @@ def plot_time(
 
         fig: plt.Figure
         ax: plt.Axes
-        fig, ax = plt.subplots(1, 1, figsize=(cm(15), cm(15)))
+        fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=(cm(15), cm(15)))
 
         steps_x = enumerator2steps[enum_x]
         steps_y = enumerator2steps[enum_y]
@@ -549,11 +549,11 @@ def plot_time(
 
         for i, (step, limit) in enumerate(zip(steps_x, limits_x)):
             ax.annotate(
-                label(step),
-                xy=(limit, 0),
-                xycoords=trans_x,
-                xytext=(0, 6 + i * 12),
-                textcoords=text.OffsetFrom(trans_x, (limit, 1), 'points'),
+                '',
+                xy=(limit, 1),
+                xycoords=transforms.offset_copy(trans_x, units='dots', y=7 + i * (2 + plt.rcParams['font.size'])),
+                xytext=(limit, 0),
+                textcoords=trans_x,
                 ha='right',
                 va='baseline',
                 zorder=1,
@@ -563,21 +563,24 @@ def plot_time(
                     linestyle='--',
                     capstyle='butt',
                     linewidth=.75,
-                    relpos=(1, 0),
                 ),
+            )
+            ax.text(
+                x=limit, y=1,
+                s=label(step),
+                transform=transforms.offset_copy(trans_x, units='dots', y=7 + i * (2 + plt.rcParams['font.size'])),
+                va='baseline',
+                ha='right',
+                clip_on=False,
             )
 
         for i, (step, limit) in enumerate(zip(steps_y, limits_y)):
             ax.annotate(
-                label(step),
-                xy=(0, limit),
-                xycoords=trans_y,
-                xytext=(6 + i * 12 + plt.rcParams['font.size'], 0),
-                textcoords=text.OffsetFrom(trans_y, (1, limit), 'points'),
-                rotation=90,
-                rotation_mode='anchor',
-                ha='right',
-                va='baseline',
+                '',
+                xy=(1, limit),
+                xycoords=transforms.offset_copy(trans_y, units='dots', x=7 + i * (2 + plt.rcParams['font.size'])),
+                xytext=(0, limit),
+                textcoords=trans_y,
                 zorder=1,
                 arrowprops=dict(
                     arrowstyle='-',
@@ -585,8 +588,17 @@ def plot_time(
                     linestyle='--',
                     capstyle='butt',
                     linewidth=.75,
-                    relpos=(.5, 1),
                 ),
+            )
+            ax.text(
+                x=1, y=limit,
+                s=label(step),
+                rotation=90,
+                rotation_mode='anchor',
+                transform=transforms.offset_copy(trans_y, units='dots', x=7 + i * (2 + plt.rcParams['font.size'])),
+                va='top',
+                ha='right',
+                clip_on=False,
             )
 
         ax.set_xlim(minimum, limits_x[-1])
@@ -654,7 +666,6 @@ def plot_time(
         ax.set_ylabel(f'{label(enum_y)} [$s$]')
         ax.set_aspect('equal')
 
-        fig.tight_layout()
         yield f'{enum_x}_vs_{enum_y}', fig
 
 
