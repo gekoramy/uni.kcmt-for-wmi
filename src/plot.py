@@ -312,7 +312,7 @@ def plot(
     )
 
     padding: float = 1.4
-    delta: float = plt.rcParams['font.size'] + 6
+    delta: float = 7
 
     cmap = pypalettes.load_cmap('Sunset2')
 
@@ -343,13 +343,13 @@ def plot(
         ax.yaxis.set_minor_locator(ticker.SymmetricalLogLocator(base=10, subs=np.arange(2, 10, 2), linthresh=1))
         ax.grid(visible=True, which='both', linewidth=.1)
 
-        for step, limit in zip(steps_x, limits_x):
+        for i, step, limit in zip(it.count(), steps_x, limits_x):
             ax.annotate(
                 '',
-                xy=(1, 0),
-                xycoords=transforms.offset_copy(ax.transAxes, units='dots', x=+limit),
-                xytext=(1, 1),
-                textcoords=transforms.offset_copy(ax.transAxes, units='dots', x=+limit, y=limits_y[-1]),
+                xy=(1, 1),
+                xycoords=transforms.offset_copy(ax.transAxes, units='dots', x=+limit, y=limits_y[-1] + i * (2 + plt.rcParams['font.size'])),
+                xytext=(1, 0),
+                textcoords=transforms.offset_copy(ax.transAxes, units='dots', x=+limit),
                 arrowprops=dict(
                     arrowstyle='-',
                     color='black',
@@ -358,22 +358,21 @@ def plot(
                 ),
             )
             ax.text(
-                x=1, y=0,
+                x=1, y=1,
                 s=label(step),
-                rotation=90,
-                rotation_mode='anchor',
-                transform=transforms.offset_copy(ax.transAxes, units='dots', x=+limit - 4.5),
+                transform=transforms.offset_copy(ax.transAxes, units='dots', x=+limit, y=+limits_y[-1] + i * (2 + plt.rcParams['font.size'])),
                 va='baseline',
+                ha='right',
                 clip_on=False,
             )
 
-        for step, (text, limit) in zip(steps_y, it.pairwise([0] + limits_y)):
+        for i, step, (text, limit) in zip(it.count(), steps_y, it.pairwise([0] + limits_y)):
             ax.annotate(
                 '',
-                xy=(0, 1),
-                xycoords=transforms.offset_copy(ax.transAxes, units='dots', y=+limit),
-                xytext=(1, 1),
-                textcoords=transforms.offset_copy(ax.transAxes, units='dots', y=+limit, x=limits_x[-1]),
+                xy=(1, 1),
+                xycoords=transforms.offset_copy(ax.transAxes, units='dots', y=+limit, x=limits_x[-1] + i * (2 + plt.rcParams['font.size'])),
+                xytext=(0, 1),
+                textcoords=transforms.offset_copy(ax.transAxes, units='dots', y=+limit),
                 arrowprops=dict(
                     arrowstyle='-',
                     color='black',
@@ -382,10 +381,14 @@ def plot(
                 ),
             )
             ax.text(
-                x=0, y=1,
+                x=1, y=1,
                 s=label(step),
-                transform=transforms.offset_copy(ax.transAxes, units='dots', y=text + 4.5),
-                va='baseline',
+                rotation=90,
+                rotation_mode='anchor',
+                transform=transforms.offset_copy(ax.transAxes, units='dots', y=+limit, x=+limits_x[-1] + i * (2 + plt.rcParams['font.size'])),
+                va='top',
+                ha='right',
+                clip_on=False,
             )
 
         ax.text(
@@ -679,7 +682,7 @@ def plot_lines(
     )
 
     padding: float = 1.4
-    delta: float = plt.rcParams['font.size'] + 6
+    delta: float = 7
 
     cmap = pypalettes.load_cmap('Sunset2')
 
@@ -710,13 +713,13 @@ def plot_lines(
         ax.yaxis.set_minor_locator(ticker.SymmetricalLogLocator(base=10, subs=np.arange(2, 10, 2), linthresh=1))
         ax.grid(visible=True, which='both', linewidth=.1)
 
-        for step, limit in zip(steps_x, limits_x):
+        for i, step, limit in zip(it.count(), steps_x, limits_x):
             ax.annotate(
                 '',
-                xy=(1, 0),
-                xycoords=transforms.offset_copy(ax.transAxes, units='dots', x=+limit),
-                xytext=(1, 1),
-                textcoords=transforms.offset_copy(ax.transAxes, units='dots', x=+limit, y=limits_y[-1]),
+                xy=(1, 1),
+                xycoords=transforms.offset_copy(ax.transAxes, units='dots', x=+limit, y=limits_y[-1] + i * (2 + plt.rcParams['font.size'])),
+                xytext=(1, 0),
+                textcoords=transforms.offset_copy(ax.transAxes, units='dots', x=+limit),
                 arrowprops=dict(
                     arrowstyle='-',
                     color='black',
@@ -725,22 +728,21 @@ def plot_lines(
                 ),
             )
             ax.text(
-                x=1, y=0,
+                x=1, y=1,
                 s=label(step),
-                rotation=90,
-                rotation_mode='anchor',
-                transform=transforms.offset_copy(ax.transAxes, units='dots', x=+limit - 4.5),
+                transform=transforms.offset_copy(ax.transAxes, units='dots', x=+limit, y=+limits_y[-1] + i * (2 + plt.rcParams['font.size'])),
                 va='baseline',
+                ha='right',
                 clip_on=False,
             )
 
-        for step, (text, limit) in zip(steps_y, it.pairwise([0] + limits_y)):
+        for i, step, (text, limit) in zip(it.count(), steps_y, it.pairwise([0] + limits_y)):
             ax.annotate(
                 '',
-                xy=(0, 1),
-                xycoords=transforms.offset_copy(ax.transAxes, units='dots', y=+limit),
-                xytext=(1, 1),
-                textcoords=transforms.offset_copy(ax.transAxes, units='dots', y=+limit, x=limits_x[-1]),
+                xy=(1, 1),
+                xycoords=transforms.offset_copy(ax.transAxes, units='dots', y=+limit, x=limits_x[-1] + i * (2 + plt.rcParams['font.size'])),
+                xytext=(0, 1),
+                textcoords=transforms.offset_copy(ax.transAxes, units='dots', y=+limit),
                 arrowprops=dict(
                     arrowstyle='-',
                     color='black',
@@ -749,10 +751,14 @@ def plot_lines(
                 ),
             )
             ax.text(
-                x=0, y=1,
+                x=1, y=1,
                 s=label(step),
-                transform=transforms.offset_copy(ax.transAxes, units='dots', y=text + 4.5),
-                va='baseline',
+                rotation=90,
+                rotation_mode='anchor',
+                transform=transforms.offset_copy(ax.transAxes, units='dots', y=+limit, x=+limits_x[-1] + i * (2 + plt.rcParams['font.size'])),
+                va='top',
+                ha='right',
+                clip_on=False,
             )
 
         ax.text(
