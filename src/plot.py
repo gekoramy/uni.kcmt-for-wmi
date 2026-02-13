@@ -107,6 +107,16 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
 )
 
 
+def tout_props() -> dict[str, t.Any]:
+    return dict(
+        arrowstyle='-',
+        color='black',
+        linestyle='--',
+        capstyle='butt',
+        linewidth=.75,
+    )
+
+
 def cm(inches: float) -> float:
     return inches * 1 / 2.54
 
@@ -204,11 +214,12 @@ def compare_columns(
         for step, (text, limit) in zip(steps_x, it.pairwise([0] + limits_x)):
             ax.plot(
                 [1, 0], [1, 1],
-                color='black',
-                linestyle='--',
-                linewidth=1,
                 clip_on=False,
                 transform=transforms.offset_copy(ax.transAxes, units='dots', y=+limit),
+                **{
+                    k: tout_props()[k]
+                    for k in ['color', 'linestyle', 'linewidth']
+                },
             )
             ax.text(
                 x=0, y=1,
@@ -350,12 +361,7 @@ def plot(
                 xycoords=transforms.offset_copy(ax.transAxes, units='dots', x=+limit, y=limits_y[-1] + i * (2 + plt.rcParams['font.size'])),
                 xytext=(1, 0),
                 textcoords=transforms.offset_copy(ax.transAxes, units='dots', x=+limit),
-                arrowprops=dict(
-                    arrowstyle='-',
-                    color='black',
-                    linestyle='--',
-                    linewidth=1,
-                ),
+                arrowprops=tout_props(),
             )
             ax.text(
                 x=1, y=1,
@@ -373,12 +379,7 @@ def plot(
                 xycoords=transforms.offset_copy(ax.transAxes, units='dots', y=+limit, x=limits_x[-1] + i * (2 + plt.rcParams['font.size'])),
                 xytext=(0, 1),
                 textcoords=transforms.offset_copy(ax.transAxes, units='dots', y=+limit),
-                arrowprops=dict(
-                    arrowstyle='-',
-                    color='black',
-                    linestyle='--',
-                    linewidth=1,
-                ),
+                arrowprops=tout_props(),
             )
             ax.text(
                 x=1, y=1,
@@ -557,13 +558,7 @@ def plot_time(
                 ha='right',
                 va='baseline',
                 zorder=1,
-                arrowprops=dict(
-                    arrowstyle='-',
-                    color='black',
-                    linestyle='--',
-                    capstyle='butt',
-                    linewidth=.75,
-                ),
+                arrowprops=tout_props(),
             )
             ax.text(
                 x=limit, y=1,
@@ -582,13 +577,7 @@ def plot_time(
                 xytext=(0, limit),
                 textcoords=trans_y,
                 zorder=1,
-                arrowprops=dict(
-                    arrowstyle='-',
-                    color='black',
-                    linestyle='--',
-                    capstyle='butt',
-                    linewidth=.75,
-                ),
+                arrowprops=tout_props(),
             )
             ax.text(
                 x=1, y=limit,
@@ -731,12 +720,7 @@ def plot_lines(
                 xycoords=transforms.offset_copy(ax.transAxes, units='dots', x=+limit, y=limits_y[-1] + i * (2 + plt.rcParams['font.size'])),
                 xytext=(1, 0),
                 textcoords=transforms.offset_copy(ax.transAxes, units='dots', x=+limit),
-                arrowprops=dict(
-                    arrowstyle='-',
-                    color='black',
-                    linestyle='--',
-                    linewidth=1,
-                ),
+                arrowprops=tout_props(),
             )
             ax.text(
                 x=1, y=1,
@@ -754,12 +738,7 @@ def plot_lines(
                 xycoords=transforms.offset_copy(ax.transAxes, units='dots', y=+limit, x=limits_x[-1] + i * (2 + plt.rcParams['font.size'])),
                 xytext=(0, 1),
                 textcoords=transforms.offset_copy(ax.transAxes, units='dots', y=+limit),
-                arrowprops=dict(
-                    arrowstyle='-',
-                    color='black',
-                    linestyle='--',
-                    linewidth=1,
-                ),
+                arrowprops=tout_props(),
             )
             ax.text(
                 x=1, y=1,
@@ -1156,9 +1135,10 @@ def ridgeplot(
                 coordsA=transforms.blended_transform_factory(ax_bottom.transData, ax_bottom.transAxes),
                 xyB=(x, 1),
                 coordsB=transforms.blended_transform_factory(ax_top.transData, ax_top.transAxes),
-                color='black',
-                linestyle='--',
-                linewidth=1,
+                **{
+                    k: tout_props()[k]
+                    for k in ['color', 'linestyle', 'linewidth']
+                },
             ))
 
         fig.tight_layout()
