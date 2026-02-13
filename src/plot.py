@@ -299,6 +299,38 @@ def compare_columns(
         yield enum, fig
 
 
+def reference() -> plt.Figure:
+    counts: list[int] = [1, *range(10, 70, 10)]
+
+    fig: plt.Figure
+    axs: np.ndarray
+    fig, axs = plt.subplots(len(counts), 1, constrained_layout=True, figsize=(cm(3), cm(15)))
+    cmap = pypalettes.load_cmap('Sunset2')
+
+    for ax, count in zip(axes(axs), counts):
+        ax.scatter(
+            x=[0], y=[0],
+            s=[count * 32],
+            marker='o',
+            edgecolors='none',
+            facecolors=cmap(0),
+            alpha=.6
+        )
+
+        ax.text(
+            x=0, y=0.5,
+            s=str(count),
+            va='center',
+            ha='right',
+            transform=ax.transAxes,
+        )
+
+        ax.set_aspect('equal')
+        ax.set_axis_off()
+
+    return fig
+
+
 def plot(
         df: pl.DataFrame,
         columns_n_enumerators: list[tuple[str, str]] | None = None,
@@ -1327,6 +1359,9 @@ def main() -> None:
             for name, fig in ridgeplot(df, column, timeout):
                 fig.savefig(args.folder / f'{name}.pdf')
                 plt.close(fig)
+
+        case 'reference':
+            reference().savefig(args.folder / 'reference.pdf')
 
         case _:
             raise RuntimeError('?')

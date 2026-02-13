@@ -64,6 +64,7 @@ rule all:
                 "survival",
                 "time",
                 "ridgeplot_s",
+                "reference",
             ]
         ),
         expand("assets/plots/{pattern}/{type}",
