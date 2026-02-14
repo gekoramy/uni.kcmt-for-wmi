@@ -20,6 +20,7 @@ from src import utils
 @dataclasses.dataclass(frozen=True)
 class Timeout:
     enumerator: timedelta
+    integrator: timedelta
     compilator: timedelta
     tlemmas: timedelta
 
@@ -35,6 +36,9 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
         ],
         'weighted_sae': [
             'weighted_sae'
+        ],
+        'weighted_latte_sae': [
+            'weighted_latte_sae'
         ],
     },
     **{
@@ -98,10 +102,15 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
         for compiler in ['d4', 'sdd']
     },
     **{
-        f'wmi_decdnnf_n_mathsat_d4_phi_n_skeleton': [
+        'wmi_decdnnf_n_mathsat_d4_phi_n_skeleton': [
             f'tddnnf_d4_phi_n_skeleton',
             f'decdnnf_n_mathsat_d4_phi_n_skeleton',
             f'wmi_decdnnf_n_mathsat_d4_phi_n_skeleton',
+        ],
+        'wmi_latte_decdnnf_n_mathsat_d4_phi_n_skeleton': [
+            f'tddnnf_d4_phi_n_skeleton',
+            f'decdnnf_n_mathsat_d4_phi_n_skeleton',
+            f'wmi_latte_decdnnf_n_mathsat_d4_phi_n_skeleton',
         ],
     }
 )
@@ -129,6 +138,9 @@ def axes(input: plt.Axes | np.ndarray) -> t.Iterator[plt.Axes]:
 
 
 def from_step(timeout: Timeout, step: str):
+    if 'latte' in step:
+        return timeout.integrator
+
     if 'decdnnf' in step or 'sae' in step:
         return timeout.enumerator
 
@@ -1253,6 +1265,7 @@ def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument('--csv', type=utils.file, required=True)
     parser.add_argument('--timeout_enumerator', type=int, required=True)
+    parser.add_argument('--timeout_integrator', type=int, required=True)
     parser.add_argument('--timeout_compilator', type=int, required=True)
     parser.add_argument('--timeout_tlemmas', type=int, required=True)
     parser.add_argument('--pattern', type=str, required=False, default='*')
@@ -1285,6 +1298,7 @@ def main() -> None:
 
     timeout: Timeout = Timeout(
         enumerator=timedelta(minutes=args.timeout_enumerator),
+        integrator=timedelta(minutes=args.timeout_integrator),
         compilator=timedelta(minutes=args.timeout_compilator),
         tlemmas=timedelta(minutes=args.timeout_tlemmas),
     )

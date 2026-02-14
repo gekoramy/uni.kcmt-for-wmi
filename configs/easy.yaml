@@ -4,6 +4,7 @@ seed: [ 1, 2, 3 ]
 
 timeout:
   enumerator: 20
+  integrator: 40
   compilator: 40
   tlemmas: 40
 

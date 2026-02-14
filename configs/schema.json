@@ -25,6 +25,10 @@
           "type": "integer",
           "minimum": 0
         },
+        "integrator": {
+          "type": "integer",
+          "minimum": 0
+        },
         "compilator": {
           "type": "integer",
           "minimum": 0
@@ -36,6 +40,7 @@
       },
       "required": [
         "enumerator",
+        "integrator",
         "compilator",
         "tlemmas"
       ]

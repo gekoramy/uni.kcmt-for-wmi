@@ -92,6 +92,7 @@ rule plots:
         """
         python -m {params.script} \
           --timeout_tlemmas {config[timeout][tlemmas]} \
+          --timeout_integrator {config[timeout][integrator]} \
           --timeout_compilator {config[timeout][compilator]} \
           --timeout_enumerator {config[timeout][enumerator]} \
           --csv {input} \
@@ -233,6 +234,10 @@ rule aggregate_density:
             *["assets/wmi/weighted_sae/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
             "assets/benchmarks/weighted_sae/noop/{type}/{density}.jsonl"
         ],
+        weighted_latte_sae=[
+            *["assets/wmi/weighted_sae/latte/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
+            "assets/benchmarks/weighted_sae/latte/{type}/{density}.jsonl"
+        ],
         wmi_decdnnf_d4=[
             *["assets/wmi/decdnnf/tddnnf/d4/noop/{type}/{density}." + suffix for suffix in ["out", "err", "steps"]],
             "assets/tddnnf/d4/{type}/{density}.t_reduced_phi.min-nnf",
@@ -284,6 +289,11 @@ rule aggregate_density:
             *[f"assets/wmi/weighted_decdnnf_n_mathsat/d4/noop/{{type}}/{{density}}.{suffix}" for suffix in ["out", "err", "steps"]],
             f"assets/weighted_tddnnf/d4/{{type}}/{{density}}.phi_n_skeleton.min-nnf",
             "assets/benchmarks/wmi/weighted_decdnnf_n_mathsat/d4/noop/{type}/{density}.jsonl"
+        ],
+        wmi_latte_decdnnf_n_mathsat_d4_phi_n_skeleton=[
+            *[f"assets/wmi/weighted_decdnnf_n_mathsat/d4/latte/{{type}}/{{density}}.{suffix}" for suffix in ["out", "err", "steps"]],
+            f"assets/weighted_tddnnf/d4/{{type}}/{{density}}.phi_n_skeleton.min-nnf",
+            "assets/benchmarks/wmi/weighted_decdnnf_n_mathsat/d4/latte/{type}/{density}.jsonl"
         ],
     output:
         "assets/aggregates/{type}/{density}.csv"
@@ -962,11 +972,12 @@ rule compute_wmi_with_weighted_sae:
     benchmark:
         "assets/benchmarks/weighted_sae/{int,noop|latte}/{type}/{density}.jsonl"
     params:
-        script="src.wmi"
+        script="src.wmi",
+        timeout= lambda wildcards: config["timeout"]["enumerator" if wildcards.int == "noop" else "integrator"]
     shell:
         """
         if [[ -s {input:q} ]]; then
-          timeout --verbose {config[timeout][enumerator]}m \
+          timeout --verbose {params.timeout}m \
             python -m {params.script} \
             --weighted \
             --density {input} \
@@ -1043,11 +1054,12 @@ rule compute_wmi_with_weighted_decdnnf:
     benchmark:
         r"assets/benchmarks/wmi/{decdnnf,weighted_decdnnf_n_mathsat/d4}/{int}/{type}/{density}.jsonl"
     params:
-        script="src.wmi"
+        script="src.wmi",
+        timeout=lambda wildcards: config["timeout"]["enumerator" if wildcards.int == "noop" else "integrator"]
     shell:
         """
         if [[ -s {input.models:q} ]]; then
-          timeout --verbose {config[timeout][enumerator]}m \
+          timeout --verbose {params.timeout}m \
             python -m {params.script} \
             --weighted \
             --density {input.density} \
