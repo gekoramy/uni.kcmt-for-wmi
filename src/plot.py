@@ -1049,7 +1049,7 @@ def ridgeplot(
         column: str,
         timeout: Timeout
 ) -> t.Generator[tuple[str, plt.Figure]]:
-    cmap: colors.Colormap = plt.get_cmap('tab20b')
+    cmap: colors.Colormap = pypalettes.load_cmap('Sunset2')
 
     # maximum: float = (
     #     df.select({
