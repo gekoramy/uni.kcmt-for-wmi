@@ -962,6 +962,7 @@ rule compute_wmi_with_weighted_sae:
         lambda wildcards: 1 if wildcards.int == "noop" else 26
     resources:
         mem="20GB"
+    shadow: "shallow"
     input:
         "assets/densities/{type}/{density}.json"
     output:
@@ -1042,6 +1043,7 @@ rule compute_wmi_with_weighted_decdnnf:
         lambda wildcards: 1 if wildcards.int == "noop" else 26
     resources:
         mem=lambda wildcards: None if wildcards.int == "noop" else "20GB"
+    shadow: "shallow"
     input:
         density="assets/densities/{type}/{density}.json",
         mapping="assets/phi_with_skeleton/{type}/{density}.mapping",
