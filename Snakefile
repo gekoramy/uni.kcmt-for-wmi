@@ -20,7 +20,7 @@ def wmpy_synthetic() -> list[str]:
         return []
 
     return expand(
-        "wmpy_synthetic/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}",
+        "wmpy_synthetic/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound}_{v_ubound}]-db[{d_lbound}_{d_ubound}]-cb[{c_lbound}_{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed}",
         seed=config["seed"],
         **config["wmpy_synthetic"],
     )
@@ -304,7 +304,7 @@ rule aggregate_density:
 rule generate_wmpy_synthetic:
     threads: 1
     output:
-        r"assets/densities/wmpy_synthetic/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound},{v_ubound}]-db[{d_lbound},{d_ubound}]-cb[{c_lbound},{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed,\d+}.json"
+        r"assets/densities/wmpy_synthetic/nr{n_reals}-nb{n_bools}-nc{n_clauses}-lc{len_clauses}-pb{p_bool}-d{depth}-vb[{v_lbound}_{v_ubound}]-db[{d_lbound}_{d_ubound}]-cb[{c_lbound}_{c_ubound}]-mm{max_mono}-nq{n_queries}-{seed,\d+}.json"
     params:
         script="src/synthetic.py"
     shell:

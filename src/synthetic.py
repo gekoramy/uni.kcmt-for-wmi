@@ -1,9 +1,9 @@
 # https://github.com/unitn-sml/wmpy/blob/f555ec9cc2eff53da8499671b8a27a6723d8142d/benchmarks/synthetic.py
 
-import numpy as np
 from os.path import join
-from pysmt.shortcuts import *
 
+import numpy as np
+from pysmt.shortcuts import *
 from wmpy.cli.density import Density
 
 
@@ -209,6 +209,7 @@ if __name__ == "__main__":
     dstr += f"-mm{args.max_monomials}"
     dstr += f"-nq{args.n_queries}"
     dstr += f"-{args.seed}"
+    dstr.replace(',', '_')
 
     print(f"synthetic.py: generating {dstr}.")
     path = join(args.directory, f"{dstr}.json")
