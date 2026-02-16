@@ -974,7 +974,7 @@ rule compute_wmi_with_weighted_sae:
         "assets/benchmarks/weighted_sae/{int,noop|latte}/{type}/{density}.jsonl"
     params:
         script="src.wmi",
-        timeout= lambda wildcards: config["timeout"]["enumerator" if wildcards.int == "noop" else "integrator"]
+        timeout=lambda wildcards: config["timeout"]["enumerator" if wildcards.int == "noop" else "integrator"]
     shell:
         """
         if [[ -s {input:q} ]]; then
