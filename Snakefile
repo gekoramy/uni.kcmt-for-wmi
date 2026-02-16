@@ -961,7 +961,7 @@ rule compute_wmi_with_weighted_sae:
     threads:
         lambda wildcards: 1 if wildcards.int == "noop" else 17
     resources:
-        mem=lambda wildcards: "20GB" if wildcards.int == "noop" else "60GB"
+        mem=lambda wildcards: "30GB" if wildcards.int == "noop" else "60GB"
     shadow: "shallow"
     input:
         "assets/densities/{type}/{density}.json"
@@ -1042,7 +1042,7 @@ rule compute_wmi_with_weighted_decdnnf:
     threads:
         lambda wildcards: 1 if wildcards.int == "noop" else 17
     resources:
-        mem=lambda wildcards: None if wildcards.int == "noop" else "60GB"
+        mem=lambda wildcards: "30GB" if wildcards.int == "noop" else "60GB"
     shadow: "shallow"
     input:
         density="assets/densities/{type}/{density}.json",
