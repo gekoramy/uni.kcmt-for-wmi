@@ -468,14 +468,14 @@ def plot(
         xs = data.get_column(f'{col_x}').to_numpy(writable=True)
         for step, limit in zip(steps_x, limits_x):
             mask = data.get_column(f'tout_{step}').to_numpy()
+            xs[~rm_x & mask] = limit
             rm_x |= mask
-            xs[mask] = limit
 
         ys = data.get_column(f'{col_y}').to_numpy(writable=True)
         for step, limit in zip(steps_y, limits_y):
             mask = data.get_column(f'tout_{step}').to_numpy()
+            ys[~rm_y & mask] = limit
             rm_y |= mask
-            ys[mask] = limit
 
         xy = np.column_stack((xs, ys))
 
@@ -668,15 +668,15 @@ def plot_time(
         xs = data.get_column(enum_x).to_numpy(writable=True)
         for step, limit in zip(steps_x, limits_x):
             mask = data.get_column(f'tout_{step}').to_numpy()
+            xs[~rm_x & mask] = limit
             rm_x |= mask
-            xs[mask] = limit
 
         rm_y = np.zeros(len(df), dtype=np.bool)
         ys = data.get_column(enum_y).to_numpy(writable=True)
         for step, limit in zip(steps_y, limits_y):
             mask = data.get_column(f'tout_{step}').to_numpy()
+            ys[~rm_y & mask] = limit
             rm_y |= mask
-            ys[mask] = limit
 
         coordinates = np.column_stack((xs, ys))
 
@@ -834,9 +834,9 @@ def plot_lines(
         for i, step, limit in zip(it.count(), steps_x, limits_x):
             mask = data.get_column(f'tout_{step}').to_numpy()
             if i <= len(steps_x) - 2:
+                src_x[~src_rm_x & mask] = limit
                 src_rm_x |= mask
-                src_x[mask] = limit
-            trg_x[mask] = limit
+            trg_x[~trg_rm_x & mask] = limit
             trg_rm_x |= mask
 
         src_y = data.get_column(f'{cols_y[0]}').to_numpy(writable=True)
@@ -844,9 +844,9 @@ def plot_lines(
         for i, step, limit in zip(it.count(), steps_y, limits_y):
             mask = data.get_column(f'tout_{step}').to_numpy()
             if i <= len(steps_y) - 2:
+                src_y[~src_rm_y & mask] = limit
                 src_rm_y |= mask
-                src_y[mask] = limit
-            trg_y[mask] = limit
+            trg_y[~trg_rm_y & mask] = limit
             trg_rm_y |= mask
 
         mask = ~(src_rm_x | src_rm_y | trg_rm_x | trg_rm_y)
