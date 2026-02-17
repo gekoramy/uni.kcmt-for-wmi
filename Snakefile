@@ -959,7 +959,7 @@ rule compute_wmi_with_sae:
 
 rule compute_wmi_with_weighted_sae:
     threads:
-        lambda wildcards: 1 if wildcards.int == "noop" else 17
+        lambda wildcards: 1 if wildcards.int == "noop" else 13
     resources:
         mem=lambda wildcards: "30GB" if wildcards.int == "noop" else "60GB"
     shadow: "shallow"
@@ -1040,7 +1040,7 @@ rule compute_wmi_with_decdnnf:
 
 rule compute_wmi_with_weighted_decdnnf:
     threads:
-        lambda wildcards: 1 if wildcards.int == "noop" else 17
+        lambda wildcards: 1 if wildcards.int == "noop" else 13
     resources:
         mem=lambda wildcards: "30GB" if wildcards.int == "noop" else "60GB"
     shadow: "shallow"
