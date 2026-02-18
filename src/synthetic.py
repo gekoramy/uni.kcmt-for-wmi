@@ -203,13 +203,12 @@ if __name__ == "__main__":
     dstr += f"-lc{args.len_clauses}"
     dstr += f"-pb{args.p_bool}"
     dstr += f"-d{args.depth}"
-    dstr += f"-vb{str(args.vbounds).replace(' ','')}"
-    dstr += f"-db{str(args.dbounds).replace(' ','')}"
-    dstr += f"-cb{str(args.cbounds).replace(' ','')}"
+    dstr += f"-vb{str(args.vbounds).replace(', ','_')}"
+    dstr += f"-db{str(args.dbounds).replace(', ','_')}"
+    dstr += f"-cb{str(args.cbounds).replace(', ','_')}"
     dstr += f"-mm{args.max_monomials}"
     dstr += f"-nq{args.n_queries}"
     dstr += f"-{args.seed}"
-    dstr.replace(',', '_')
 
     print(f"synthetic.py: generating {dstr}.")
     path = join(args.directory, f"{dstr}.json")
