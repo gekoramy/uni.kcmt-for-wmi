@@ -112,6 +112,11 @@ enumerator2steps: dict[str, list[str]] = OrderedDict(
             f'decdnnf_n_mathsat_d4_phi_n_skeleton',
             f'wmi_latte_decdnnf_n_mathsat_d4_phi_n_skeleton',
         ],
+        'wmi_decdnnf_d4_t_reduced_phi_n_skeleton': [
+            f'tddnnf_d4_t_reduced_phi_n_skeleton',
+            f'decdnnf_d4_t_reduced_phi_n_skeleton',
+            f'wmi_decdnnf_d4_t_reduced_phi_n_skeleton',
+        ],
     }
 )
 

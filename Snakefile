@@ -129,6 +129,10 @@ rule aggregate_density:
             "assets/tddnnf/d4/{type}/{density}.t_reduced_phi.err",
             "assets/benchmarks/tddnnf/d4/{type}/{density}.t_reduced_phi.jsonl"
         ],
+        tddnnf_d4_t_reduced_phi_n_skeleton=[
+            "assets/weighted_tddnnf/d4/{type}/{density}.t_reduced_phi_n_sk.err",
+            "assets/benchmarks/weighted_tddnnf/d4/{type}/{density}.t_reduced_phi_n_sk.jsonl"
+        ],
         tddnnf_sdd_t_reduced=[
             "assets/tddnnf/sdd/{type}/{density}.t_reduced_phi.err",
             "assets/benchmarks/tddnnf/sdd/{type}/{density}.t_reduced_phi.jsonl"
@@ -180,6 +184,10 @@ rule aggregate_density:
         decdnnf_d4_t_reduced=[
             "assets/decdnnf/tddnnf/d4/{type}/{density}.t_reduced_phi.err",
             "assets/benchmarks/decdnnf/tddnnf/d4/{type}/{density}.t_reduced_phi.jsonl"
+        ],
+        decdnnf_d4_t_reduced_phi_n_skeleton=[
+            "assets/decdnnf/weighted_tddnnf/d4/{type}/{density}.t_reduced_phi_n_sk.err",
+            "assets/benchmarks/decdnnf/weighted_tddnnf/d4/{type}/{density}.t_reduced_phi_n_sk.jsonl"
         ],
         decdnnf_sdd_t_reduced=[
             "assets/decdnnf/tddnnf/sdd/{type}/{density}.t_reduced_phi.err",
@@ -285,6 +293,11 @@ rule aggregate_density:
             ]
             for compiler in ["d4", "sdd"]
         },
+        wmi_decdnnf_d4_t_reduced_phi_n_skeleton=[
+            *[f"assets/wmi/decdnnf/weighted_tddnnf/d4/noop/{{type}}/{{density}}.{suffix}" for suffix in ["out", "err", "steps"]],
+            f"assets/weighted_tddnnf/d4/{{type}}/{{density}}.t_reduced_phi_n_sk.min-nnf",
+            "assets/benchmarks/wmi/decdnnf/weighted_tddnnf/d4/noop/{type}/{density}.jsonl"
+        ],
         wmi_decdnnf_n_mathsat_d4_phi_n_skeleton=[
             *[f"assets/wmi/weighted_decdnnf_n_mathsat/d4/noop/{{type}}/{{density}}.{suffix}" for suffix in ["out", "err", "steps"]],
             f"assets/weighted_tddnnf/d4/{{type}}/{{density}}.phi_n_skeleton.min-nnf",
@@ -465,6 +478,36 @@ rule compose_phi_with_skeleton:
         """
 
 
+rule compose_phi_with_skeleton_n_tlemmas:
+    threads: 26
+    resources:
+        mem="40GB"
+    input:
+        density="assets/densities/{type}/{density}.json"
+    output:
+        mapping=r"assets/phi_with_skeleton_n_tlemmas/{type}/{density}.mapping",
+        phi_n_skeleton_n_tlemmas=r"assets/phi_with_skeleton_n_tlemmas/{type}/{density}.t_reduced_phi_n_sk.smt2",
+    log:
+        steps=r"assets/phi_with_skeleton_n_tlemmas/{type}/{density}.steps",
+        err=r"assets/phi_with_skeleton_n_tlemmas/{type}/{density}.err"
+    params:
+        script="src.tddnnf.with_skeleton_n_tlemmas"
+    benchmark:
+        r"assets/benchmarks/phi_with_skeleton_n_tlemmas/{type}/{density}.jsonl"
+    shell:
+        """
+        timeout --verbose {config[timeout][tlemmas]}m \
+          python -m {params.script} \
+          --cores {threads} \
+          --steps {log.steps} \
+          --density {input.density} \
+          --mapping {output.mapping} \
+          --phi_n_skeleton_n_tlemmas {output.phi_n_skeleton_n_tlemmas} \
+          2> {log.err} \
+          || touch {output}
+        """
+
+
 rule densities_with_tlemmas:
     threads: 1
     input:
@@ -508,26 +551,28 @@ rule smtlib_to_bcs12:
         """
 
 
-rule weighted_smtlib_to_bcs12:
-    threads: 1
-    input:
-        phi_n_skeleton="assets/phi_with_skeleton/{type}/{density}.phi_n_skeleton.smt2",
-        mapping="assets/phi_with_skeleton/{type}/{density}.mapping",
-    output:
-        bcs12=r"assets/weighted_tddnnf/d4/{type}/{density}.phi_n_skeleton.bc"
-    params:
-        script="src.tddnnf.smtlib_to_bcs12"
-    shell:
-        """
-        if [[ -s {input.phi_n_skeleton:q} ]]; then
-          python -m {params.script} \
-            --smtlib {input.phi_n_skeleton} \
-            --mapping {input.mapping} \
-            --bcs12 {output.bcs12}
-        fi
-
-        touch {output}
-        """
+for kind, suffix in [("phi_with_skeleton", "phi_n_skeleton"), ("phi_with_skeleton_n_tlemmas", "t_reduced_phi_n_sk")]:
+    rule:
+        name: f"{kind}_smtlib_to_bcs12"
+        threads: 1
+        input:
+            phi_n_skeleton=f"assets/{kind}/{{type}}/{{density}}.{suffix}.smt2",
+            mapping=f"assets/{kind}/{{type}}/{{density}}.mapping",
+        output:
+            bcs12=f"assets/weighted_tddnnf/d4/{{type}}/{{density}}.{suffix}.bc"
+        params:
+            script="src.tddnnf.smtlib_to_bcs12"
+        shell:
+            """
+            if [[ -s {input.phi_n_skeleton:q} ]]; then
+              python -m {params.script} \
+                --smtlib {input.phi_n_skeleton} \
+                --mapping {input.mapping} \
+                --bcs12 {output.bcs12}
+            fi
+    
+            touch {output}
+            """
 
 
 rule bcs12_projected:
@@ -1047,14 +1092,14 @@ rule compute_wmi_with_weighted_decdnnf:
     input:
         density="assets/densities/{type}/{density}.json",
         mapping="assets/phi_with_skeleton/{type}/{density}.mapping",
-        models="assets/{decdnnf}/{type}/{density}.models.gz"
+        models="assets/weighted_decdnnf_n_mathsat/d4/{type}/{density}.models.gz"
     output:
-        wmi=r"assets/wmi/{decdnnf,weighted_decdnnf_n_mathsat/d4}/{int,noop|latte}/{type}/{density}.out"
+        wmi="assets/wmi/weighted_decdnnf_n_mathsat/d4/{int,noop|latte}/{type}/{density}.out"
     log:
-        steps=r"assets/wmi/{decdnnf,weighted_decdnnf_n_mathsat/d4}/{int}/{type}/{density}.steps",
-        err=r"assets/wmi/{decdnnf,weighted_decdnnf_n_mathsat/d4}/{int}/{type}/{density}.err"
+        steps="assets/wmi/weighted_decdnnf_n_mathsat/d4/{int}/{type}/{density}.steps",
+        err="assets/wmi/weighted_decdnnf_n_mathsat/d4/{int}/{type}/{density}.err"
     benchmark:
-        r"assets/benchmarks/wmi/{decdnnf,weighted_decdnnf_n_mathsat/d4}/{int}/{type}/{density}.jsonl"
+        "assets/benchmarks/wmi/weighted_decdnnf_n_mathsat/d4/{int}/{type}/{density}.jsonl"
     params:
         script="src.wmi",
         timeout=lambda wildcards: config["timeout"]["enumerator" if wildcards.int == "noop" else "integrator"]
@@ -1080,3 +1125,17 @@ rule compute_wmi_with_weighted_decdnnf:
 
         touch {output}
         """
+
+
+use rule compute_wmi_with_weighted_decdnnf as compute_wmi_with_decdnnf_weighted with:
+    input:
+        density = "assets/densities/{type}/{density}.json",
+        mapping="assets/phi_with_skeleton_n_tlemmas/{type}/{density}.mapping",
+        models="assets/decdnnf/weighted_tddnnf/d4/{type}/{density}.t_reduced_phi_n_sk.models.gz"
+    output:
+        wmi="assets/wmi/decdnnf/weighted_tddnnf/d4/{int,noop|latte}/{type}/{density}.out"
+    log:
+        steps="assets/wmi/decdnnf/weighted_tddnnf/d4/{int}/{type}/{density}.steps",
+        err="assets/wmi/decdnnf/weighted_tddnnf/d4/{int}/{type}/{density}.err"
+    benchmark:
+        "assets/benchmarks/wmi/decdnnf/weighted_tddnnf/d4/{int}/{type}/{density}.jsonl"
