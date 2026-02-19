@@ -125,6 +125,10 @@ rule aggregate_density:
             *["assets/tlemmas/not_phi/{type}/{density}." + suffix for suffix in ["err", "steps"]],
             "assets/benchmarks/tlemmas/not_phi/{type}/{density}.jsonl"
         ],
+        tlemmas_phi_n_skeleton=[
+            *["assets/phi_with_skeleton_n_tlemmas/{type}/{density}." + suffix for suffix in ["err", "steps"]],
+            "assets/benchmarks/phi_with_skeleton_n_tlemmas/{type}/{density}.jsonl"
+        ],
         tddnnf_d4_t_reduced=[
             "assets/tddnnf/d4/{type}/{density}.t_reduced_phi.err",
             "assets/benchmarks/tddnnf/d4/{type}/{density}.t_reduced_phi.jsonl"
