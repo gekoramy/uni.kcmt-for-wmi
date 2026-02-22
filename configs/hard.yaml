@@ -14,7 +14,7 @@ wmpy_synthetic:
   n_clauses: [ 9, 13 ]
   len_clauses: [ 4 ]
   n_queries: [ 0 ]
-  p_bool: [ 0.8, 0.9 ]
+  p_bool: [ 0.2, 0.5, 0.8 ]
   depth: [ 3 ]
   v_lbound: [ 0 ]
   v_ubound: [ 1 ]
@@ -22,14 +22,7 @@ wmpy_synthetic:
   d_ubound: [ 3 ]
   c_lbound: [ -10 ]
   c_ubound: [ 10 ]
-  max_mono: [ 3 ]
-
-wmibench_synthetic_structured:
-  name:
-    - tpg_3ary_tree
-    - tpg_path
-    - tpg_star
-  size: [ 37 ]
+  max_mono: [ 2 ]
 
 wmibench_synthetic_pa:
   reals: [ 3, 7 ]
