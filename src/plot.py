@@ -172,6 +172,12 @@ def label(step: str) -> str:
         .replace(' A', r'$\mathbf{A}$')
         .replace('1st', r'$1^{st}$')
         .replace('2nd', r'$2^{nd}$')
+        .replace('model', 'truth assignment')
+        .replace('weighted ', '')
+        .replace('latte sae', 'sae[latte]')
+        .replace('wmi latte', 'wmi[latte]')
+        .replace('npolys', 'polytopes')
+        .replace('sdd', 'pysdd')
     )
 
 
@@ -209,7 +215,7 @@ def compare_columns(
 
         fig: plt.Figure
         ax: plt.Axes
-        fig, ax = plt.subplots(1, 1, figsize=(cm(20), cm(15)))
+        fig, ax = plt.subplots(1, 1, figsize=(cm(30), cm(11)))
 
         steps_x: list[str] = enumerator2steps[enum]
         limits_x: list[int] = list(it.accumulate(steps_x, lambda acc, _: acc + delta, initial=delta))
@@ -246,6 +252,13 @@ def compare_columns(
                 va='baseline',
                 clip_on=False,
             )
+
+        ax.text(
+            x=1, y=1,
+            s='.',
+            transform=transforms.offset_copy(ax.transAxes, units='dots', y=+limits_x[-1] + 4.5),
+            color='white',
+        )
 
         ax.plot(
             (minimum, max(maximum) * padding),
