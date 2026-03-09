@@ -69,13 +69,22 @@ rule all:
         ),
         expand("assets/plots/{pattern}/{type}",
             pattern=[
-                "exists_x",
-                "decdnnf_n"
+                ".*exists_x.*",
+                ".*decdnnf_n.*",
             ],
             type=[
                 "models to npolys",
                 "models to distinct_by_A",
                 "models to distinct_by_x",
+            ]
+        ),
+        expand("assets/plots/{pattern}/{type}",
+            pattern=[
+                "^wmi_decdnnf_n_mathsat_(sdd|d4)$",
+                "^wmi_decdnnf_n_mathsat_d4_phi_n_skeleton$",
+            ],
+            type=[
+                "models vs npolys",
             ]
         )
 

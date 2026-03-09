@@ -1285,10 +1285,11 @@ def main() -> None:
             pass
 
         case pattern:
+            repattern: re.Pattern[str] = re.compile(pattern)
             enumerator2steps = OrderedDict(
                 (k, v)
                 for k, v in enumerator2steps.items()
-                if pattern in k or 'sae' == k
+                if repattern.match(k) or 'sae' == k
             )
 
     df: pl.DataFrame = pl.read_csv(
