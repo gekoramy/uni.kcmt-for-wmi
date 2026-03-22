@@ -1,0 +1,30 @@
+[package]
+name = "ddnnife_cli"
+description = "d-DNNF toolkit"
+version = "0.11.0"
+edition = "2024"
+license = "LGPL-3.0-or-later"
+readme = "../README.md"
+workspace = ".."
+
+[[bin]]
+name = "ddnnife"
+path = "src/main.rs"
+
+[features]
+deterministic = ["ddnnife/deterministic"]
+
+[dependencies]
+clap = { workspace = true }
+csv = { workspace = true }
+ddnnife = { workspace = true }
+ddnnife_cnf = { workspace = true }
+log = { workspace = true }
+mimalloc = { workspace = true }
+nom = "8"
+nom_permutation = "1"
+pretty_env_logger = "0.5"
+serde_json = "1"
+
+[dev-dependencies]
+num = { workspace = true }

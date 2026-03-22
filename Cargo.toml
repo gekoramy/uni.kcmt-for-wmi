@@ -1,0 +1,29 @@
+[workspace]
+members = [
+    "ddnnife",
+    "ddnnife_bindgen",
+    "ddnnife_cli",
+    "ddnnife_cnf",
+    "ddnnife_dhone",
+    "ddnnife_ffi",
+]
+
+resolver = "2"
+
+[workspace.dependencies]
+clap = { version = "4", features = ["derive"] }
+csv = "1"
+ddnnife = { path = "ddnnife", version = "0.11" }
+ddnnife_cnf = { path = "ddnnife_cnf", version = "0.1" }
+log = "0.4"
+mimalloc = "0.1"
+num = "0.4"
+uniffi = { version = "0.30" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+
+[profile.flamegraph]
+inherits = "release"
+debug = true

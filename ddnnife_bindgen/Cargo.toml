@@ -1,0 +1,16 @@
+[package]
+name = "ddnnife_bindgen"
+description = "uniffi wrapper for ddnnife ffi bindings"
+version = "1.0.0"
+repository = "https://github.com/SoftVarE-Group/d-dnnf-reasoner"
+edition = "2024"
+license = "LGPL-3.0-or-later"
+workspace = ".."
+publish = false
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/main.rs"
+
+[dependencies]
+uniffi = { workspace = true, features = ["cli"] }

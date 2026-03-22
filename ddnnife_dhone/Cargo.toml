@@ -1,0 +1,17 @@
+[package]
+name = "ddnnife_dhone"
+description = "Smoothener for a d-DNNF produced by dsharp"
+version = "0.10.0"
+repository = "https://github.com/SoftVarE-Group/d-dnnf-reasoner"
+edition = "2024"
+license = "LGPL-3.0-or-later"
+workspace = ".."
+
+[[bin]]
+name = "dhone"
+path = "src/main.rs"
+
+[dependencies]
+clap = { workspace = true }
+ddnnife = { workspace = true }
+mimalloc = { workspace = true }

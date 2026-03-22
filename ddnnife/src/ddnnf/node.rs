@@ -1,0 +1,155 @@
+use num::BigInt;
+use std::fmt::{Display, Formatter};
+
+/// Represents all types of Nodes with its different parts
+#[derive(Debug, Clone, PartialEq)]
+pub struct Node {
+    pub(crate) marker: bool,
+    /// The cardinality of the node for the cardinality of a feature model
+    pub count: BigInt,
+    /// The cardinality during the different queries
+    pub temp: BigInt,
+    /// The cardinality during the different queries
+    pub partial_derivative: BigInt,
+    /// Every node excpet the root has (multiple) parent nodes
+    pub(crate) parents: Vec<usize>,
+    /// the different kinds of nodes with its additional fields
+    pub ntype: NodeType,
+}
+
+/// The Type of the Node declares how we handle the computation for the different types of cardinalities
+#[derive(Debug, Clone, PartialEq)]
+pub enum NodeType {
+    /// The cardinality of an And node is always the product of its childs
+    And { children: Vec<usize> },
+    /// The cardinality of an Or node is the sum of its children
+    Or { children: Vec<usize> },
+    /// The cardinality is one if not declared otherwise due to some query
+    Literal { literal: i32 },
+}
+
+impl Node {
+    #[inline]
+    /// Creates a new node
+    fn new_node(count: BigInt, ntype: NodeType) -> Node {
+        Node {
+            marker: false,
+            count,
+            temp: BigInt::ZERO,
+            partial_derivative: BigInt::ZERO,
+            parents: Vec::new(),
+            ntype,
+        }
+    }
+
+    #[inline]
+    /// Creates a new And node
+    pub fn new_and(count: BigInt, children: Vec<usize>) -> Node {
+        Node::new_node(count, NodeType::And { children })
+    }
+
+    #[inline]
+    /// Creates a new Or node
+    pub fn new_or(count: BigInt, children: Vec<usize>) -> Node {
+        Node::new_node(count, NodeType::Or { children })
+    }
+
+    #[inline]
+    /// Creates a new Literal node
+    pub fn new_literal(literal: i32) -> Node {
+        Node::new_node(BigInt::from(1), NodeType::Literal { literal })
+    }
+}
+
+impl Display for Node {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match &self.ntype {
+            NodeType::And { children } => {
+                write!(f, "A ")?;
+                deconstruct_children(f, children)
+            }
+            NodeType::Or { children } => {
+                write!(f, "O 0 ")?;
+                deconstruct_children(f, children)
+            }
+            NodeType::Literal { literal } => write!(f, "L {literal}"),
+        }
+    }
+}
+
+fn deconstruct_children(f: &mut Formatter<'_>, children: &[usize]) -> std::fmt::Result {
+    write!(f, "{} ", &children.len().to_string())?;
+    children.iter().enumerate().try_for_each(|(i, child)| {
+        write!(f, "{child}")?;
+
+        if i < children.len() - 1 {
+            write!(f, " ")?;
+        }
+
+        Ok(())
+    })
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn build_nodes() {
+        assert_eq!(
+            Node::new_and(BigInt::from(42), vec![1, 5, 10]),
+            Node {
+                marker: false,
+                count: BigInt::from(42),
+                temp: BigInt::ZERO,
+                partial_derivative: BigInt::ZERO,
+                parents: vec![],
+                ntype: NodeType::And {
+                    children: vec![1, 5, 10]
+                }
+            }
+        );
+        assert_eq!(
+            Node::new_node(
+                BigInt::from(42),
+                NodeType::And {
+                    children: vec![1, 5, 10]
+                }
+            ),
+            Node {
+                marker: false,
+                count: BigInt::from(42),
+                temp: BigInt::ZERO,
+                partial_derivative: BigInt::ZERO,
+                parents: vec![],
+                ntype: NodeType::And {
+                    children: vec![1, 5, 10]
+                }
+            }
+        );
+        assert_eq!(
+            Node::new_or(BigInt::from(42), vec![1, 5, 10]),
+            Node {
+                marker: false,
+                count: BigInt::from(42),
+                temp: BigInt::ZERO,
+                partial_derivative: BigInt::ZERO,
+                parents: vec![],
+                ntype: NodeType::Or {
+                    children: vec![1, 5, 10]
+                }
+            }
+        );
+        assert_eq!(
+            Node::new_literal(42),
+            Node {
+                marker: false,
+                count: BigInt::from(1),
+                temp: BigInt::ZERO,
+                partial_derivative: BigInt::ZERO,
+                parents: vec![],
+                ntype: NodeType::Literal { literal: 42 }
+            }
+        );
+    }
+}

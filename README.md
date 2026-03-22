@@ -1,0 +1,298 @@
+[![Crates.io Version](https://img.shields.io/crates/v/ddnnife)][crate]
+[![PyPI - Version](https://img.shields.io/pypi/v/ddnnife)][pypi]
+
+# ddnnife
+
+> A d-DNNF reasoner.
+
+`ddnnife` takes a smooth d-DNNF following the standard format specified by [c2d][c2d] or the [d4][d4] standard.
+It can be used to compute the cardinality of single features, all features, or partial configurations.
+Furthermore, it can compute SAT queries, core/dead features, atomic sets, enumerate complete valid configurations and produce uniform random samples.
+
+In addition to the `ddnnife` CLI, a [Rust API][crate] is provided as well as bindings for Kotlin/Java and [Python][pypi].
+
+# Installation
+
+## Pre-Built
+
+You can use pre-built binaries for Linux, macOS or Windows.
+Builds for the latest release are attached as assets for each [release][releases].
+
+## Nix
+
+This project can be used via a [Nix][nix] [flake][flake].
+With Nix installed simply run the following for a build:
+
+```
+nix build
+```
+
+The result will be at `result`.
+To build without the need to clone the repository, use:
+
+```
+nix build github:SoftVarE-Group/d-dnnf-reasoner
+```
+
+The following flake outputs are available:
+
+| Output            | Description                                      |
+|-------------------|--------------------------------------------------|
+| `ddnnife`         | Dynamic executable of ddnnife                    |
+| `ddnnife-static`  | Static executable of ddnnife                     |
+| `ddnnife-windows` | Windows executable of ddnnife                    |
+| `kotlin`          | Kotlin bindings as a JAR (platform-specific)[^1] |
+| `kotlin-windows`  | Kotlin bindings as a JAR (Windows)               |
+
+[^1]: There also is a platform-independent JAR available with each [release][releases].
+
+By default, the `ddnnife` output is built.
+
+## Container
+
+A container image is available for usage with [Docker][docker], [Podman][podman] or any other container tool.
+For an overview, see [here][container].
+There is a tag for each branch and for each tagged release.
+To pull the container, use:
+
+```
+docker pull ghcr.io/softvare-group/ddnnife:latest-amd64
+```
+
+There is also an `-arm64` image available.
+
+For `ddnnife` to be able to access files, you need to create a volume.
+The following mounts `<local/directory>` on `/work` inside the container:
+
+```
+docker run -v <local/directory>:/work ddnnife:main /work/<file.ddnnf> count
+```
+
+## From Source
+
+This requires a [Rust][rust] toolchain to be installed.
+When building with Cargo, the resulting binaries will be at `target/release/{ddnnife, dhone}`.
+
+```
+cargo build --release
+```
+
+# Usage
+
+## CLI
+
+Both `ddnnife` and `dhone` provide information via `--help`.
+Simply execute the binaries with the `-h`, `--help` flag to get an overview of all possible parameters and how to use them.
+
+### Examples
+
+The following examples assume `ddnnife` and `dhone` to be present in the path.
+This could be achieved by modifying `$PATH` on unix system for example.
+
+Preprocesses the d-DNNF: `berkeleydb_dsharp.nnf` which may need preprocessing because it was created with dsharp (in this case it is necessary) and save the resulting d-DNNF as `berkeleydb_prepo.nnf`.
+
+```
+ddnnife -i example_input/berkeleydb_dsharp.nnf --save-ddnnf example_input/berkeleydb_prepo.nnf
+```
+
+Computes the cardinality of a feature model for `auto1`.
+
+```
+ddnnife -i example_input/auto1_c2d.nnf count
+```
+
+Computes the cardinality of features for `busybox-1.18.0_c2d.nnf` and saves the result as `busybox-features.csv` in the current working directory.
+
+```
+ddnnife -i example_input/busybox-1.18.0_c2d.nnf -o busybox-features.csv count-features
+```
+
+Computes the cardinality of features for `auto1` when compiled with d4.
+Here we need the `-t` option that allows us to specify the total number of features.
+That information is needed but not contained in d-DNNFs using the d4 standard.
+Furthermore, the parsing takes more time because we have to smooth the d-DNNF.
+The results will be saved as `auto1_d4_2513-features.csv`.
+(Note that for the example input the number of features is part of the file name for d4 models.)
+
+```
+ddnnife -i example_input/auto1_d4_2513.nnf -t 2513 count-features
+```
+
+Compute the cardinality of `auto1` starting from a CNF file.
+Currently, the CNF file must be indicated by either the file ending `.cnf` or `.dimacs`.
+We use the d4 compiler to generate a dDNNF which we can use in the following steps.
+The `-t` option is not necessary, because the needed information if part of the CNF.
+
+```
+ddnnife -i example_input/auto1.cnf count
+```
+
+An alternative to the above, using the possibility to load a model via stdin.
+
+```
+cat example_input/auto1_d4_2513.nnf | ddnnife -t 2513 count
+```
+
+Compute the cardinality of partial configurations for `X264_c2d.nnf`.
+
+```
+ddnnife -i example_input/X264_c2d.nnf count-queries example_input/X264.config
+```
+
+Compute 100 uniform random samples for the auto1 model for seed 42.
+
+```
+ddnnife -i example_input/auto1_d4.nnf -t 2513 urs -n 100 -s 42
+```
+
+Compute the atomic sets for auto1.
+
+```
+ddnnife -i example_input/auto1_d4.nnf -t 2513 atomic-sets
+```
+
+Display the help information for the sat command.
+
+```
+ddnnife sat -h
+```
+
+Create the mermaid visualization of the small example d-DNNF under assumptions.
+The model count is 4 and the count for the partial configuration (2,4) is 1.
+
+```
+ddnnife -i example_input/small_example_c2d.nnf mermaid -a 2 4 
+```
+
+```mermaid
+	graph TD
+        subgraph pad1 [ ]
+            subgraph pad2 [ ]
+                subgraph legend[Legend]
+                    nodes("<font color=white> Node Type <font color=cyan> Node Number <font color=greeny> Count <font color=red> Temp Count <font color=orange> Query [2, 4]")
+                    style legend fill:none, stroke:none
+                end
+                style pad2 fill:none, stroke:none
+            end
+            style pad1 fill:none, stroke:none
+        end
+        classDef marked stroke:#d90000, stroke-width:4px
+
+		11("∧ <font color=cyan>11 <font color=greeny>4 <font color=red>1"):::marked --> 0 & 10 & 9;
+		10("∨ <font color=cyan>10 <font color=greeny>2 <font color=red>1"):::marked --> 5 & 6;
+		9("∨ <font color=cyan>9 <font color=greeny>2 <font color=red>1"):::marked --> 7 & 8;
+		8("∧ <font color=cyan>8 <font color=greeny>1 <font color=red>0"):::marked --> 3 & 4;
+		7("∧ <font color=cyan>7 <font color=greeny>1 <font color=red>1") --> 1 & 2;
+		6("¬L4 <font color=cyan>6 <font color=greeny>1 <font color=red>0"):::marked;
+		5("L4 <font color=cyan>5 <font color=greeny>1 <font color=red>1");
+		4("L3 <font color=cyan>4 <font color=greeny>1 <font color=red>1");
+		3("¬L2 <font color=cyan>3 <font color=greeny>1 <font color=red>0"):::marked;
+		2("¬L3 <font color=cyan>2 <font color=greeny>1 <font color=red>1");
+		1("L2 <font color=cyan>1 <font color=greeny>1 <font color=red>1");
+		0("L1 <font color=cyan>0 <font color=greeny>1 <font color=red>1");
+```
+
+## Stream API
+
+With the `stream` command, we introduce the possibility to interact with ddnnife via stdin and stdout.
+The user can choose between different kinds of queries that can be further adjusted with additional parameters.
+The idea behind the stream API is to interact with `ddnnife` with another program, but for testing purposes, one can use the stdin and stdout of a terminal to test the API.
+
+We start ddnnife in stream mode for the `automotive01` model via
+
+```
+ddnnife -i example_input/auto1_d4.nnf -t 2513 stream
+```
+
+From here on, we can use the following types of queries:
+
+- `count`: Computes the cardinality of a partial configuration
+- `core`: Lists core and dead features
+- `sat`: Computes if a partial configuration is satisfiable
+- `enum`: Lists complete satisfiable configurations
+- `random`: Gives uniform random samples (which are complete and satisfiable)
+- `atomic`: Computes atomic sets
+- `atomic-cross`: Computes atomic sets; a set can contain included and excluded features
+- `save-ddnnf <path>`: Saves the d-DNNF for future use.
+- `save-cnf <path>`: Builds a CNF and saves it.
+- `exit`: Leaves the stream mode
+
+Furthermore, where sensible, the types of queries can be combined with the parameters:
+
+- `v variables`: The features we are interested in
+- `a assumptions`: Assignments of features to true or false
+- `l limit`: The number of solutions
+- `s seed`: Seeding for random operations
+
+The table below depicts the possible combinations of a query type with the parameters. The order of parameters does NOT influence the result and if two or more parameters are valid, then every possible combination of those is also valid.
+Some parameters are optional and others are required. The usage should be intuitive. Otherwise, one can try and get an error message explaining what went wrong. The examples listed later serve as a guide.
+
+| query type / parameter | variables | assumptions | limit | seed |
+|------------------------|-----------|-------------|-------|------|
+| count                  |     ✔     |      ✔      |       |      |
+| core                   |     ✔     |      ✔      |       |      |
+| sat                    |     ✔     |      ✔      |       |      |
+| enum                   |           |      ✔      |   ✔   |   ✔  |
+| random                 |           |      ✔      |   ✔   |   ✔  |
+| atomic                 |     ✔     |      ✔      |       |      |
+| atomic-cross           |     ✔     |      ✔      |       |      |
+| save-ddnnf             |           |             |       |      |
+| exit                   |           |             |       |      |
+
+Sub-solutions (like multiple uniform random samples) will be separated by `;`.
+In a solution, the feature numbers are separated by a space.
+The end of an answer is indicated by a new line.
+
+### Examples
+
+Check whether features 10, 100, and 1000 are either core or dead under the assumption that feature 1 is deselected.
+
+```
+core a -1 v 10 100 1000
+```
+
+Compute the cardinality of partial configuration for the configurations: `[1, -4, -5, -6]`, `[2, -4, -5, -6]`, and `[3, -4, -5, -6]`.
+
+```
+count v 1 2 3 a -4 -5 -6
+```
+
+Similarly to count, we compute whether the partial configuration is satisfiable: `[1, -4, -5, -6]`, `[2, -4, -5, -6]`, and `[3, -4, -5, -6]`.
+
+```
+sat v 1 2 3 a -4 -5 -6
+```
+
+Lists all possible complete and valid configurations, with feature 1 selected and feature 2 deselected, as long as there are some left.
+Each following call will result in configurations that were not yet computed as results.
+After all configurations were returned as a result, we start again at the beginning.
+
+```
+enum l 10 a 1 -2
+```
+
+Creates 10 uniform random samples with the seed 42.
+If neither ```l``` nor ```s``` is set, one uniform random sample will be created.
+
+```
+random l 1 s 42
+```
+
+Computes all atomic sets for the candidates ```v``` under the assumptions ```a```.
+If no candidates are supplied, all features of the d-DNNF will be the candidates.
+
+```
+atomic v 1 2 3 4 5 6 7 8 9 10 a 1
+```
+
+[crate]: https://crates.io/crates/ddnnife
+[pypi]: https://pypi.org/project/ddnnife
+[releases]: https://github.com/SoftVarE-Group/d-dnnf-reasoner/releases
+[c2d]: http://reasoning.cs.ucla.edu/c2d
+[d4]: https://github.com/SoftVarE-Group/d4v2
+[rust]: https://rust-lang.org
+[nix]: https://nixos.org
+[flake]: https://wiki.nixos.org/wiki/Flakes
+[docker]: https://docker.com
+[podman]: https://podman.io
+[container]: https://github.com/SoftVarE-Group/d-dnnf-reasoner/pkgs/container/ddnnife

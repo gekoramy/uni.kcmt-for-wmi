@@ -1,0 +1,52 @@
+# Rust
+/target
+**/*.rs.bk
+
+# Local files for testing, debugging and analysing the code
+complete_exa/
+perf_analyse.sh
+history.txt
+tarpaulin-report.html
+tmp/
+valcom
+*.zip
+
+# ddnnife config input
+*.config
+
+# ddnnife output files (direct and indirect)
+*-features.csv
+*-queries.csv
+*-sat.csv
+*-atomic.csv
+*-wise.csv
+*-urs.csv
+*-stream.csv
+*-core.csv
+*-anomalies.txt
+*-saved.nnf
+*-mermaid.md
+*.svg
+
+# Nix
+result
+
+# Kotlin
+bindings/kotlin/src/main/kotlin/de/softvare/ddnnife/ddnnife.kt
+bindings/kotlin/.gradle
+bindings/kotlin/gradle
+bindings/kotlin/gradlew
+bindings/kotlin/gradlew.bat
+bindings/kotlin/build
+
+# Python
+.venv
+__pycache__
+
+# IDEs
+.idea
+*.iml
+.vscode
+
+# macOS
+.DS_Store
