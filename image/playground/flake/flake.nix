@@ -2,7 +2,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     crane.url = "github:ipetkov/crane";
-    ddnnife.url = "github:gekoramy/ddnnife";
+    ddnnife.url = "github:gekoramy/uni.kcmt-for-wmi/ddnnife";
   };
 
   outputs = {

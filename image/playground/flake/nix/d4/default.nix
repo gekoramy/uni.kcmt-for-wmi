@@ -29,10 +29,10 @@ in
     ];
 
     src = fetchFromGitHub {
-      owner = "ecivini";
-      repo = "d4v2";
-      rev = "dda4511f218dd250e5973d7c27271f7228edc210";
-      sha256 = "sha256-KV9Ofu4oqBkmuKD/LxO+nza0wcXiaJYg2RpdNr+Lmu0=";
+      owner = "gekoramy";
+      repo = "uni.kcmt-for-wmi";
+      rev = "d4";
+      sha256 = "sha256-BTGFTREheg/weZixOeJTsf3LOzlY01pCbCXupzF8qak=";
     };
 
     hardeningDisable = ["format"];

@@ -38,16 +38,17 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1769502060,
-        "narHash": "sha256-MoP29zrxYoPq9v4Azi1ELTiGoM3xBLd7fU4Tu+GPVq0=",
+        "lastModified": 1774181945,
+        "narHash": "sha256-NmHgN+yiHO5D+ykUh35oecMY3jfip6s/C+izeT0IUpo=",
         "owner": "gekoramy",
-        "repo": "ddnnife",
-        "rev": "d3716ba1b6192d8f94bf4d4190774af4594c5fd0",
+        "repo": "uni.kcmt-for-wmi",
+        "rev": "b1e7917fddf8f2136a6b0c7e4088bc96cdadb851",
         "type": "github"
       },
       "original": {
         "owner": "gekoramy",
-        "repo": "ddnnife",
+        "ref": "ddnnife",
+        "repo": "uni.kcmt-for-wmi",
         "type": "github"
       }
     },
