@@ -4,7 +4,7 @@ configfile: "configs/easy.yaml"
 
 validate(config,schema="configs/schema.json")
 
-container: "docker://ghcr.io/gekoramy/playground:bf72cd4fe47714146d2c4a1f102fb9d6a5437d9f"
+container: "docker://ghcr.io/gekoramy/playground:1250f728013da3f56d93ee6d5957cdfac4387137"
 
 
 def densities() -> list[str]:
@@ -583,7 +583,7 @@ for kind, suffix in [("phi_with_skeleton", "phi_n_skeleton"), ("phi_with_skeleto
                 --mapping {input.mapping} \
                 --bcs12 {output.bcs12}
             fi
-    
+
             touch {output}
             """
 
